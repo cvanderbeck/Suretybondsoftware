@@ -19,7 +19,7 @@ State persists in `localStorage`. Use **Settings → Reset Demo Data** to start 
 ## Features
 
 - **Dashboard** — KPIs, premium trend chart, bond-mix donut, expiring bonds, UW progress.
-- **Pipeline & Bids** — Kanban (Prospect → Quoting → Submitted → **Bid Awaiting** → Won/Lost) with drag-drop and CSV export. Convert won opportunities directly into bonds.
+- **Pipeline** — Kanban with the default 7-stage producer flow (Request Received → Pre-Qualification → Submission in Progress → Submitted to Underwriter → Underwriter Review → Approved – Pending Bid Results → Awarded - Ready to Issue). Drag-drop, CSV export, and **fully editable stages** (rename, reorder, add, delete via Manage Stages). Opportunities are editable any time; clicking the company name jumps to the Account file. **Convert to Bond** opens an Approved Bond Details form that captures bond #, surety partner, premium, rate, commission %, dates, QBO invoice #, and tracking timestamps before the bond is created.
 - **Accounts** — Rich account hub with tabs:
   - **Overview** — KPIs, primary contact card, renewal-due badges, company snapshot
   - **Company** — legal name, DBA, entity type, formation state, founded, NAICS, website, gross revenue, employees, single + aggregate bond capacity
@@ -30,7 +30,7 @@ State persists in `localStorage`. Use **Settings → Reset Demo Data** to start 
   - **Pipeline / Bids** — opportunities for this account with cross-link to the full pipeline
   - **Documents** — files tied to the account
   - **Emails** — mapped messages
-- **Bonds** — Full CRUD for bonds with per-bond **commission %**, premium calc, status, surety partner, and **PDF bond certificate export**. Bulk bonds report PDF too.
+- **Bonds** — Full CRUD with per-bond **commission %**, premium calc, status, surety partner, **QuickBooks Invoice #**, and **bond tracking timestamps** (Reported to Bond Co., Approved by Principal/Obligee, Sent Out to Principal — each editable inline with a one-click "Today" stamp). **PDF bond certificate export**, bulk bonds report PDF, and tracking-status dots on the list view.
 - **Renewals** — Dedicated page for upcoming bond expirations with a follow-up workflow:
   - Filter by window (30 / 60 / 90 / 120 / 180 days) and status
   - Per-bond renewal record with a 5-step pipeline: Upcoming → Outreach Started → Awaiting Response → Decision Made → Closed

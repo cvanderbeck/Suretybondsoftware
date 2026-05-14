@@ -26,9 +26,10 @@ Views.bonds = {
       <div class="card overflow-hidden">
         <table class="tbl">
           <thead><tr>
-            <th>Bond #</th><th>Type</th><th>Principal</th><th>Obligee</th>
+            <th>Bond #</th><th>QBO Inv #</th><th>Type</th><th>Principal</th><th>Obligee</th>
             <th class="text-right">Amount</th><th class="text-right">Premium</th>
-            <th>Surety</th><th>Status</th><th>Effective</th><th>Expires</th><th></th>
+            <th>Surety</th><th>Status</th><th title="Reported / Approved / Sent">Tracking</th>
+            <th>Effective</th><th>Expires</th><th></th>
           </tr></thead>
           <tbody id="bonds-tbody">${this.rows(bonds)}</tbody>
         </table>
@@ -36,14 +37,26 @@ Views.bonds = {
     `;
   },
 
+  trackingDots(b) {
+    const dot = (label, date) => date
+      ? `<span title="${label}: ${U.date(date)}" class="inline-block w-2.5 h-2.5 rounded-full bg-emerald-500"></span>`
+      : `<span title="${label}: not yet" class="inline-block w-2.5 h-2.5 rounded-full bg-slate-300"></span>`;
+    return `<div class="flex items-center gap-1">
+      ${dot('Reported to bond co.', b.reportedToBondCo)}
+      ${dot('Approved by obligee',   b.obligeeApproved)}
+      ${dot('Sent to principal',     b.sentToPrincipal)}
+    </div>`;
+  },
+
   rows(list) {
-    if (!list.length) return `<tr><td colspan="11" class="text-center text-slate-400 py-12">No bonds match.</td></tr>`;
+    if (!list.length) return `<tr><td colspan="13" class="text-center text-slate-400 py-12">No bonds match.</td></tr>`;
     return list.map(b => {
       const a = DB.findAccount(b.accountId) || {};
       const p = DB.findPartner(b.partnerId) || {};
       return `
         <tr class="cursor-pointer" onclick="Views.bonds.open('${b.id}')">
           <td class="font-medium text-brand-700">${b.number}</td>
+          <td class="font-mono text-xs">${U.esc(b.qboInvoiceNumber||'') || '<span class="text-slate-300">—</span>'}</td>
           <td>${U.esc(b.type)}</td>
           <td>${U.esc(a.name||'')}</td>
           <td class="max-w-[14rem] truncate">${U.esc(b.obligee||'')}</td>
@@ -51,6 +64,7 @@ Views.bonds = {
           <td class="text-right">${U.usd(b.premium)}</td>
           <td>${U.esc(p.name||'')}</td>
           <td>${U.statusBadge(b.status)}</td>
+          <td>${this.trackingDots(b)}</td>
           <td>${U.date(b.effective)}</td>
           <td>${U.date(b.expires)}</td>
           <td class="text-right">
@@ -114,6 +128,30 @@ Views.bonds = {
         </div>
       </div>
 
+      <div class="card mb-4">
+        <div class="card-header">
+          <div class="card-title">Bond Tracking</div>
+          <div class="text-xs text-slate-500">Mark milestones as they happen — click "Today" to stamp the current date.</div>
+        </div>
+        <div class="p-4 grid grid-cols-3 gap-4">
+          ${this._trackingTile('Reported to Bond Co.', 'reportedToBondCo', b)}
+          ${this._trackingTile('Approved by Principal/Obligee', 'obligeeApproved', b)}
+          ${this._trackingTile('Sent Out to Principal', 'sentToPrincipal', b)}
+        </div>
+      </div>
+
+      <div class="card mb-4">
+        <div class="card-header"><div class="card-title">QuickBooks</div></div>
+        <div class="p-4 flex items-end gap-3">
+          <div class="flex-1 max-w-xs">
+            <div class="field-label">QuickBooks Invoice #</div>
+            <input id="bd-qbo" class="field-input font-mono" value="${U.esc(b.qboInvoiceNumber||'')}" placeholder="e.g. 1047">
+          </div>
+          <button class="btn-secondary" onclick="Views.bonds._saveQbo('${id}')">Save Invoice #</button>
+          <div class="text-xs text-slate-500 ml-auto">Reference for matching to QuickBooks Online.</div>
+        </div>
+      </div>
+
       <div class="grid grid-cols-3 gap-4">
         <div class="card">
           <div class="card-header"><div class="card-title">Documents (${docs.length})</div>
@@ -170,6 +208,19 @@ Views.bonds = {
         <div><div class="field-label">Expires</div><input id="bf-exp" type="date" class="field-input" value="${b.expires||''}"></div>
         <div><div class="field-label">Status</div>
           <select id="bf-status-sel" class="field-select">${['Pending UW','Active','Expired','Cancelled'].map(s=>`<option ${s===b.status?'selected':''}>${s}</option>`).join('')}</select></div>
+        <div><div class="field-label">QuickBooks Invoice #</div>
+          <input id="bf-qbo" class="field-input font-mono" value="${U.esc(b.qboInvoiceNumber||'')}" placeholder="optional"></div>
+      </div>
+
+      <div class="divider"></div>
+      <div class="text-xs font-semibold text-slate-500 uppercase mb-2">Bond Tracking</div>
+      <div class="grid grid-cols-3 gap-3">
+        <div><div class="field-label">Reported to Bond Co.</div>
+          <input id="bf-rep" type="date" class="field-input" value="${U.esc(b.reportedToBondCo||'')}"></div>
+        <div><div class="field-label">Approved by Principal/Obligee</div>
+          <input id="bf-app" type="date" class="field-input" value="${U.esc(b.obligeeApproved||'')}"></div>
+        <div><div class="field-label">Sent Out to Principal</div>
+          <input id="bf-sent" type="date" class="field-input" value="${U.esc(b.sentToPrincipal||'')}"></div>
       </div>
     `;
     const footer = `<button class="btn-ghost" data-close>Cancel</button><button class="btn-primary" onclick="Views.bonds.save('${b.id}')">Save</button>`;
@@ -181,6 +232,39 @@ Views.bonds = {
     const amt = +document.getElementById('bf-amt').value || 0;
     const rate = +document.getElementById('bf-rate').value || 0;
     document.getElementById('bf-prem').value = Math.round(amt * rate / 100);
+  },
+
+  _trackingTile(label, key, b) {
+    const date = b[key];
+    const stamped = !!date;
+    return `
+      <div class="border rounded-lg p-3 ${stamped ? 'border-emerald-300 bg-emerald-50/40' : 'border-slate-200'}">
+        <div class="flex items-center justify-between">
+          <div class="text-sm font-medium">${label}</div>
+          <span class="badge ${stamped ? 'badge-green' : 'badge-slate'}">${stamped ? 'Done' : 'Not yet'}</span>
+        </div>
+        <div class="mt-2 flex items-center gap-2">
+          <input type="date" class="field-input text-sm" value="${U.esc(date||'')}"
+            onchange="Views.bonds._setTrack('${b.id}', '${key}', this.value)">
+          <button class="btn-secondary text-xs" onclick="Views.bonds._setTrack('${b.id}', '${key}', new Date().toISOString().slice(0,10))">Today</button>
+          ${stamped ? `<button class="btn-ghost text-xs text-rose-600" onclick="Views.bonds._setTrack('${b.id}', '${key}', '')">Clear</button>` : ''}
+        </div>
+      </div>`;
+  },
+
+  _setTrack(id, key, value) {
+    const b = DB.findBond(id); if (!b) return;
+    b[key] = value || null;
+    DB.save();
+    U.toast(value ? 'Updated' : 'Cleared', 'info');
+    this.open(id);
+  },
+
+  _saveQbo(id) {
+    const b = DB.findBond(id); if (!b) return;
+    b.qboInvoiceNumber = document.getElementById('bd-qbo').value || '';
+    DB.save();
+    U.toast('QBO invoice # saved');
   },
 
   save(id) {
@@ -200,6 +284,10 @@ Views.bonds = {
     b.effective = document.getElementById('bf-eff').value;
     b.expires   = document.getElementById('bf-exp').value;
     b.status    = document.getElementById('bf-status-sel').value;
+    b.qboInvoiceNumber = document.getElementById('bf-qbo').value || '';
+    b.reportedToBondCo = document.getElementById('bf-rep').value  || null;
+    b.obligeeApproved  = document.getElementById('bf-app').value  || null;
+    b.sentToPrincipal  = document.getElementById('bf-sent').value || null;
     DB.save();
     U.closeModals();
     U.toast(isNew ? 'Bond created' : 'Bond updated');

@@ -1,6 +1,6 @@
 // ---------- Sample / seed data, persistence layer ----------
 window.DB = (() => {
-  const KEY = 'bondvault.db.v3';
+  const KEY = 'bondvault.db.v4';
 
   const sampleData = () => ({
     accounts: [
@@ -160,15 +160,15 @@ window.DB = (() => {
         return d.toISOString().slice(0,10);
       };
       return [
-        { id: 'B-2401', number: 'SF-2024-00121', accountId: 'A-1001', partnerId: 'P-01', type: 'Performance', obligee: 'City of Portland - PBOT', project: 'SE Division St Repaving (Phase 2)', amount: 1250000, premium: 18750, rate: 1.5, commissionRate: 25, effective: days(-300), expires: days(65),  status: 'Active' },
-        { id: 'B-2402', number: 'SF-2024-00122', accountId: 'A-1001', partnerId: 'P-01', type: 'Payment',     obligee: 'City of Portland - PBOT', project: 'SE Division St Repaving (Phase 2)', amount: 1250000, premium: 0,     rate: 0,   commissionRate: 0,  effective: days(-300), expires: days(65),  status: 'Active' },
-        { id: 'B-2403', number: 'SF-2024-00130', accountId: 'A-1002', partnerId: 'P-02', type: 'Bid',         obligee: 'Salem-Keizer School District', project: 'McKay HS HVAC Replacement',     amount: 480000,  premium: 0,     rate: 0,   commissionRate: 0,  effective: days(-30),  expires: days(28),  status: 'Active' },
-        { id: 'B-2404', number: 'SF-2024-00141', accountId: 'A-1003', partnerId: 'P-03', type: 'License',     obligee: 'FMCSA',                  project: 'BMC-84 Broker Authority',          amount: 75000,   premium: 1875,  rate: 2.5, commissionRate: 30, effective: days(-120), expires: days(245), status: 'Active' },
-        { id: 'B-2405', number: 'SF-2024-00150', accountId: 'A-1005', partnerId: 'P-04', type: 'License',     obligee: 'Oregon DMV',             project: 'MV Dealer Bond',                   amount: 50000,   premium: 350,   rate: 0.7, commissionRate: 30, effective: days(-330), expires: days(35),  status: 'Active' },
-        { id: 'B-2406', number: 'SF-2024-00155', accountId: 'A-1006', partnerId: 'P-05', type: 'License',     obligee: 'Idaho SOS',              project: 'Notary Bond',                      amount: 10000,   premium: 50,    rate: 0.5, commissionRate: 35, effective: days(-90),  expires: days(1370),status: 'Active' },
-        { id: 'B-2407', number: 'SF-2024-00170', accountId: 'A-1004', partnerId: 'P-02', type: 'Performance', obligee: 'Port of Seattle',        project: 'Pier 66 Dredging Maintenance',     amount: 875000,  premium: 14000, rate: 1.6, commissionRate: 25, effective: days(-13),  expires: days(50),  status: 'Active' },
-        { id: 'B-2408', number: 'SF-2024-00171', accountId: 'A-1007', partnerId: 'P-03', type: 'License',     obligee: 'CA CSLB',                project: 'Contractor License Bond',          amount: 25000,   premium: 250,   rate: 1.0, commissionRate: 30, effective: days(-42),  expires: days(82),  status: 'Active' },
-        { id: 'B-2409', number: 'SF-2024-00180', accountId: 'A-1001', partnerId: 'P-06', type: 'Performance', obligee: 'Multnomah County',       project: 'Library Renovation',               amount: 620000,  premium: 9300,  rate: 1.5, commissionRate: 25, effective: days(-280), expires: days(85),  status: 'Active' },
+        { id: 'B-2401', number: 'SF-2024-00121', accountId: 'A-1001', partnerId: 'P-01', type: 'Performance', obligee: 'City of Portland - PBOT', project: 'SE Division St Repaving (Phase 2)', amount: 1250000, premium: 18750, rate: 1.5, commissionRate: 25, effective: days(-300), expires: days(65),  status: 'Active', qboInvoiceNumber: '1041',          reportedToBondCo: days(-301), obligeeApproved: days(-298), sentToPrincipal: days(-298) },
+        { id: 'B-2402', number: 'SF-2024-00122', accountId: 'A-1001', partnerId: 'P-01', type: 'Payment',     obligee: 'City of Portland - PBOT', project: 'SE Division St Repaving (Phase 2)', amount: 1250000, premium: 0,     rate: 0,   commissionRate: 0,  effective: days(-300), expires: days(65),  status: 'Active', qboInvoiceNumber: '',              reportedToBondCo: days(-301), obligeeApproved: days(-298), sentToPrincipal: days(-298) },
+        { id: 'B-2403', number: 'SF-2024-00130', accountId: 'A-1002', partnerId: 'P-02', type: 'Bid',         obligee: 'Salem-Keizer School District', project: 'McKay HS HVAC Replacement',     amount: 480000,  premium: 0,     rate: 0,   commissionRate: 0,  effective: days(-30),  expires: days(28),  status: 'Active', qboInvoiceNumber: '',              reportedToBondCo: days(-31),  obligeeApproved: days(-28),  sentToPrincipal: days(-28) },
+        { id: 'B-2404', number: 'SF-2024-00141', accountId: 'A-1003', partnerId: 'P-03', type: 'License',     obligee: 'FMCSA',                  project: 'BMC-84 Broker Authority',          amount: 75000,   premium: 1875,  rate: 2.5, commissionRate: 30, effective: days(-120), expires: days(245), status: 'Active', qboInvoiceNumber: '1042',          reportedToBondCo: days(-121), obligeeApproved: days(-118), sentToPrincipal: days(-118) },
+        { id: 'B-2405', number: 'SF-2024-00150', accountId: 'A-1005', partnerId: 'P-04', type: 'License',     obligee: 'Oregon DMV',             project: 'MV Dealer Bond',                   amount: 50000,   premium: 350,   rate: 0.7, commissionRate: 30, effective: days(-330), expires: days(35),  status: 'Active', qboInvoiceNumber: '1043',          reportedToBondCo: days(-331), obligeeApproved: days(-328), sentToPrincipal: days(-328) },
+        { id: 'B-2406', number: 'SF-2024-00155', accountId: 'A-1006', partnerId: 'P-05', type: 'License',     obligee: 'Idaho SOS',              project: 'Notary Bond',                      amount: 10000,   premium: 50,    rate: 0.5, commissionRate: 35, effective: days(-90),  expires: days(1370),status: 'Active', qboInvoiceNumber: '1044',          reportedToBondCo: days(-91),  obligeeApproved: days(-88),  sentToPrincipal: days(-88) },
+        { id: 'B-2407', number: 'SF-2024-00170', accountId: 'A-1004', partnerId: 'P-02', type: 'Performance', obligee: 'Port of Seattle',        project: 'Pier 66 Dredging Maintenance',     amount: 875000,  premium: 14000, rate: 1.6, commissionRate: 25, effective: days(-13),  expires: days(50),  status: 'Active', qboInvoiceNumber: '',              reportedToBondCo: days(-14),  obligeeApproved: null,         sentToPrincipal: null },
+        { id: 'B-2408', number: 'SF-2024-00171', accountId: 'A-1007', partnerId: 'P-03', type: 'License',     obligee: 'CA CSLB',                project: 'Contractor License Bond',          amount: 25000,   premium: 250,   rate: 1.0, commissionRate: 30, effective: days(-42),  expires: days(82),  status: 'Active', qboInvoiceNumber: '1045',          reportedToBondCo: days(-43),  obligeeApproved: days(-40),  sentToPrincipal: days(-40) },
+        { id: 'B-2409', number: 'SF-2024-00180', accountId: 'A-1001', partnerId: 'P-06', type: 'Performance', obligee: 'Multnomah County',       project: 'Library Renovation',               amount: 620000,  premium: 9300,  rate: 1.5, commissionRate: 25, effective: days(-280), expires: days(85),  status: 'Active', qboInvoiceNumber: '1046',          reportedToBondCo: days(-281), obligeeApproved: days(-278), sentToPrincipal: days(-278) },
       ];
     })(),
     partners: [
@@ -179,14 +179,23 @@ window.DB = (() => {
       { id: 'P-05', name: 'NGM Insurance — Surety',   rating: 'A   IX', appetite: 'Small commercial / notary / probate',                       contactName: 'Linda Park',                                          email: 'lpark@ngm.example',                     phone: '(800) 555-0105', portalUrl: 'https://ngm.example/agentportal',             commissionRate: 35, active: true },
       { id: 'P-06', name: 'Great American Surety',    rating: 'A+ XIV', appetite: 'GC large contract, subdivision, court',                     contactName: 'Robert Tan',                                          email: 'rtan@greatamerican.example',            phone: '(800) 555-0106', portalUrl: 'https://greatamerican.example/portal',         commissionRate: 25, active: true },
     ],
+    pipelineStages: [
+      'Request Received',
+      'Pre-Qualification',
+      'Submission in Progress',
+      'Submitted to Underwriter',
+      'Underwriter Review',
+      'Approved – Pending Bid Results',
+      'Awarded - Ready to Issue',
+    ],
     pipeline: [
-      { id: 'PL-001', stage: 'Prospect',    accountId: 'A-1001', bondType: 'Performance', amount: 2500000, obligee: 'ODOT', dueDate: '2026-06-10', notes: 'Hwy 26 widening — RFP just dropped', producer: 'CV', probability: 30 },
-      { id: 'PL-002', stage: 'Quoting',     accountId: 'A-1002', bondType: 'Performance', amount: 800000,  obligee: 'Marion County', dueDate: '2026-05-22', notes: 'Submitted to Hartford + Liberty', producer: 'CV', probability: 55 },
-      { id: 'PL-003', stage: 'Submitted',   accountId: 'A-1004', bondType: 'Performance', amount: 875000,  obligee: 'Port of Seattle', dueDate: '2026-05-20', notes: 'Awaiting Liberty UW decision', producer: 'CV', probability: 70 },
-      { id: 'PL-004', stage: 'Bid Awaiting',accountId: 'A-1002', bondType: 'Bid',         amount: 480000,  obligee: 'Salem-Keizer SD', dueDate: '2026-05-15', notes: 'Bid opens 5/15 @ 2pm', producer: 'CV', probability: 50 },
-      { id: 'PL-005', stage: 'Bid Awaiting',accountId: 'A-1007', bondType: 'Bid',         amount: 320000,  obligee: 'BART', dueDate: '2026-05-28', notes: 'Public bid, electrical subcontract', producer: 'CV', probability: 40 },
-      { id: 'PL-006', stage: 'Won',         accountId: 'A-1001', bondType: 'Performance', amount: 1250000, obligee: 'City of Portland', dueDate: '2026-03-04', notes: 'Issued — see B-2401', producer: 'CV', probability: 100 },
-      { id: 'PL-007', stage: 'Lost',        accountId: 'A-1003', bondType: 'Performance', amount: 450000,  obligee: 'WSDOT', dueDate: '2026-04-30', notes: 'Lost on price', producer: 'CV', probability: 0 },
+      { id: 'PL-001', stage: 'Request Received',              accountId: 'A-1001', bondType: 'Performance', amount: 2500000, obligee: 'ODOT',                  dueDate: '2026-06-10', notes: 'Hwy 26 widening — RFP just dropped',                producer: 'CV', probability: 20 },
+      { id: 'PL-002', stage: 'Pre-Qualification',             accountId: 'A-1002', bondType: 'Performance', amount: 800000,  obligee: 'Marion County',         dueDate: '2026-05-22', notes: 'Pulling financials and WIP for pre-qual',           producer: 'CV', probability: 40 },
+      { id: 'PL-003', stage: 'Submission in Progress',        accountId: 'A-1004', bondType: 'Performance', amount: 875000,  obligee: 'Port of Seattle',       dueDate: '2026-05-20', notes: 'Building Liberty Mutual submission package',        producer: 'CV', probability: 55 },
+      { id: 'PL-004', stage: 'Submitted to Underwriter',      accountId: 'A-1002', bondType: 'Bid',         amount: 480000,  obligee: 'Salem-Keizer SD',       dueDate: '2026-05-15', notes: 'Sent to Liberty UW 5/12 — awaiting acknowledgement', producer: 'CV', probability: 60 },
+      { id: 'PL-005', stage: 'Underwriter Review',            accountId: 'A-1007', bondType: 'Bid',         amount: 320000,  obligee: 'BART',                  dueDate: '2026-05-28', notes: 'Old Republic UW reviewing — additional questions',   producer: 'CV', probability: 65 },
+      { id: 'PL-006', stage: 'Approved – Pending Bid Results',accountId: 'A-1001', bondType: 'Bid',         amount: 1250000, obligee: 'City of Portland',      dueDate: '2026-05-29', notes: 'Approved by Hartford — bid opens 5/29 @ 2pm',         producer: 'CV', probability: 75 },
+      { id: 'PL-007', stage: 'Awarded - Ready to Issue',      accountId: 'A-1004', bondType: 'Performance', amount: 875000,  obligee: 'Port of Seattle',       dueDate: '2026-05-20', notes: 'Awarded — convert to bond and issue',                producer: 'CV', probability: 100 },
     ],
     underwriting: [
       { id: 'UW-001', bondId: 'B-2407', step: 3, requirements: [
@@ -398,10 +407,15 @@ Thanks,
     uw:       () => state.underwriting,
     docs:     () => state.documents,
     emails:   () => state.emails,
-    invoices:  () => state.invoices,
-    renewals:  () => (state.renewals = state.renewals || []),
-    templates: () => (state.emailTemplates = state.emailTemplates || []),
-    settings:  () => state.settings,
+    invoices:       () => state.invoices,
+    renewals:       () => (state.renewals = state.renewals || []),
+    templates:      () => (state.emailTemplates = state.emailTemplates || []),
+    pipelineStages: () => (state.pipelineStages = state.pipelineStages || [
+      'Request Received','Pre-Qualification','Submission in Progress',
+      'Submitted to Underwriter','Underwriter Review',
+      'Approved – Pending Bid Results','Awarded - Ready to Issue',
+    ]),
+    settings:       () => state.settings,
 
     findAccount: (id) => state.accounts.find(a => a.id === id),
     findBond:    (id) => state.bonds.find(b => b.id === id),
