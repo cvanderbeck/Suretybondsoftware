@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SureFlow — Surety Bond Agency Management</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50:  '#eef4ff',
+              100: '#dbe6ff',
+              200: '#bccfff',
+              300: '#8eadff',
+              400: '#5d83ff',
+              500: '#3a5dff',
+              600: '#2a40f5',
+              700: '#2330d6',
+              800: '#1f2aa8',
+              900: '#1d2882',
+            }
+          },
+          fontFamily: {
+            sans: ['Inter', 'system-ui', 'sans-serif']
+          }
+        }
+      }
+    }
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/styles.css" />
+  <style type="text/tailwindcss">
+    @layer components {
+      .nav-link { @apply flex items-center gap-3 px-5 py-2 text-sm text-slate-300 hover:bg-slate-800 hover:text-white cursor-pointer transition-colors; }
+      .nav-link.active { @apply bg-slate-800 text-white border-l-2 border-brand-400; }
+      .nav-link i[data-i] { @apply inline-flex w-5 h-5 items-center justify-center text-slate-400; }
+      .nav-link.active i[data-i] { @apply text-brand-300; }
+
+      .btn-primary   { @apply inline-flex items-center gap-2 px-3.5 py-2 rounded-lg bg-brand-600 hover:bg-brand-700 text-white text-sm font-medium shadow-sm transition; }
+      .btn-secondary { @apply inline-flex items-center gap-2 px-3.5 py-2 rounded-lg bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-sm font-medium transition; }
+      .btn-ghost     { @apply inline-flex items-center gap-2 px-3 py-1.5 rounded-md text-slate-600 hover:bg-slate-100 text-sm font-medium transition; }
+      .btn-danger    { @apply inline-flex items-center gap-2 px-3.5 py-2 rounded-lg bg-rose-600 hover:bg-rose-700 text-white text-sm font-medium transition; }
+
+      .card         { @apply bg-white rounded-xl border border-slate-200 shadow-sm; }
+      .card-header  { @apply px-5 py-4 border-b border-slate-100 flex items-center justify-between; }
+      .card-title   { @apply text-sm font-semibold text-slate-800; }
+      .stat-card    { @apply bg-white rounded-xl border border-slate-200 p-5 shadow-sm; }
+      .stat-label   { @apply text-xs text-slate-500 font-medium uppercase tracking-wide; }
+      .stat-value   { @apply text-2xl font-bold text-slate-900 mt-1; }
+      .stat-delta-up   { @apply text-emerald-600 text-xs font-medium mt-1; }
+      .stat-delta-down { @apply text-rose-600 text-xs font-medium mt-1; }
+
+      .tbl                  { @apply w-full text-sm; }
+      .tbl thead th         { @apply text-left text-xs font-semibold text-slate-500 uppercase tracking-wider px-4 py-3 border-b border-slate-200 bg-slate-50; }
+      .tbl tbody td         { @apply px-4 py-3 border-b border-slate-100 text-slate-700 align-middle; }
+      .tbl tbody tr:hover   { @apply bg-slate-50; }
+
+      .badge        { @apply inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium; }
+      .badge-blue   { @apply bg-blue-100 text-blue-700; }
+      .badge-green  { @apply bg-emerald-100 text-emerald-700; }
+      .badge-amber  { @apply bg-amber-100 text-amber-700; }
+      .badge-rose   { @apply bg-rose-100 text-rose-700; }
+      .badge-slate  { @apply bg-slate-100 text-slate-700; }
+      .badge-violet { @apply bg-violet-100 text-violet-700; }
+
+      .field-label    { @apply text-xs font-medium text-slate-600 mb-1 block; }
+      .field-input    { @apply w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-200 focus:border-brand-400; }
+      .field-select   { @apply w-full px-3 py-2 border border-slate-200 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-brand-200 focus:border-brand-400; }
+      .field-textarea { @apply w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-200 focus:border-brand-400; }
+
+      .modal-backdrop { @apply fixed inset-0 z-40 bg-slate-900/50 flex items-center justify-center p-4; }
+      .modal          { @apply bg-white rounded-xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-hidden flex flex-col; }
+      .modal-lg       { @apply max-w-5xl; }
+      .modal-header   { @apply px-6 py-4 border-b border-slate-200 flex items-center justify-between; }
+      .modal-body     { @apply p-6 overflow-y-auto flex-1; }
+      .modal-footer   { @apply px-6 py-4 border-t border-slate-200 flex items-center justify-end gap-2 bg-slate-50; }
+
+      .kanban-col        { @apply bg-slate-100 rounded-xl p-3 flex flex-col min-h-[400px]; }
+      .kanban-col-header { @apply flex items-center justify-between mb-3 px-1; }
+      .kanban-card       { @apply bg-white rounded-lg border border-slate-200 p-3 mb-2 cursor-pointer hover:shadow-md transition; }
+
+      .toast            { @apply px-4 py-3 rounded-lg shadow-lg text-sm text-white flex items-center gap-2; }
+      .divider          { @apply border-t border-slate-200 my-4; }
+      .kbd              { @apply inline-flex items-center px-1.5 py-0.5 text-[10px] font-mono bg-slate-100 border border-slate-200 rounded text-slate-600; }
+      .section-title    { @apply text-lg font-semibold text-slate-900; }
+      .section-sub      { @apply text-sm text-slate-500; }
+      .dropzone         { @apply border-2 border-dashed border-slate-300 rounded-xl p-6 text-center text-slate-500 text-sm hover:border-brand-400 cursor-pointer transition; }
+      .chk              { @apply h-4 w-4 rounded border-slate-300 text-brand-600 focus:ring-brand-400; }
+      .progress         { @apply h-2 bg-slate-100 rounded-full overflow-hidden; }
+      .progress > div   { @apply h-full bg-brand-500 rounded-full transition-all; }
+    }
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.0/jspdf.plugin.autotable.min.js"></script>
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans antialiased">
+
+  <!-- App Shell -->
+  <div class="flex h-screen overflow-hidden">
+
+    <!-- Sidebar -->
+    <aside class="w-64 bg-slate-900 text-slate-200 flex flex-col flex-shrink-0">
+      <div class="px-5 py-5 border-b border-slate-800 flex items-center gap-3">
+        <div class="w-9 h-9 rounded-lg bg-gradient-to-br from-brand-400 to-brand-600 flex items-center justify-center font-bold text-white">S</div>
+        <div>
+          <div class="font-semibold text-white">SureFlow</div>
+          <div class="text-xs text-slate-400">Surety Agency OS</div>
+        </div>
+      </div>
+
+      <nav class="flex-1 overflow-y-auto py-3" id="sidebar-nav">
+        <div class="px-3 text-xs uppercase tracking-wider text-slate-500 mb-2 mt-1">Workflow</div>
+        <a data-view="dashboard" class="nav-link"><i data-i="dashboard"></i> Dashboard</a>
+        <a data-view="pipeline"  class="nav-link"><i data-i="pipeline"></i> Pipeline & Bids</a>
+        <a data-view="accounts"  class="nav-link"><i data-i="accounts"></i> Accounts</a>
+        <a data-view="bonds"     class="nav-link"><i data-i="bonds"></i> Bonds</a>
+        <a data-view="underwriting" class="nav-link"><i data-i="uw"></i> Underwriting</a>
+
+        <div class="px-3 text-xs uppercase tracking-wider text-slate-500 mb-2 mt-5">Tools</div>
+        <a data-view="calculator" class="nav-link"><i data-i="calc"></i> Premium Calculator</a>
+        <a data-view="documents"  class="nav-link"><i data-i="docs"></i> Documents</a>
+        <a data-view="commissions" class="nav-link"><i data-i="commissions"></i> Commissions</a>
+        <a data-view="invoicing"  class="nav-link"><i data-i="invoice"></i> Invoicing &amp; QBO</a>
+
+        <div class="px-3 text-xs uppercase tracking-wider text-slate-500 mb-2 mt-5">Connections</div>
+        <a data-view="email"     class="nav-link"><i data-i="email"></i> Email Integration</a>
+        <a data-view="partners"  class="nav-link"><i data-i="partners"></i> Bond Company Partners</a>
+        <a data-view="settings"  class="nav-link"><i data-i="settings"></i> Settings</a>
+      </nav>
+
+      <div class="border-t border-slate-800 p-4 flex items-center gap-3">
+        <div class="w-9 h-9 rounded-full bg-brand-500 text-white flex items-center justify-center text-sm font-semibold">CV</div>
+        <div class="flex-1 min-w-0">
+          <div class="text-sm text-white truncate">Casey Vanderbeck</div>
+          <div class="text-xs text-slate-400 truncate">Producer · Admin</div>
+        </div>
+        <button class="text-slate-400 hover:text-white text-xs">⚙</button>
+      </div>
+    </aside>
+
+    <!-- Main -->
+    <div class="flex-1 flex flex-col overflow-hidden">
+      <header class="bg-white border-b border-slate-200 px-6 h-16 flex items-center gap-4 flex-shrink-0">
+        <div class="flex-1 max-w-xl relative">
+          <input id="global-search" type="text" placeholder="Search accounts, bonds, obligees, bid numbers…"
+            class="w-full pl-9 pr-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-200 focus:border-brand-400" />
+          <svg class="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-4.35-4.35m0 0A7.5 7.5 0 1010.5 18a7.5 7.5 0 006.15-1.35z"/></svg>
+        </div>
+        <div class="flex items-center gap-2">
+          <button class="btn-secondary" onclick="App.openQuickQuote()">+ New Quote</button>
+          <button class="btn-primary" onclick="App.openNewBond()">+ New Bond</button>
+        </div>
+      </header>
+
+      <main id="view" class="flex-1 overflow-y-auto p-6"></main>
+    </div>
+  </div>
+
+  <!-- Modal root -->
+  <div id="modal-root"></div>
+  <div id="toast-root" class="fixed bottom-6 right-6 z-50 space-y-2"></div>
+
+  <!-- App scripts -->
+  <script src="js/icons.js"></script>
+  <script src="js/data.js"></script>
+  <script src="js/utils.js"></script>
+  <script src="js/pdf.js"></script>
+  <script src="js/views/dashboard.js"></script>
+  <script src="js/views/pipeline.js"></script>
+  <script src="js/views/accounts.js"></script>
+  <script src="js/views/bonds.js"></script>
+  <script src="js/views/underwriting.js"></script>
+  <script src="js/views/calculator.js"></script>
+  <script src="js/views/documents.js"></script>
+  <script src="js/views/commissions.js"></script>
+  <script src="js/views/invoicing.js"></script>
+  <script src="js/views/email.js"></script>
+  <script src="js/views/partners.js"></script>
+  <script src="js/views/settings.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
