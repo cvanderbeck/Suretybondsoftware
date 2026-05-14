@@ -226,8 +226,10 @@ window.Compose = (() => {
       preview: body.slice(0, 180),
       body,
       date:   new Date().toISOString(),
-      accountId: _state.account?.id || null,
-      bondId:    _state.bond?.id    || null,
+      accountId:  _state.account?.id  || null,
+      bondId:     _state.bond?.id     || null,
+      pipelineId: _state.pipeline?.id || null,
+      renewalId:  _state.renewal?.id  || null,
       read:   true,
     });
 
@@ -241,6 +243,20 @@ window.Compose = (() => {
       });
       _state.renewal.contactedDate = new Date().toISOString().slice(0,10);
       if (_state.renewal.status === 'upcoming') _state.renewal.status = 'outreach';
+    }
+
+    // If wired to a pipeline opportunity, log it in the activity timeline.
+    if (_state.pipeline) {
+      _state.pipeline.activity = _state.pipeline.activity || [];
+      _state.pipeline.activity.push({
+        id: U.uid('AC'),
+        date: new Date().toISOString(),
+        author: 'Casey V.',
+        type:   'email',
+        subject: subj,
+        text:    `Sent to ${_state.to}: ${body.slice(0, 240)}${body.length>240?'…':''}`,
+        emailId: id,
+      });
     }
 
     DB.save();

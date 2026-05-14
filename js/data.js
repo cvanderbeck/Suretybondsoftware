@@ -1,6 +1,6 @@
 // ---------- Sample / seed data, persistence layer ----------
 window.DB = (() => {
-  const KEY = 'bondvault.db.v4';
+  const KEY = 'bondvault.db.v5';
 
   const sampleData = () => ({
     accounts: [
@@ -189,13 +189,38 @@ window.DB = (() => {
       'Awarded - Ready to Issue',
     ],
     pipeline: [
-      { id: 'PL-001', stage: 'Request Received',              accountId: 'A-1001', bondType: 'Performance', amount: 2500000, obligee: 'ODOT',                  dueDate: '2026-06-10', notes: 'Hwy 26 widening — RFP just dropped',                producer: 'CV', probability: 20 },
-      { id: 'PL-002', stage: 'Pre-Qualification',             accountId: 'A-1002', bondType: 'Performance', amount: 800000,  obligee: 'Marion County',         dueDate: '2026-05-22', notes: 'Pulling financials and WIP for pre-qual',           producer: 'CV', probability: 40 },
-      { id: 'PL-003', stage: 'Submission in Progress',        accountId: 'A-1004', bondType: 'Performance', amount: 875000,  obligee: 'Port of Seattle',       dueDate: '2026-05-20', notes: 'Building Liberty Mutual submission package',        producer: 'CV', probability: 55 },
-      { id: 'PL-004', stage: 'Submitted to Underwriter',      accountId: 'A-1002', bondType: 'Bid',         amount: 480000,  obligee: 'Salem-Keizer SD',       dueDate: '2026-05-15', notes: 'Sent to Liberty UW 5/12 — awaiting acknowledgement', producer: 'CV', probability: 60 },
-      { id: 'PL-005', stage: 'Underwriter Review',            accountId: 'A-1007', bondType: 'Bid',         amount: 320000,  obligee: 'BART',                  dueDate: '2026-05-28', notes: 'Old Republic UW reviewing — additional questions',   producer: 'CV', probability: 65 },
-      { id: 'PL-006', stage: 'Approved – Pending Bid Results',accountId: 'A-1001', bondType: 'Bid',         amount: 1250000, obligee: 'City of Portland',      dueDate: '2026-05-29', notes: 'Approved by Hartford — bid opens 5/29 @ 2pm',         producer: 'CV', probability: 75 },
-      { id: 'PL-007', stage: 'Awarded - Ready to Issue',      accountId: 'A-1004', bondType: 'Performance', amount: 875000,  obligee: 'Port of Seattle',       dueDate: '2026-05-20', notes: 'Awarded — convert to bond and issue',                producer: 'CV', probability: 100 },
+      { id: 'PL-001', stage: 'Request Received',              accountId: 'A-1001', bondType: 'Performance', amount: 2500000, obligee: 'ODOT',                  dueDate: '2026-06-10', notes: 'Hwy 26 widening — RFP just dropped',                producer: 'CV', probability: 20, bidResult: 'pending',
+        activity: [
+          { id: 'AC-001', date: '2026-05-10T11:02', author: 'Janet Pierce', type: 'email',    subject: 'New bid opportunity — ODOT Hwy 26', text: 'Inbound — Janet wants to bid Hwy 26 widening, est. $2.5M.' },
+        ] },
+      { id: 'PL-002', stage: 'Pre-Qualification',             accountId: 'A-1002', bondType: 'Performance', amount: 800000,  obligee: 'Marion County',         dueDate: '2026-05-22', notes: 'Pulling financials and WIP for pre-qual',           producer: 'CV', probability: 40, bidResult: 'pending',
+        activity: [
+          { id: 'AC-002', date: '2026-05-09T09:10', author: 'Casey V.', type: 'note', text: 'Requested updated WIP from Cascade for pre-qual.' },
+        ] },
+      { id: 'PL-003', stage: 'Submission in Progress',        accountId: 'A-1004', bondType: 'Performance', amount: 875000,  obligee: 'Port of Seattle',       dueDate: '2026-05-20', notes: 'Building Liberty Mutual submission package',        producer: 'CV', probability: 55, bidResult: 'pending' },
+      { id: 'PL-004', stage: 'Submitted to Underwriter',      accountId: 'A-1002', bondType: 'Bid',         amount: 480000,  obligee: 'Salem-Keizer SD',       dueDate: '2026-05-15', notes: 'Sent to Liberty UW 5/12 — awaiting acknowledgement', producer: 'CV', probability: 60, bidResult: 'pending',
+        activity: [
+          { id: 'AC-003', date: '2026-05-12T14:30', author: 'Casey V.', type: 'email', subject: 'McKay HS HVAC — submission', text: 'Sent submission package to Liberty Mutual UW.' },
+        ] },
+      { id: 'PL-005', stage: 'Underwriter Review',            accountId: 'A-1007', bondType: 'Bid',         amount: 320000,  obligee: 'BART',                  dueDate: '2026-05-28', notes: 'Old Republic UW reviewing — additional questions',   producer: 'CV', probability: 65, bidResult: 'pending' },
+      { id: 'PL-006', stage: 'Approved – Pending Bid Results',accountId: 'A-1001', bondType: 'Bid',         amount: 1250000, obligee: 'City of Portland',      dueDate: '2026-05-29', notes: 'Approved by Hartford — bid opens 5/29 @ 2pm',         producer: 'CV', probability: 75, bidResult: 'pending' },
+      { id: 'PL-007', stage: 'Awarded - Ready to Issue',      accountId: 'A-1004', bondType: 'Performance', amount: 875000,  obligee: 'Port of Seattle',       dueDate: '2026-05-20', notes: 'Awarded — convert to bond and issue',                producer: 'CV', probability: 100, bidResult: 'awarded',
+        bidDate: '2026-05-20', bidOurAmount: 1748500, bidWinningAmount: 1748500, bidPlace: '1st of 3', bidWinner: 'BlueWater Marine Svcs',
+        activity: [
+          { id: 'AC-004', date: '2026-05-20T15:30', author: 'Casey V.', type: 'bid_result', subject: 'Result: Awarded — we won', text: 'Port of Seattle confirmed award. Notice to proceed issued.' },
+        ] },
+      { id: 'PL-008', stage: 'Approved – Pending Bid Results',accountId: 'A-1007', bondType: 'Bid',         amount: 420000,  obligee: 'Sacramento Regional Transit', dueDate: '2026-05-08', notes: 'Bid opened — we were 2nd lowest',           producer: 'CV', probability: 0,   bidResult: 'not_low',
+        bidDate: '2026-05-08', bidOurAmount: 418900, bidWinningAmount: 392450, bidPlace: '2nd of 4', bidWinner: 'Bayside Electric LLC', bidResultNotes: 'Lost on price by ~6.7%. Diane wants to debrief and target a similar RFP next quarter.',
+        activity: [
+          { id: 'AC-005', date: '2026-05-08T16:00', author: 'Casey V.', type: 'bid_result', subject: 'Result: Not Low — lost on price', text: 'Bayside Electric was low at $392,450. We were 2nd of 4.' },
+          { id: 'AC-006', date: '2026-05-09T08:14', author: 'Casey V.', type: 'call', text: 'Called Diane to debrief — interested in next AC Transit electrical RFP.' },
+        ] },
+      { id: 'PL-009', stage: 'Pre-Qualification',             accountId: 'A-1003', bondType: 'Bid',         amount: 250000,  obligee: 'Port of Vancouver',     dueDate: '2026-05-13', notes: 'Principal pulled out — equipment shortage',         producer: 'CV', probability: 0,   bidResult: 'no_bid',
+        bidDate: '2026-05-13', bidResultNotes: 'Sarah decided not to bid — short on rolling stock for the schedule. Will revisit if timeline slips.',
+        activity: [
+          { id: 'AC-007', date: '2026-05-13T11:20', author: 'Sarah Lin', type: 'email',  subject: 'Pulling out of Port of Vancouver bid', text: 'Confirmed by phone — Sarah decided not to bid this round.' },
+          { id: 'AC-008', date: '2026-05-13T11:35', author: 'Casey V.',  type: 'bid_result', subject: 'Result: Principal Did Not Bid', text: 'Logged as no-bid. Marking opp closed.' },
+        ] },
     ],
     underwriting: [
       { id: 'UW-001', bondId: 'B-2407', step: 3, requirements: [

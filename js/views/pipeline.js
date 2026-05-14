@@ -2,6 +2,20 @@ window.Views = window.Views || {};
 Views.pipeline = {
   get STAGES() { return DB.pipelineStages(); },
 
+  BID_RESULTS: [
+    { key: 'pending',       label: 'Pending — awaiting result',       badge: 'badge-slate',  prob: null },
+    { key: 'low',           label: 'Apparent Low Bidder',             badge: 'badge-blue',   prob: 90 },
+    { key: 'awarded',       label: 'Awarded — we won',                badge: 'badge-green',  prob: 100 },
+    { key: 'not_low',       label: 'Not Low — lost on price',         badge: 'badge-rose',   prob: 0 },
+    { key: 'no_bid',        label: 'Principal Did Not Bid',           badge: 'badge-amber',  prob: 0 },
+    { key: 'withdrawn',     label: 'Bid Withdrawn',                   badge: 'badge-slate',  prob: 0 },
+    { key: 'cancelled',     label: 'Project Cancelled by Obligee',    badge: 'badge-slate',  prob: 0 },
+  ],
+
+  resultMeta(key) {
+    return this.BID_RESULTS.find(r => r.key === key) || null;
+  },
+
   render() {
     const items = DB.pipeline();
     const stages = this.STAGES;
@@ -44,6 +58,11 @@ Views.pipeline = {
     const a = DB.findAccount(it.accountId) || {};
     const due = it.dueDate ? `Due ${U.date(it.dueDate)}` : '';
     const probColor = it.probability >= 70 ? 'text-emerald-600' : it.probability >= 40 ? 'text-amber-600' : 'text-slate-500';
+    const resultMeta = this.resultMeta(it.bidResult);
+    const resultBadge = resultMeta && it.bidResult !== 'pending'
+      ? `<span class="badge ${resultMeta.badge} text-[10px] py-0">${U.esc(resultMeta.label)}</span>`
+      : '';
+    const activityCount = (it.activity || []).length;
     return `
       <div class="kanban-card" draggable="true" data-id="${it.id}"
         ondragstart="event.dataTransfer.setData('text/plain','${it.id}'); this.classList.add('dragging')"
@@ -55,8 +74,12 @@ Views.pipeline = {
         </div>
         <div class="text-xs text-slate-600 mb-2">${U.esc(it.bondType)} · ${U.usd(it.amount)}</div>
         <div class="text-xs text-slate-500 truncate">${U.esc(it.obligee||'')}</div>
-        <div class="flex items-center justify-between mt-1">
-          <div class="text-xs text-slate-400">${due}</div>
+        ${resultBadge ? `<div class="mt-2">${resultBadge}</div>` : ''}
+        <div class="flex items-center justify-between mt-2">
+          <div class="text-xs text-slate-400 flex items-center gap-2">
+            ${due ? `<span>${due}</span>` : ''}
+            ${activityCount ? `<span title="${activityCount} activity entries">📎 ${activityCount}</span>` : ''}
+          </div>
           <button class="text-xs text-brand-600 hover:underline" onclick="event.stopPropagation(); Compose.open({ pipelineId: '${it.id}', templateId: 'T-bid-followup' })">✉ Email</button>
         </div>
       </div>
@@ -81,65 +104,171 @@ Views.pipeline = {
     const a = DB.findAccount(it.accountId) || {};
     const stages = this.STAGES;
     const accts = DB.accounts();
+    const result = it.bidResult || 'pending';
+    const resultMeta = this.resultMeta(result);
+
+    const activity = (it.activity || []).slice().sort((x,y) => new Date(y.date) - new Date(x.date));
+
     const body = `
-      <div class="grid grid-cols-2 gap-4 mb-4">
+      <div class="flex items-start justify-between -mt-2 mb-4">
         <div>
           <div class="field-label">Account</div>
-          <button class="text-base font-semibold text-brand-700 hover:underline text-left"
+          <button class="text-lg font-semibold text-brand-700 hover:underline text-left"
             onclick="U.closeModals(); Views.accounts.open('${a.id}')">
             ${U.esc(a.name||'—')}
           </button>
           <div class="text-xs text-slate-500">${U.esc(a.type||'')}${a.city?` · ${U.esc(a.city)}, ${U.esc(a.state||'')}`:''}</div>
         </div>
-        <div><div class="field-label">Producer</div>
-          <input id="pl-prod" class="field-input" value="${U.esc(it.producer||'')}"></div>
-      </div>
-
-      <div class="grid grid-cols-2 gap-4 mb-4">
-        <div><div class="field-label">Account (change)</div>
-          <select id="pl-acct" class="field-select">
-            ${accts.map(x => `<option value="${x.id}" ${x.id===it.accountId?'selected':''}>${U.esc(x.name)}</option>`).join('')}
-          </select></div>
-        <div><div class="field-label">Bond Type</div>
-          <select id="pl-type" class="field-select">
-            ${['Bid','Performance','Payment','License','Court','Probate','Customs'].map(t => `<option ${t===it.bondType?'selected':''}>${t}</option>`).join('')}
-          </select></div>
-        <div><div class="field-label">Amount</div>
-          <input id="pl-amt" type="number" class="field-input" value="${it.amount||0}"></div>
-        <div><div class="field-label">Obligee</div>
-          <input id="pl-ob" class="field-input" value="${U.esc(it.obligee||'')}"></div>
-        <div><div class="field-label">Due / Bid Date</div>
-          <input id="pl-due" type="date" class="field-input" value="${U.esc(it.dueDate||'')}"></div>
-        <div><div class="field-label">Stage</div>
-          <select id="pl-stage" class="field-select">
-            ${stages.map(s => `<option ${s===it.stage?'selected':''}>${U.esc(s)}</option>`).join('')}
-          </select>
+        <div class="text-right">
+          <span class="badge ${resultMeta ? resultMeta.badge : 'badge-slate'}">${U.esc(resultMeta ? resultMeta.label : 'Pending')}</span>
+          <div class="text-xs text-slate-500 mt-1">${(it.activity||[]).length} activity entr${(it.activity||[]).length===1?'y':'ies'}</div>
         </div>
       </div>
 
-      <div class="mb-2"><div class="field-label">Probability</div>
-        <input id="pl-prob" type="range" min="0" max="100" value="${it.probability}" class="w-full"
-          oninput="document.getElementById('pl-prob-val').textContent=this.value+'%'">
-        <div class="text-xs text-slate-500" id="pl-prob-val">${it.probability}%</div>
+      <div class="card mb-4">
+        <div class="card-header"><div class="card-title">Opportunity Details</div></div>
+        <div class="p-4 grid grid-cols-2 gap-3">
+          <div><div class="field-label">Account (change)</div>
+            <select id="pl-acct" class="field-select">
+              ${accts.map(x => `<option value="${x.id}" ${x.id===it.accountId?'selected':''}>${U.esc(x.name)}</option>`).join('')}
+            </select></div>
+          <div><div class="field-label">Producer</div>
+            <input id="pl-prod" class="field-input" value="${U.esc(it.producer||'')}"></div>
+          <div><div class="field-label">Bond Type</div>
+            <select id="pl-type" class="field-select">
+              ${['Bid','Performance','Payment','License','Court','Probate','Customs'].map(t => `<option ${t===it.bondType?'selected':''}>${t}</option>`).join('')}
+            </select></div>
+          <div><div class="field-label">Amount</div>
+            <input id="pl-amt" type="number" class="field-input" value="${it.amount||0}"></div>
+          <div><div class="field-label">Obligee</div>
+            <input id="pl-ob" class="field-input" value="${U.esc(it.obligee||'')}"></div>
+          <div><div class="field-label">Due / Bid Date</div>
+            <input id="pl-due" type="date" class="field-input" value="${U.esc(it.dueDate||'')}"></div>
+          <div><div class="field-label">Stage</div>
+            <select id="pl-stage" class="field-select">
+              ${stages.map(s => `<option ${s===it.stage?'selected':''}>${U.esc(s)}</option>`).join('')}
+            </select></div>
+          <div><div class="field-label">Probability</div>
+            <input id="pl-prob" type="range" min="0" max="100" value="${it.probability}" class="w-full"
+              oninput="document.getElementById('pl-prob-val').textContent=this.value+'%'">
+            <div class="text-xs text-slate-500" id="pl-prob-val">${it.probability}%</div>
+          </div>
+          <div class="col-span-2"><div class="field-label">Notes</div>
+            <textarea class="field-textarea" id="pl-notes" rows="2">${U.esc(it.notes||'')}</textarea></div>
+        </div>
       </div>
 
-      <div class="mb-2"><div class="field-label">Notes</div>
-        <textarea class="field-textarea" id="pl-notes" rows="3">${U.esc(it.notes||'')}</textarea>
+      <div class="card mb-4">
+        <div class="card-header"><div class="card-title">Bid Results</div>
+          <span class="text-xs text-slate-500">Track final outcome — "Not Low" and "Principal Did Not Bid" supported.</span>
+        </div>
+        <div class="p-4 grid grid-cols-2 gap-3">
+          <div class="col-span-2"><div class="field-label">Result</div>
+            <select id="pl-result" class="field-select" onchange="Views.pipeline._onResultChange()">
+              ${this.BID_RESULTS.map(r => `<option value="${r.key}" ${r.key===result?'selected':''}>${U.esc(r.label)}</option>`).join('')}
+            </select></div>
+          <div><div class="field-label">Bid Open Date</div>
+            <input id="pl-biddate" type="date" class="field-input" value="${U.esc(it.bidDate||'')}"></div>
+          <div><div class="field-label">Our Bid Amount</div>
+            <input id="pl-ouramt" type="number" class="field-input" value="${it.bidOurAmount||''}" placeholder="Our principal's submitted bid"></div>
+          <div id="pl-wrap-winamt"><div class="field-label">Winning Bid Amount</div>
+            <input id="pl-winamt" type="number" class="field-input" value="${it.bidWinningAmount||''}" placeholder="If known"></div>
+          <div id="pl-wrap-place"><div class="field-label">Our Place</div>
+            <input id="pl-place" class="field-input" value="${U.esc(it.bidPlace||'')}" placeholder='e.g. "2nd of 5"'></div>
+          <div class="col-span-2"><div class="field-label">Winning Bidder</div>
+            <input id="pl-winner" class="field-input" value="${U.esc(it.bidWinner||'')}" placeholder="Competitor or alternate that was awarded"></div>
+          <div class="col-span-2"><div class="field-label">Result Notes</div>
+            <textarea id="pl-resnotes" class="field-textarea" rows="2" placeholder="Why didn't we get it? Did principal decide not to bid?">${U.esc(it.bidResultNotes||'')}</textarea></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">Activity Log</div>
+          <span class="text-xs text-slate-500">${activity.length} entr${activity.length===1?'y':'ies'}</span>
+        </div>
+        <div class="p-4 space-y-3">
+          ${activity.length ? activity.map(n => Views.pipeline._activityRow(n)).join('')
+            : '<div class="text-sm text-slate-400">No activity yet. Send an email or log a note below.</div>'}
+          <div class="pt-3 border-t border-slate-100">
+            <div class="field-label">Log a note, call, or other touchpoint</div>
+            <div class="flex gap-2">
+              <select id="pl-newtype" class="field-select w-40">
+                <option value="note">Note</option>
+                <option value="call">Call</option>
+                <option value="meeting">Meeting</option>
+                <option value="bid_result">Bid Result</option>
+                <option value="other">Other</option>
+              </select>
+              <textarea id="pl-newtext" class="field-textarea" rows="2" placeholder="What happened? e.g. Called PM, no answer — left VM."></textarea>
+            </div>
+            <div class="flex justify-end mt-2">
+              <button class="btn-primary" onclick="Views.pipeline._logActivity('${id}')">Log Entry</button>
+            </div>
+          </div>
+        </div>
       </div>
     `;
     const footer = `
       <button class="btn-ghost" data-close>Cancel</button>
       <button class="btn-secondary text-rose-600" onclick="Views.pipeline.deleteOpp('${id}')">Delete</button>
-      <button class="btn-secondary" onclick="Compose.open({ pipelineId: '${id}', templateId: 'T-bid-followup' })">✉ Email Follow-up</button>
+      <button class="btn-secondary" onclick="Compose.open({ pipelineId: '${id}', templateId: 'T-bid-followup' })">✉ Email</button>
       <button class="btn-secondary" onclick="Views.pipeline.convertToBond('${id}')">Convert to Bond</button>
       <button class="btn-primary" onclick="Views.pipeline.save('${id}')">Save</button>
     `;
-    const m = U.modal({ title: 'Opportunity Details', body, footer, size: 'lg' });
+    const m = U.modal({ title: 'Opportunity', body, footer, size: 'lg' });
     m.el.querySelector('[data-close]').addEventListener('click', m.close);
+    this._onResultChange();
+  },
+
+  _activityRow(n) {
+    const ICONS = { email: '✉', call: '📞', meeting: '👥', note: '📝', bid_result: '🏷', stage_change: '↪', other: '•' };
+    const colors = { email: 'border-blue-300', call: 'border-emerald-300', meeting: 'border-violet-300', note: 'border-slate-300', bid_result: 'border-amber-300', stage_change: 'border-slate-300', other: 'border-slate-300' };
+    const icon = ICONS[n.type] || '•';
+    const color = colors[n.type] || 'border-slate-300';
+    return `
+      <div class="border-l-2 ${color} pl-3 py-1">
+        <div class="text-xs text-slate-500 flex items-center gap-2">
+          <span>${icon}</span>
+          <span>${U.datetime(n.date)}</span>
+          <span>· ${U.esc(n.author||'')}</span>
+          ${n.subject?`<span class="font-medium text-slate-700">· ${U.esc(n.subject)}</span>`:''}
+        </div>
+        <div class="text-sm text-slate-700 whitespace-pre-line mt-0.5">${U.esc(n.text||'')}</div>
+      </div>`;
+  },
+
+  _onResultChange() {
+    const sel = document.getElementById('pl-result');
+    if (!sel) return;
+    const key = sel.value;
+    // Show/hide winning amount + place based on result type
+    const showWin = (key === 'not_low');
+    document.getElementById('pl-wrap-winamt').style.display = showWin ? '' : 'none';
+    document.getElementById('pl-wrap-place').style.display  = (key === 'not_low' || key === 'low') ? '' : 'none';
+  },
+
+  _logActivity(id) {
+    const it = DB.pipeline().find(i => i.id === id);
+    const type = document.getElementById('pl-newtype').value;
+    const text = document.getElementById('pl-newtext').value.trim();
+    if (!text) { U.toast('Enter a note', 'warn'); return; }
+    it.activity = it.activity || [];
+    it.activity.push({
+      id: U.uid('AC'),
+      date: new Date().toISOString(),
+      author: 'Casey V.',
+      type, text,
+    });
+    DB.save();
+    U.toast('Activity logged');
+    this.open(id);
   },
 
   save(id) {
     const it = DB.pipeline().find(i => i.id === id);
+    const prevResult = it.bidResult || 'pending';
+
     it.accountId = document.getElementById('pl-acct').value;
     it.bondType  = document.getElementById('pl-type').value;
     it.amount    = +document.getElementById('pl-amt').value || 0;
@@ -149,6 +278,32 @@ Views.pipeline = {
     it.producer  = document.getElementById('pl-prod').value;
     it.probability = +document.getElementById('pl-prob').value;
     it.notes     = document.getElementById('pl-notes').value;
+
+    // Bid result fields
+    const newResult = document.getElementById('pl-result').value;
+    it.bidResult        = newResult;
+    it.bidDate          = document.getElementById('pl-biddate').value || null;
+    it.bidOurAmount     = +document.getElementById('pl-ouramt').value || null;
+    it.bidWinningAmount = +document.getElementById('pl-winamt').value || null;
+    it.bidPlace         = document.getElementById('pl-place').value || '';
+    it.bidWinner        = document.getElementById('pl-winner').value || '';
+    it.bidResultNotes   = document.getElementById('pl-resnotes').value || '';
+
+    // If the result changed, auto-adjust probability and log to activity.
+    if (newResult !== prevResult) {
+      const meta = this.resultMeta(newResult);
+      if (meta && meta.prob !== null) it.probability = meta.prob;
+      it.activity = it.activity || [];
+      it.activity.push({
+        id: U.uid('AC'),
+        date: new Date().toISOString(),
+        author: 'Casey V.',
+        type: 'bid_result',
+        subject: `Result: ${meta ? meta.label : newResult}`,
+        text: it.bidResultNotes || '(no additional notes)',
+      });
+    }
+
     DB.save();
     U.closeModals();
     U.toast('Opportunity updated');
@@ -418,10 +573,17 @@ Views.pipeline = {
   },
 
   exportCSV() {
-    const rows = [['Stage','Account','Bond Type','Amount','Obligee','Due','Probability','Notes']];
+    const rows = [['Stage','Account','Bond Type','Amount','Obligee','Due','Probability','Bid Result','Bid Date','Our Bid','Winning Bid','Place','Winner','Notes','Activity Count']];
     DB.pipeline().forEach(p => {
       const a = DB.findAccount(p.accountId) || {};
-      rows.push([p.stage, a.name||'', p.bondType, p.amount, p.obligee||'', p.dueDate||'', p.probability+'%', (p.notes||'').replace(/\n/g,' ')]);
+      const meta = this.resultMeta(p.bidResult || 'pending');
+      rows.push([
+        p.stage, a.name||'', p.bondType, p.amount, p.obligee||'', p.dueDate||'',
+        p.probability+'%',
+        meta ? meta.label : '', p.bidDate||'', p.bidOurAmount||'', p.bidWinningAmount||'', p.bidPlace||'', p.bidWinner||'',
+        (p.notes||'').replace(/\n/g,' '),
+        (p.activity||[]).length,
+      ]);
     });
     const csv = rows.map(r => r.map(c => `"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
     const blob = new Blob([csv], {type:'text/csv'});

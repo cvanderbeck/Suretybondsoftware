@@ -687,17 +687,27 @@ Views.accounts = {
 
   // ---------- Tab: Pipeline ----------
   _tabPipeline(a, { pipe }) {
-    const open = pipe.filter(p => !['Won','Lost'].includes(p.stage));
-    const closed = pipe.filter(p => ['Won','Lost'].includes(p.stage));
-    const row = (p) => `
+    const isClosed = (p) => p.bidResult && p.bidResult !== 'pending';
+    const open   = pipe.filter(p => !isClosed(p));
+    const closed = pipe.filter(p =>  isClosed(p));
+    const row = (p) => {
+      const meta = Views.pipeline.resultMeta(p.bidResult || 'pending');
+      const resultBadge = meta && p.bidResult && p.bidResult !== 'pending'
+        ? `<span class="badge ${meta.badge}">${U.esc(meta.label)}</span>`
+        : '<span class="text-xs text-slate-400">—</span>';
+      const actCount = (p.activity || []).length;
+      return `
       <tr class="cursor-pointer" onclick="U.closeModals(); App.go('pipeline'); setTimeout(()=>Views.pipeline.open('${p.id}'), 50);">
-        <td>${U.statusBadge(p.stage)}</td>
+        <td><span class="badge badge-slate">${U.esc(p.stage)}</span></td>
         <td>${U.esc(p.bondType)}</td>
         <td class="max-w-[14rem] truncate">${U.esc(p.obligee||'')}</td>
         <td class="text-right">${U.usd(p.amount)}</td>
         <td>${U.date(p.dueDate)}</td>
         <td class="text-right">${p.probability}%</td>
+        <td>${resultBadge}</td>
+        <td class="text-right text-xs text-slate-500">${actCount?`📎 ${actCount}`:''}</td>
       </tr>`;
+    };
     return `
       <div class="flex items-center justify-between mb-3">
         <div class="text-sm text-slate-500">Bids awaiting results and other open opportunities — click any row to jump to Pipeline.</div>
@@ -707,15 +717,15 @@ Views.accounts = {
         <div class="card-header"><div class="card-title">Open Opportunities (${open.length})</div>
           <button class="btn-ghost" onclick="U.closeModals(); App.go('pipeline')">Full Pipeline →</button></div>
         <table class="tbl">
-          <thead><tr><th>Stage</th><th>Bond Type</th><th>Obligee</th><th class="text-right">Amount</th><th>Due</th><th class="text-right">Prob.</th></tr></thead>
-          <tbody>${open.length?open.map(row).join(''):'<tr><td colspan="6" class="text-center text-slate-400 py-6">No open opportunities.</td></tr>'}</tbody>
+          <thead><tr><th>Stage</th><th>Bond Type</th><th>Obligee</th><th class="text-right">Amount</th><th>Due</th><th class="text-right">Prob.</th><th>Bid Result</th><th class="text-right">Activity</th></tr></thead>
+          <tbody>${open.length?open.map(row).join(''):'<tr><td colspan="8" class="text-center text-slate-400 py-6">No open opportunities.</td></tr>'}</tbody>
         </table>
       </div>
       <div class="card">
         <div class="card-header"><div class="card-title">Closed (${closed.length})</div></div>
         <table class="tbl">
-          <thead><tr><th>Stage</th><th>Bond Type</th><th>Obligee</th><th class="text-right">Amount</th><th>Due</th><th class="text-right">Prob.</th></tr></thead>
-          <tbody>${closed.length?closed.map(row).join(''):'<tr><td colspan="6" class="text-center text-slate-400 py-6">Nothing closed yet.</td></tr>'}</tbody>
+          <thead><tr><th>Stage</th><th>Bond Type</th><th>Obligee</th><th class="text-right">Amount</th><th>Due</th><th class="text-right">Prob.</th><th>Bid Result</th><th class="text-right">Activity</th></tr></thead>
+          <tbody>${closed.length?closed.map(row).join(''):'<tr><td colspan="8" class="text-center text-slate-400 py-6">Nothing closed yet.</td></tr>'}</tbody>
         </table>
       </div>
     `;

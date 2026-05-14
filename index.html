@@ -10,21 +10,45 @@
       theme: {
         extend: {
           colors: {
+            // Rust / terracotta accent (BondVault)
             brand: {
-              50:  '#eef4ff',
-              100: '#dbe6ff',
-              200: '#bccfff',
-              300: '#8eadff',
-              400: '#5d83ff',
-              500: '#3a5dff',
-              600: '#2a40f5',
-              700: '#2330d6',
-              800: '#1f2aa8',
-              900: '#1d2882',
-            }
+              50:  '#fbf2ec',
+              100: '#f6e1d3',
+              200: '#ecc1a4',
+              300: '#dfa07b',
+              400: '#d07f5a',
+              500: '#c1623f',
+              600: '#a14e30',
+              700: '#823f28',
+              800: '#5e2d1f',
+              900: '#3d1d14',
+            },
+            // Warm cream surface
+            cream: {
+              50:  '#fdf9f0',
+              100: '#faf3e3',
+              200: '#f4e9cf',
+              300: '#ead7ab',
+              400: '#d9be84',
+              500: '#bf9d5b',
+            },
+            // Deep warm ink
+            ink: {
+              50:  '#f3efe7',
+              100: '#dfd8c8',
+              200: '#bdb09a',
+              300: '#8c7e69',
+              400: '#615442',
+              500: '#3e3424',
+              600: '#2e2618',
+              700: '#221c12',
+              800: '#1a150d',
+              900: '#100c07',
+            },
           },
           fontFamily: {
-            sans: ['Inter', 'system-ui', 'sans-serif']
+            sans:    ['Inter', 'system-ui', 'sans-serif'],
+            display: ['"Playfair Display"', 'Georgia', 'serif'],
           }
         }
       }
@@ -32,66 +56,66 @@
   </script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Playfair+Display:ital,wght@0,500;0,600;0,700;1,500;1,600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/styles.css" />
   <style type="text/tailwindcss">
     @layer components {
-      .nav-link { @apply flex items-center gap-3 px-5 py-2 text-sm text-slate-300 hover:bg-slate-800 hover:text-white cursor-pointer transition-colors; }
-      .nav-link.active { @apply bg-slate-800 text-white border-l-2 border-brand-400; }
-      .nav-link i[data-i] { @apply inline-flex w-5 h-5 items-center justify-center text-slate-400; }
+      .nav-link { @apply flex items-center gap-3 px-5 py-2 text-sm text-ink-100/70 hover:bg-ink-700 hover:text-cream-50 cursor-pointer transition-colors; }
+      .nav-link.active { @apply bg-ink-700/70 text-cream-50 border-l-2 border-brand-400; }
+      .nav-link i[data-i] { @apply inline-flex w-5 h-5 items-center justify-center text-ink-100/60; }
       .nav-link.active i[data-i] { @apply text-brand-300; }
 
-      .btn-primary   { @apply inline-flex items-center gap-2 px-3.5 py-2 rounded-lg bg-brand-600 hover:bg-brand-700 text-white text-sm font-medium shadow-sm transition; }
-      .btn-secondary { @apply inline-flex items-center gap-2 px-3.5 py-2 rounded-lg bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-sm font-medium transition; }
-      .btn-ghost     { @apply inline-flex items-center gap-2 px-3 py-1.5 rounded-md text-slate-600 hover:bg-slate-100 text-sm font-medium transition; }
-      .btn-danger    { @apply inline-flex items-center gap-2 px-3.5 py-2 rounded-lg bg-rose-600 hover:bg-rose-700 text-white text-sm font-medium transition; }
+      .btn-primary   { @apply inline-flex items-center gap-2 px-3.5 py-2 rounded-lg bg-brand-600 hover:bg-brand-700 text-cream-50 text-sm font-medium shadow-sm transition; }
+      .btn-secondary { @apply inline-flex items-center gap-2 px-3.5 py-2 rounded-lg bg-white border border-cream-300 hover:bg-cream-50 text-ink-500 text-sm font-medium transition; }
+      .btn-ghost     { @apply inline-flex items-center gap-2 px-3 py-1.5 rounded-md text-ink-400 hover:bg-cream-100 text-sm font-medium transition; }
+      .btn-danger    { @apply inline-flex items-center gap-2 px-3.5 py-2 rounded-lg bg-rose-700 hover:bg-rose-800 text-cream-50 text-sm font-medium transition; }
 
-      .card         { @apply bg-white rounded-xl border border-slate-200 shadow-sm; }
-      .card-header  { @apply px-5 py-4 border-b border-slate-100 flex items-center justify-between; }
-      .card-title   { @apply text-sm font-semibold text-slate-800; }
-      .stat-card    { @apply bg-white rounded-xl border border-slate-200 p-5 shadow-sm; }
-      .stat-label   { @apply text-xs text-slate-500 font-medium uppercase tracking-wide; }
-      .stat-value   { @apply text-2xl font-bold text-slate-900 mt-1; }
-      .stat-delta-up   { @apply text-emerald-600 text-xs font-medium mt-1; }
-      .stat-delta-down { @apply text-rose-600 text-xs font-medium mt-1; }
+      .card         { @apply bg-white rounded-xl border border-cream-200 shadow-sm; }
+      .card-header  { @apply px-5 py-4 border-b border-cream-100 flex items-center justify-between; }
+      .card-title   { @apply text-sm font-semibold text-ink-500 font-display tracking-wide; }
+      .stat-card    { @apply bg-white rounded-xl border border-cream-200 p-5 shadow-sm; }
+      .stat-label   { @apply text-xs text-ink-300 font-medium uppercase tracking-wider; }
+      .stat-value   { @apply text-2xl font-semibold font-display text-ink-700 mt-1; }
+      .stat-delta-up   { @apply text-emerald-700 text-xs font-medium mt-1; }
+      .stat-delta-down { @apply text-rose-700 text-xs font-medium mt-1; }
 
       .tbl                  { @apply w-full text-sm; }
-      .tbl thead th         { @apply text-left text-xs font-semibold text-slate-500 uppercase tracking-wider px-4 py-3 border-b border-slate-200 bg-slate-50; }
-      .tbl tbody td         { @apply px-4 py-3 border-b border-slate-100 text-slate-700 align-middle; }
-      .tbl tbody tr:hover   { @apply bg-slate-50; }
+      .tbl thead th         { @apply text-left text-xs font-semibold text-ink-300 uppercase tracking-wider px-4 py-3 border-b border-cream-200 bg-cream-50; }
+      .tbl tbody td         { @apply px-4 py-3 border-b border-cream-100 text-ink-500 align-middle; }
+      .tbl tbody tr:hover   { @apply bg-cream-50; }
 
       .badge        { @apply inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium; }
-      .badge-blue   { @apply bg-blue-100 text-blue-700; }
-      .badge-green  { @apply bg-emerald-100 text-emerald-700; }
-      .badge-amber  { @apply bg-amber-100 text-amber-700; }
-      .badge-rose   { @apply bg-rose-100 text-rose-700; }
-      .badge-slate  { @apply bg-slate-100 text-slate-700; }
-      .badge-violet { @apply bg-violet-100 text-violet-700; }
+      .badge-blue   { @apply bg-blue-100 text-blue-800; }
+      .badge-green  { @apply bg-emerald-100 text-emerald-800; }
+      .badge-amber  { @apply bg-amber-100 text-amber-800; }
+      .badge-rose   { @apply bg-rose-100 text-rose-800; }
+      .badge-slate  { @apply bg-cream-200 text-ink-500; }
+      .badge-violet { @apply bg-violet-100 text-violet-800; }
 
-      .field-label    { @apply text-xs font-medium text-slate-600 mb-1 block; }
-      .field-input    { @apply w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-200 focus:border-brand-400; }
-      .field-select   { @apply w-full px-3 py-2 border border-slate-200 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-brand-200 focus:border-brand-400; }
-      .field-textarea { @apply w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-200 focus:border-brand-400; }
+      .field-label    { @apply text-xs font-medium text-ink-400 mb-1 block tracking-wide; }
+      .field-input    { @apply w-full px-3 py-2 border border-cream-300 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-brand-200 focus:border-brand-400; }
+      .field-select   { @apply w-full px-3 py-2 border border-cream-300 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-brand-200 focus:border-brand-400; }
+      .field-textarea { @apply w-full px-3 py-2 border border-cream-300 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-brand-200 focus:border-brand-400; }
 
-      .modal-backdrop { @apply fixed inset-0 z-40 bg-slate-900/50 flex items-center justify-center p-4; }
-      .modal          { @apply bg-white rounded-xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-hidden flex flex-col; }
+      .modal-backdrop { @apply fixed inset-0 z-40 bg-ink-900/60 flex items-center justify-center p-4; }
+      .modal          { @apply bg-cream-50 rounded-xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-hidden flex flex-col border border-cream-200; }
       .modal-lg       { @apply max-w-5xl; }
-      .modal-header   { @apply px-6 py-4 border-b border-slate-200 flex items-center justify-between; }
-      .modal-body     { @apply p-6 overflow-y-auto flex-1; }
-      .modal-footer   { @apply px-6 py-4 border-t border-slate-200 flex items-center justify-end gap-2 bg-slate-50; }
+      .modal-header   { @apply px-6 py-4 border-b border-cream-200 flex items-center justify-between bg-white; }
+      .modal-body     { @apply p-6 overflow-y-auto flex-1 bg-cream-50; }
+      .modal-footer   { @apply px-6 py-4 border-t border-cream-200 flex items-center justify-end gap-2 bg-white; }
 
-      .kanban-col        { @apply bg-slate-100 rounded-xl p-3 flex flex-col min-h-[400px]; }
+      .kanban-col        { @apply bg-cream-100/70 rounded-xl p-3 flex flex-col min-h-[400px] border border-cream-200; }
       .kanban-col-header { @apply flex items-center justify-between mb-3 px-1; }
-      .kanban-card       { @apply bg-white rounded-lg border border-slate-200 p-3 mb-2 cursor-pointer hover:shadow-md transition; }
+      .kanban-card       { @apply bg-white rounded-lg border border-cream-200 p-3 mb-2 cursor-pointer hover:shadow-md hover:border-brand-200 transition; }
 
-      .toast            { @apply px-4 py-3 rounded-lg shadow-lg text-sm text-white flex items-center gap-2; }
-      .divider          { @apply border-t border-slate-200 my-4; }
-      .kbd              { @apply inline-flex items-center px-1.5 py-0.5 text-[10px] font-mono bg-slate-100 border border-slate-200 rounded text-slate-600; }
-      .section-title    { @apply text-lg font-semibold text-slate-900; }
-      .section-sub      { @apply text-sm text-slate-500; }
-      .dropzone         { @apply border-2 border-dashed border-slate-300 rounded-xl p-6 text-center text-slate-500 text-sm hover:border-brand-400 cursor-pointer transition; }
-      .chk              { @apply h-4 w-4 rounded border-slate-300 text-brand-600 focus:ring-brand-400; }
-      .progress         { @apply h-2 bg-slate-100 rounded-full overflow-hidden; }
+      .toast            { @apply px-4 py-3 rounded-lg shadow-lg text-sm text-cream-50 flex items-center gap-2; }
+      .divider          { @apply border-t border-cream-200 my-4; }
+      .kbd              { @apply inline-flex items-center px-1.5 py-0.5 text-[10px] font-mono bg-cream-100 border border-cream-200 rounded text-ink-400; }
+      .section-title    { @apply text-2xl font-display font-semibold text-ink-700 tracking-tight; }
+      .section-sub      { @apply text-sm text-ink-300 italic font-display; }
+      .dropzone         { @apply border-2 border-dashed border-cream-300 rounded-xl p-6 text-center text-ink-300 text-sm hover:border-brand-400 cursor-pointer transition; }
+      .chk              { @apply h-4 w-4 rounded border-cream-300 text-brand-600 focus:ring-brand-400; }
+      .progress         { @apply h-2 bg-cream-200 rounded-full overflow-hidden; }
       .progress > div   { @apply h-full bg-brand-500 rounded-full transition-all; }
     }
   </style>
@@ -99,58 +123,72 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.0/jspdf.plugin.autotable.min.js"></script>
 </head>
-<body class="bg-slate-50 text-slate-800 font-sans antialiased">
+<body class="bg-cream-100 text-ink-500 font-sans antialiased">
 
   <!-- App Shell -->
   <div class="flex h-screen overflow-hidden">
 
     <!-- Sidebar -->
-    <aside class="w-64 bg-slate-900 text-slate-200 flex flex-col flex-shrink-0">
-      <div class="px-5 py-5 border-b border-slate-800 flex items-center gap-3">
-        <div class="w-9 h-9 rounded-lg bg-gradient-to-br from-brand-400 to-brand-600 flex items-center justify-center font-bold text-white">B</div>
-        <div>
-          <div class="font-semibold text-white">BondVault</div>
-          <div class="text-xs text-slate-400">Surety Agency OS</div>
-        </div>
+    <aside class="w-64 bg-ink-800 text-ink-100 flex flex-col flex-shrink-0">
+      <div class="px-5 py-6 border-b border-ink-700 flex flex-col items-center">
+        <svg viewBox="0 0 220 130" class="w-44 h-auto" xmlns="http://www.w3.org/2000/svg">
+          <text x="110" y="44" text-anchor="middle"
+                font-family="'Playfair Display', Georgia, serif"
+                font-size="38" font-weight="500" fill="#fdf9f0">Bond</text>
+
+          <line x1="18"  y1="66" x2="86"  y2="66" stroke="#bdb09a" stroke-width="0.9"/>
+          <line x1="134" y1="66" x2="202" y2="66" stroke="#bdb09a" stroke-width="0.9"/>
+
+          <!-- key: bow + shaft + teeth -->
+          <circle cx="110" cy="59" r="4" fill="none" stroke="#bdb09a" stroke-width="1.1"/>
+          <line x1="110" y1="63"  x2="110" y2="76" stroke="#bdb09a" stroke-width="1.1"/>
+          <line x1="110" y1="71"  x2="116" y2="71" stroke="#bdb09a" stroke-width="1.1"/>
+          <line x1="110" y1="76"  x2="115" y2="76" stroke="#bdb09a" stroke-width="1.1"/>
+
+          <text x="110" y="115" text-anchor="middle"
+                font-family="'Playfair Display', Georgia, serif"
+                font-style="italic" font-size="38" font-weight="500" fill="#d07f5a">Vault</text>
+        </svg>
+        <div class="text-[11px] text-ink-100/60 italic font-display mt-1 tracking-wide">Every bond, accounted for.</div>
       </div>
 
       <nav class="flex-1 overflow-y-auto py-3" id="sidebar-nav">
-        <div class="px-3 text-xs uppercase tracking-wider text-slate-500 mb-2 mt-1">Workflow</div>
+        <div class="px-3 text-[11px] uppercase tracking-[0.18em] text-ink-100/40 mb-2 mt-1 font-display">Workflow</div>
         <a data-view="dashboard" class="nav-link"><i data-i="dashboard"></i> Dashboard</a>
         <a data-view="pipeline"  class="nav-link"><i data-i="pipeline"></i> Pipeline</a>
         <a data-view="accounts"  class="nav-link"><i data-i="accounts"></i> Accounts</a>
         <a data-view="bonds"     class="nav-link"><i data-i="bonds"></i> Bonds</a>
         <a data-view="renewals"  class="nav-link"><i data-i="renewals"></i> Renewals</a>
 
-        <div class="px-3 text-xs uppercase tracking-wider text-slate-500 mb-2 mt-5">Tools</div>
+        <div class="px-3 text-[11px] uppercase tracking-[0.18em] text-ink-100/40 mb-2 mt-5 font-display">Tools</div>
         <a data-view="calculator" class="nav-link"><i data-i="calc"></i> Premium Calculator</a>
         <a data-view="documents"  class="nav-link"><i data-i="docs"></i> Documents</a>
         <a data-view="commissions" class="nav-link"><i data-i="commissions"></i> Commissions</a>
         <a data-view="invoicing"  class="nav-link"><i data-i="invoice"></i> Invoicing &amp; QBO</a>
 
-        <div class="px-3 text-xs uppercase tracking-wider text-slate-500 mb-2 mt-5">Connections</div>
+        <div class="px-3 text-[11px] uppercase tracking-[0.18em] text-ink-100/40 mb-2 mt-5 font-display">Connections</div>
         <a data-view="email"     class="nav-link"><i data-i="email"></i> Email Integration</a>
         <a data-view="partners"  class="nav-link"><i data-i="partners"></i> Bond Company Partners</a>
         <a data-view="settings"  class="nav-link"><i data-i="settings"></i> Settings</a>
       </nav>
 
-      <div class="border-t border-slate-800 p-4 flex items-center gap-3">
-        <div class="w-9 h-9 rounded-full bg-brand-500 text-white flex items-center justify-center text-sm font-semibold">CV</div>
+      <div class="border-t border-ink-700 p-4 flex items-center gap-3">
+        <div class="w-9 h-9 rounded-full bg-brand-500 text-cream-50 flex items-center justify-center text-sm font-display font-semibold">CV</div>
         <div class="flex-1 min-w-0">
-          <div class="text-sm text-white truncate">Casey Vanderbeck</div>
-          <div class="text-xs text-slate-400 truncate">Producer · Admin</div>
+          <div class="text-sm text-cream-50 truncate font-display">Casey Vanderbeck</div>
+          <div class="text-xs text-ink-100/60 truncate italic">Producer · Admin</div>
         </div>
-        <button class="text-slate-400 hover:text-white text-xs">⚙</button>
+        <button class="text-ink-100/60 hover:text-cream-50 text-xs">⚙</button>
       </div>
     </aside>
 
     <!-- Main -->
     <div class="flex-1 flex flex-col overflow-hidden">
-      <header class="bg-white border-b border-slate-200 px-6 h-16 flex items-center gap-4 flex-shrink-0">
+      <header class="bg-cream-50 border-b border-cream-200 px-6 h-16 flex items-center gap-4 flex-shrink-0">
         <div class="flex-1 max-w-xl relative">
           <input id="global-search" type="text" placeholder="Search accounts, bonds, obligees, bid numbers…"
-            class="w-full pl-9 pr-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-200 focus:border-brand-400" />
-          <svg class="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-4.35-4.35m0 0A7.5 7.5 0 1010.5 18a7.5 7.5 0 006.15-1.35z"/></svg>
+            class="w-full pl-9 pr-3 py-2 border border-cream-300 bg-white rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-200 focus:border-brand-400" />
+          <svg class="w-4 h-4 text-ink-300 absolute left-3 top-1/2 -translate-y-1/2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-4.35-4.35m0 0A7.5 7.5 0 1010.5 18a7.5 7.5 0 006.15-1.35z"/></svg>
         </div>
         <div class="flex items-center gap-2">
           <button class="btn-secondary" onclick="App.openQuickQuote()">+ New Quote</button>

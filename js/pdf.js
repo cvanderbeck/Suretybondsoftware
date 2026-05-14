@@ -3,19 +3,27 @@ window.PDF = (() => {
   const { jsPDF } = window.jspdf;
 
   function header(doc, title) {
-    doc.setFillColor(58, 93, 255);
+    // Warm ink band w/ rust accent (BondVault identity)
+    doc.setFillColor(34, 28, 18);             // ink-700
     doc.rect(0, 0, 210, 24, 'F');
-    doc.setTextColor(255);
-    doc.setFontSize(18); doc.setFont('helvetica', 'bold');
-    doc.text('BondVault', 14, 14);
-    doc.setFontSize(10); doc.setFont('helvetica', 'normal');
-    doc.text('Surety Agency OS', 14, 20);
+    doc.setDrawColor(193, 98, 63);            // rust accent line
+    doc.setLineWidth(0.6);
+    doc.line(0, 24, 210, 24);
+    doc.setTextColor(253, 249, 240);          // cream-50
+    doc.setFontSize(20); doc.setFont('times', 'bold');
+    doc.text('Bond', 14, 14);
+    doc.setTextColor(208, 127, 90);           // brand-400 (rust)
+    doc.setFont('times', 'italic');
+    doc.text('Vault', 34, 14);
+    doc.setTextColor(253, 249, 240);
+    doc.setFontSize(9); doc.setFont('helvetica', 'italic');
+    doc.text('Every bond, accounted for.', 14, 20);
     doc.setFontSize(12); doc.setFont('helvetica', 'bold');
     doc.text(title, 196, 14, { align: 'right' });
     const s = DB.settings().agency;
     doc.setFontSize(8); doc.setFont('helvetica', 'normal');
     doc.text(s.name, 196, 19, { align: 'right' });
-    doc.setTextColor(30);
+    doc.setTextColor(34, 28, 18);             // ink-700 for body
   }
 
   function footer(doc) {
@@ -103,7 +111,7 @@ window.PDF = (() => {
       head: [['Bond #','Type','Project','Premium','Amount']],
       body: [[bond.number || '—', bond.type || '—', bond.project || '—', U.usd(bond.premium||0), U.usd(inv.amount)]],
       theme: 'striped',
-      headStyles: { fillColor: [58, 93, 255], textColor: 255 },
+      headStyles: { fillColor: [161, 78, 48], textColor: 253 },
       styles: { fontSize: 10, cellPadding: 3 },
     });
 
@@ -137,7 +145,7 @@ window.PDF = (() => {
         U.usd(o.premium), `${o.commissionRate}% (${U.usd(o.commission)})`
       ]),
       theme: 'striped',
-      headStyles: { fillColor: [58, 93, 255], textColor: 255 },
+      headStyles: { fillColor: [161, 78, 48], textColor: 253 },
       styles: { fontSize: 10, cellPadding: 3 },
     });
 
@@ -151,15 +159,21 @@ window.PDF = (() => {
 
   function bondReport(bonds) {
     const doc = new jsPDF({ orientation: 'landscape' });
-    // Custom landscape header
-    doc.setFillColor(58, 93, 255);
+    doc.setFillColor(34, 28, 18);
     doc.rect(0, 0, 297, 22, 'F');
-    doc.setTextColor(255);
-    doc.setFontSize(18); doc.setFont('helvetica','bold');
-    doc.text('BondVault', 14, 14);
-    doc.setFontSize(12);
+    doc.setDrawColor(193, 98, 63);
+    doc.setLineWidth(0.6);
+    doc.line(0, 22, 297, 22);
+    doc.setTextColor(253, 249, 240);
+    doc.setFontSize(20); doc.setFont('times','bold');
+    doc.text('Bond', 14, 14);
+    doc.setTextColor(208, 127, 90);
+    doc.setFont('times','italic');
+    doc.text('Vault', 34, 14);
+    doc.setTextColor(253, 249, 240);
+    doc.setFontSize(12); doc.setFont('helvetica','bold');
     doc.text('Active Bonds Report', 283, 14, { align: 'right' });
-    doc.setTextColor(30);
+    doc.setTextColor(34, 28, 18);
 
     doc.autoTable({
       startY: 28,
@@ -170,7 +184,7 @@ window.PDF = (() => {
           `${b.commissionRate}%`, U.date(b.effective), U.date(b.expires), b.status];
       }),
       theme: 'striped',
-      headStyles: { fillColor: [30, 41, 59], textColor: 255 },
+      headStyles: { fillColor: [34, 28, 18], textColor: 253 },
       styles: { fontSize: 9, cellPadding: 2.5 },
     });
     footer(doc);
