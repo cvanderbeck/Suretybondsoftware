@@ -93,7 +93,7 @@ Views.dashboard = {
         <div class="card">
           <div class="card-header">
             <div class="card-title">Pending Underwriting</div>
-            <button class="btn-ghost" onclick="App.go('underwriting')">Open →</button>
+            <button class="btn-ghost" onclick="App.go('accounts')">All accounts →</button>
           </div>
           <div class="p-5 space-y-3">
             ${DB.uw().map(uw => {
@@ -102,7 +102,7 @@ Views.dashboard = {
               const done = uw.requirements.filter(r => r.status === 'received').length;
               const pct  = Math.round(done/uw.requirements.length*100);
               return `
-                <div class="p-3 rounded-lg border border-slate-200">
+                <div class="p-3 rounded-lg border border-slate-200 hover:bg-slate-50 cursor-pointer" onclick="App.go('accounts'); setTimeout(()=>Views.accounts.open('${a.id}'), 50);">
                   <div class="flex items-center justify-between">
                     <div>
                       <div class="text-sm font-medium text-slate-800">${U.esc(a.name)}</div>

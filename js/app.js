@@ -54,7 +54,7 @@ window.App = (() => {
 
     // Welcome toast on first load
     setTimeout(() => {
-      U.toast('Welcome to SureFlow — interactive preview', 'info');
+      U.toast('Welcome to BondVault — interactive preview', 'info');
     }, 400);
   }
 

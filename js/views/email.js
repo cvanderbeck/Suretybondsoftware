@@ -74,7 +74,7 @@ Views.email = {
 
   connect() {
     const body = `
-      <p class="text-sm text-slate-600 mb-3">Choose a provider. SureFlow uses OAuth2 to read &amp; send mail and creates a hidden <code>SureFlow/</code> label for outbound copies. (Demo simulates the flow.)</p>
+      <p class="text-sm text-slate-600 mb-3">Choose a provider. BondVault uses OAuth2 to read &amp; send mail and creates a hidden <code>BondVault/</code> label for outbound copies. (Demo simulates the flow.)</p>
       <div class="grid grid-cols-2 gap-3 mb-3">
         <label class="border border-slate-200 rounded-lg p-3 cursor-pointer hover:bg-slate-50 flex items-center gap-3">
           <input type="radio" name="prov" value="Microsoft 365" checked class="chk">

@@ -89,7 +89,7 @@ Views.settings = {
 
   exportJSON() {
     const blob = new Blob([JSON.stringify(DB.state, null, 2)], { type: 'application/json' });
-    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'sureflow-db.json'; a.click();
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'bondvault-db.json'; a.click();
     U.toast('Database exported');
   }
 };

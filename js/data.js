@@ -1,16 +1,155 @@
 // ---------- Sample / seed data, persistence layer ----------
 window.DB = (() => {
-  const KEY = 'sureflow.db.v1';
+  const KEY = 'bondvault.db.v1';
 
   const sampleData = () => ({
     accounts: [
-      { id: 'A-1001', name: 'Northridge Builders LLC',  type: 'Contractor',   contact: 'Janet Pierce',  email: 'jpierce@northridgebuilders.com', phone: '(503) 555-0142', city: 'Portland',  state: 'OR', taxId: '93-1245678', credit: 745, notes: 'Strong GC, working w/ Hartford & Liberty Mutual' },
-      { id: 'A-1002', name: 'Cascade Mechanical Co.',  type: 'Contractor',   contact: 'Mike Trillo',   email: 'mike@cascademech.com',           phone: '(503) 555-0233', city: 'Salem',     state: 'OR', taxId: '93-1239922', credit: 712, notes: 'Mechanical contractor, $3M single / $8M agg' },
-      { id: 'A-1003', name: 'Pioneer Trucking Inc.',   type: 'Commercial',   contact: 'Sarah Lin',     email: 'sarah@pioneertrucking.com',      phone: '(360) 555-0118', city: 'Vancouver', state: 'WA', taxId: '91-3349812', credit: 689, notes: 'BMC-84 freight broker bond' },
-      { id: 'A-1004', name: 'BlueWater Marine Svcs',   type: 'Contractor',   contact: 'Greg Adler',    email: 'greg@bluewatermarine.com',       phone: '(206) 555-0177', city: 'Seattle',   state: 'WA', taxId: '91-2229991', credit: 770, notes: 'Marine / dredging contractor' },
-      { id: 'A-1005', name: 'Apex Auto Dealers',       type: 'Commercial',   contact: 'Marcus Reed',   email: 'marcus@apexautos.com',           phone: '(503) 555-0301', city: 'Beaverton', state: 'OR', taxId: '93-2210034', credit: 701, notes: 'MV dealer bond renewal annually' },
-      { id: 'A-1006', name: 'Summit Notary Services',  type: 'Commercial',   contact: 'Erika Choi',    email: 'erika@summitnotary.com',         phone: '(208) 555-0212', city: 'Boise',     state: 'ID', taxId: '82-7782341', credit: 760, notes: 'Notary public bond' },
-      { id: 'A-1007', name: 'Redwood Electrical Co.',  type: 'Contractor',   contact: 'Diane Park',    email: 'diane@redwoodelectric.com',      phone: '(415) 555-0144', city: 'Oakland',   state: 'CA', taxId: '94-6655122', credit: 725, notes: 'Electrical contractor — emerging' },
+      {
+        id: 'A-1001', name: 'Northridge Builders LLC', dba: 'Northridge', type: 'Contractor',
+        contact: 'Janet Pierce', email: 'jpierce@northridgebuilders.com', phone: '(503) 555-0142',
+        address: '742 NE Broadway', city: 'Portland', state: 'OR', zip: '97232',
+        taxId: '93-1245678', credit: 745,
+        company: {
+          legalName: 'Northridge Builders LLC', entityType: 'LLC', stateOfFormation: 'OR', founded: '2012',
+          naics: '236220 — Commercial Building Construction', website: 'https://northridgebuilders.example',
+          grossRevenue: 18500000, employees: 42,
+          singleLimit: 5000000, aggregateLimit: 15000000,
+        },
+        contacts: [
+          { id: 'C-1001a', name: 'Janet Pierce', title: 'President', email: 'jpierce@northridgebuilders.com', phone: '(503) 555-0142', primary: true },
+          { id: 'C-1001b', name: 'Tom Reilly',   title: 'CFO',       email: 'treilly@northridgebuilders.com', phone: '(503) 555-0143', primary: false },
+          { id: 'C-1001c', name: 'Maria Vega',   title: 'Estimator', email: 'mvega@northridgebuilders.com',   phone: '(503) 555-0144', primary: false },
+        ],
+        indemnitors: [
+          { id: 'I-1001a', name: 'Janet Pierce',    type: 'Personal',  ssnEin: '***-**-1234', spouse: 'David Pierce', netWorth: 4200000, liquid: 850000, pfsDate: '2025-11-15' },
+          { id: 'I-1001b', name: 'Northridge Builders LLC', type: 'Corporate', ssnEin: '93-1245678', netWorth: 6800000, pfsDate: '2025-11-15' },
+        ],
+        renewals: { financialsLast: '2025-11-15', financialsInterval: 365, wipLast: '2026-04-01', wipInterval: 90 },
+        notes: 'Strong GC. Hartford and Liberty Mutual. Average gross profit fade <3% over last 5 years.',
+      },
+      {
+        id: 'A-1002', name: 'Cascade Mechanical Co.', dba: 'Cascade MEP', type: 'Contractor',
+        contact: 'Mike Trillo', email: 'mike@cascademech.com', phone: '(503) 555-0233',
+        address: '210 Industrial Way', city: 'Salem', state: 'OR', zip: '97302',
+        taxId: '93-1239922', credit: 712,
+        company: {
+          legalName: 'Cascade Mechanical Co.', entityType: 'S-Corp', stateOfFormation: 'OR', founded: '2008',
+          naics: '238220 — Plumbing, Heating, and Air-Conditioning Contractors', website: 'https://cascademech.example',
+          grossRevenue: 9200000, employees: 28,
+          singleLimit: 3000000, aggregateLimit: 8000000,
+        },
+        contacts: [
+          { id: 'C-1002a', name: 'Mike Trillo', title: 'Owner', email: 'mike@cascademech.com', phone: '(503) 555-0233', primary: true },
+          { id: 'C-1002b', name: 'Lisa Trillo', title: 'CFO',   email: 'lisa@cascademech.com', phone: '(503) 555-0234', primary: false },
+        ],
+        indemnitors: [
+          { id: 'I-1002a', name: 'Mike Trillo', type: 'Personal', ssnEin: '***-**-8821', spouse: 'Lisa Trillo', netWorth: 2900000, liquid: 410000, pfsDate: '2025-09-01' },
+          { id: 'I-1002b', name: 'Lisa Trillo', type: 'Personal', ssnEin: '***-**-3340', spouse: 'Mike Trillo', netWorth: 2900000, liquid: 410000, pfsDate: '2025-09-01' },
+          { id: 'I-1002c', name: 'Cascade Mechanical Co.', type: 'Corporate', ssnEin: '93-1239922', netWorth: 3400000, pfsDate: '2025-09-01' },
+        ],
+        renewals: { financialsLast: '2025-09-01', financialsInterval: 365, wipLast: '2026-04-01', wipInterval: 90 },
+        notes: 'Mechanical contractor. Active with Liberty Mutual primarily.',
+      },
+      {
+        id: 'A-1003', name: 'Pioneer Trucking Inc.', dba: '', type: 'Commercial',
+        contact: 'Sarah Lin', email: 'sarah@pioneertrucking.com', phone: '(360) 555-0118',
+        address: '1500 SE Mill Plain Blvd', city: 'Vancouver', state: 'WA', zip: '98661',
+        taxId: '91-3349812', credit: 689,
+        company: {
+          legalName: 'Pioneer Trucking Inc.', entityType: 'C-Corp', stateOfFormation: 'WA', founded: '2018',
+          naics: '484121 — General Freight Trucking, Long-Distance', website: '',
+          grossRevenue: 2400000, employees: 8,
+          singleLimit: 75000, aggregateLimit: 75000,
+        },
+        contacts: [
+          { id: 'C-1003a', name: 'Sarah Lin', title: 'Owner / Broker', email: 'sarah@pioneertrucking.com', phone: '(360) 555-0118', primary: true },
+        ],
+        indemnitors: [
+          { id: 'I-1003a', name: 'Sarah Lin', type: 'Personal', ssnEin: '***-**-7712', netWorth: 480000, liquid: 95000, pfsDate: '2025-12-20' },
+        ],
+        renewals: { financialsLast: '2025-12-20', financialsInterval: 365, wipLast: null, wipInterval: 0 },
+        notes: 'BMC-84 freight broker bond. Renews annually.',
+      },
+      {
+        id: 'A-1004', name: 'BlueWater Marine Svcs', dba: 'BlueWater', type: 'Contractor',
+        contact: 'Greg Adler', email: 'greg@bluewatermarine.com', phone: '(206) 555-0177',
+        address: '3300 Alaskan Way W', city: 'Seattle', state: 'WA', zip: '98119',
+        taxId: '91-2229991', credit: 770,
+        company: {
+          legalName: 'BlueWater Marine Services LLC', entityType: 'LLC', stateOfFormation: 'WA', founded: '2005',
+          naics: '237990 — Other Heavy and Civil Engineering Construction', website: 'https://bluewatermarine.example',
+          grossRevenue: 22000000, employees: 51,
+          singleLimit: 8000000, aggregateLimit: 20000000,
+        },
+        contacts: [
+          { id: 'C-1004a', name: 'Greg Adler',   title: 'President', email: 'greg@bluewatermarine.com',     phone: '(206) 555-0177', primary: true },
+          { id: 'C-1004b', name: 'Helen Mosley', title: 'Controller', email: 'hmosley@bluewatermarine.com', phone: '(206) 555-0178', primary: false },
+        ],
+        indemnitors: [
+          { id: 'I-1004a', name: 'Greg Adler',                 type: 'Personal',  ssnEin: '***-**-4421', spouse: 'Anne Adler', netWorth: 8400000, liquid: 1200000, pfsDate: '2026-02-10' },
+          { id: 'I-1004b', name: 'BlueWater Marine Services LLC', type: 'Corporate', ssnEin: '91-2229991', netWorth: 11000000, pfsDate: '2026-02-10' },
+        ],
+        renewals: { financialsLast: '2026-02-10', financialsInterval: 365, wipLast: '2026-04-30', wipInterval: 90 },
+        notes: 'Marine / dredging. Liberty Mutual lead. Working on Port of Seattle.',
+      },
+      {
+        id: 'A-1005', name: 'Apex Auto Dealers', dba: 'Apex Auto', type: 'Commercial',
+        contact: 'Marcus Reed', email: 'marcus@apexautos.com', phone: '(503) 555-0301',
+        address: '4400 SW Murray Blvd', city: 'Beaverton', state: 'OR', zip: '97005',
+        taxId: '93-2210034', credit: 701,
+        company: {
+          legalName: 'Apex Auto Dealers Inc.', entityType: 'C-Corp', stateOfFormation: 'OR', founded: '2014',
+          naics: '441110 — New Car Dealers', website: '',
+          grossRevenue: 15000000, employees: 22,
+          singleLimit: 50000, aggregateLimit: 50000,
+        },
+        contacts: [
+          { id: 'C-1005a', name: 'Marcus Reed', title: 'Owner', email: 'marcus@apexautos.com', phone: '(503) 555-0301', primary: true },
+        ],
+        indemnitors: [
+          { id: 'I-1005a', name: 'Marcus Reed', type: 'Personal', ssnEin: '***-**-9911', netWorth: 1850000, liquid: 320000, pfsDate: '2025-11-01' },
+        ],
+        renewals: { financialsLast: '2025-11-01', financialsInterval: 365, wipLast: null, wipInterval: 0 },
+        notes: 'MV dealer bond renewal annually each December.',
+      },
+      {
+        id: 'A-1006', name: 'Summit Notary Services', dba: '', type: 'Commercial',
+        contact: 'Erika Choi', email: 'erika@summitnotary.com', phone: '(208) 555-0212',
+        address: '120 N 9th St', city: 'Boise', state: 'ID', zip: '83702',
+        taxId: '82-7782341', credit: 760,
+        company: {
+          legalName: 'Summit Notary Services LLC', entityType: 'LLC', stateOfFormation: 'ID', founded: '2021',
+          naics: '561499 — Other Business Support Services', website: '',
+          grossRevenue: 180000, employees: 2,
+          singleLimit: 10000, aggregateLimit: 10000,
+        },
+        contacts: [
+          { id: 'C-1006a', name: 'Erika Choi', title: 'Owner', email: 'erika@summitnotary.com', phone: '(208) 555-0212', primary: true },
+        ],
+        indemnitors: [],
+        renewals: { financialsLast: null, financialsInterval: 0, wipLast: null, wipInterval: 0 },
+        notes: 'Notary public bond, 4-year term.',
+      },
+      {
+        id: 'A-1007', name: 'Redwood Electrical Co.', dba: 'Redwood Electric', type: 'Contractor',
+        contact: 'Diane Park', email: 'diane@redwoodelectric.com', phone: '(415) 555-0144',
+        address: '800 Embarcadero', city: 'Oakland', state: 'CA', zip: '94606',
+        taxId: '94-6655122', credit: 725,
+        company: {
+          legalName: 'Redwood Electrical Co.', entityType: 'S-Corp', stateOfFormation: 'CA', founded: '2019',
+          naics: '238210 — Electrical Contractors', website: '',
+          grossRevenue: 3800000, employees: 14,
+          singleLimit: 1000000, aggregateLimit: 2500000,
+        },
+        contacts: [
+          { id: 'C-1007a', name: 'Diane Park', title: 'Owner', email: 'diane@redwoodelectric.com', phone: '(415) 555-0144', primary: true },
+        ],
+        indemnitors: [
+          { id: 'I-1007a', name: 'Diane Park', type: 'Personal', ssnEin: '***-**-2274', netWorth: 950000, liquid: 180000, pfsDate: '2026-01-05' },
+        ],
+        renewals: { financialsLast: '2026-01-05', financialsInterval: 365, wipLast: '2026-03-15', wipInterval: 90 },
+        notes: 'Emerging electrical contractor. CSLB bond just issued.',
+      },
     ],
     bonds: [
       { id: 'B-2401', number: 'SF-2024-00121', accountId: 'A-1001', partnerId: 'P-01', type: 'Performance', obligee: 'City of Portland - PBOT', project: 'SE Division St Repaving (Phase 2)', amount: 1250000, premium: 18750, rate: 1.5, commissionRate: 25, effective: '2026-03-04', expires: '2027-03-04', status: 'Active' },

@@ -83,10 +83,10 @@ Views.invoicing = {
 
   connectQBO() {
     const body = `
-      <p class="text-sm text-slate-600 mb-3">You'll be redirected to Intuit to authorize SureFlow to access your QuickBooks Online company. This demo simulates that flow.</p>
+      <p class="text-sm text-slate-600 mb-3">You'll be redirected to Intuit to authorize BondVault to access your QuickBooks Online company. This demo simulates that flow.</p>
       <div class="bg-slate-50 p-3 rounded-lg text-sm space-y-2">
         <div><b>Scopes:</b> com.intuit.quickbooks.accounting, openid, profile</div>
-        <div><b>Redirect URI:</b> https://app.sureflow.example/oauth/qbo/callback</div>
+        <div><b>Redirect URI:</b> https://app.bondvault.example/oauth/qbo/callback</div>
       </div>
       <div class="mt-3"><div class="field-label">Pretend Realm ID</div><input id="qbo-realm" class="field-input" value="9341022938293"></div>
       <div class="mt-3"><div class="field-label">Company Name</div><input id="qbo-co" class="field-input" value="Vanderbeck Surety Agency"></div>

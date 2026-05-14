@@ -1,4 +1,4 @@
-# SureFlow — Surety Agency OS (Interactive Preview)
+# BondVault — Surety Agency OS (Interactive Preview)
 
 A self-contained, click-through preview of a surety bond management
 system for **independent producer agencies**.
@@ -20,9 +20,17 @@ State persists in `localStorage`. Use **Settings → Reset Demo Data** to start 
 
 - **Dashboard** — KPIs, premium trend chart, bond-mix donut, expiring bonds, UW progress.
 - **Pipeline & Bids** — Kanban (Prospect → Quoting → Submitted → **Bid Awaiting** → Won/Lost) with drag-drop and CSV export. Convert won opportunities directly into bonds.
-- **Accounts** — CRUD for principals (contractors, dealers, brokers, commercial). Shows bonds, docs, and mapped emails per account.
+- **Accounts** — Rich account hub with tabs:
+  - **Overview** — KPIs, primary contact card, renewal-due badges, company snapshot
+  - **Company** — legal name, DBA, entity type, formation state, founded, NAICS, website, gross revenue, employees, single + aggregate bond capacity
+  - **Contacts** — multi-contact CRUD, mark primary
+  - **Indemnity** — personal + corporate indemnitor CRUD with SSN/EIN, spouse, net worth, liquid, PFS date
+  - **Underwriting** — renewal triggers (financials + WIP intervals with overdue/due-soon badges), step pipeline (Intake → Doc Collection → Surety Submission → Decision → Issuance), per-bond requirement checklists, advance/submit
+  - **Bonds** — grouped by Active / Pending UW / Expired / Cancelled, clickable into the bond detail
+  - **Pipeline / Bids** — opportunities for this account with cross-link to the full pipeline
+  - **Documents** — files tied to the account
+  - **Emails** — mapped messages
 - **Bonds** — Full CRUD for bonds with per-bond **commission %**, premium calc, status, surety partner, and **PDF bond certificate export**. Bulk bonds report PDF too.
-- **Underwriting Workflows** — Step pipeline (Intake → Doc Collection → Surety Submission → Decision → Issuance) with requirement checklists, progress, and submit-to-surety action.
 - **Premium Calculator** — Bond class + subclass, credit/experience/working-capital/indemnity adjustments, per-partner spread, commission preview, and **PDF quote export**.
 - **Documents** — Drag-drop uploads, batch attach to account/bond, category tagging, simulated preview, delete.
 - **Commissions** — Per-bond and per-surety roll-ups, YTD totals, CSV export.
@@ -49,6 +57,6 @@ js/
   icons.js         inline SVG icons
   views/
     dashboard.js   pipeline.js   accounts.js    bonds.js
-    underwriting.js calculator.js documents.js  commissions.js
-    invoicing.js   email.js      partners.js    settings.js
+    calculator.js  documents.js  commissions.js invoicing.js
+    email.js       partners.js   settings.js
 ```

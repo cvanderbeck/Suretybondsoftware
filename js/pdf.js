@@ -7,7 +7,7 @@ window.PDF = (() => {
     doc.rect(0, 0, 210, 24, 'F');
     doc.setTextColor(255);
     doc.setFontSize(18); doc.setFont('helvetica', 'bold');
-    doc.text('SureFlow', 14, 14);
+    doc.text('BondVault', 14, 14);
     doc.setFontSize(10); doc.setFont('helvetica', 'normal');
     doc.text('Surety Agency OS', 14, 20);
     doc.setFontSize(12); doc.setFont('helvetica', 'bold');
@@ -156,7 +156,7 @@ window.PDF = (() => {
     doc.rect(0, 0, 297, 22, 'F');
     doc.setTextColor(255);
     doc.setFontSize(18); doc.setFont('helvetica','bold');
-    doc.text('SureFlow', 14, 14);
+    doc.text('BondVault', 14, 14);
     doc.setFontSize(12);
     doc.text('Active Bonds Report', 283, 14, { align: 'right' });
     doc.setTextColor(30);
