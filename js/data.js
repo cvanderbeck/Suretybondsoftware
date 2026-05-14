@@ -1,6 +1,6 @@
 // ---------- Sample / seed data, persistence layer ----------
 window.DB = (() => {
-  const KEY = 'bondvault.db.v1';
+  const KEY = 'bondvault.db.v2';
 
   const sampleData = () => ({
     accounts: [
@@ -151,16 +151,26 @@ window.DB = (() => {
         notes: 'Emerging electrical contractor. CSLB bond just issued.',
       },
     ],
-    bonds: [
-      { id: 'B-2401', number: 'SF-2024-00121', accountId: 'A-1001', partnerId: 'P-01', type: 'Performance', obligee: 'City of Portland - PBOT', project: 'SE Division St Repaving (Phase 2)', amount: 1250000, premium: 18750, rate: 1.5, commissionRate: 25, effective: '2026-03-04', expires: '2027-03-04', status: 'Active' },
-      { id: 'B-2402', number: 'SF-2024-00122', accountId: 'A-1001', partnerId: 'P-01', type: 'Payment',     obligee: 'City of Portland - PBOT', project: 'SE Division St Repaving (Phase 2)', amount: 1250000, premium: 0, rate: 0, commissionRate: 0, effective: '2026-03-04', expires: '2027-03-04', status: 'Active' },
-      { id: 'B-2403', number: 'SF-2024-00130', accountId: 'A-1002', partnerId: 'P-02', type: 'Bid',         obligee: 'Salem-Keizer School District', project: 'McKay HS HVAC Replacement',         amount: 480000,  premium: 0,    rate: 0,   commissionRate: 0,  effective: '2026-04-12', expires: '2026-06-12', status: 'Active' },
-      { id: 'B-2404', number: 'SF-2024-00141', accountId: 'A-1003', partnerId: 'P-03', type: 'License',     obligee: 'FMCSA',                  project: 'BMC-84 Broker Authority',          amount: 75000,   premium: 1875, rate: 2.5, commissionRate: 30, effective: '2026-01-15', expires: '2027-01-15', status: 'Active' },
-      { id: 'B-2405', number: 'SF-2024-00150', accountId: 'A-1005', partnerId: 'P-04', type: 'License',     obligee: 'Oregon DMV',             project: 'MV Dealer Bond',                   amount: 50000,   premium: 350,  rate: 0.7, commissionRate: 30, effective: '2025-12-01', expires: '2026-12-01', status: 'Active' },
-      { id: 'B-2406', number: 'SF-2024-00155', accountId: 'A-1006', partnerId: 'P-05', type: 'License',     obligee: 'Idaho SOS',              project: 'Notary Bond',                      amount: 10000,   premium: 50,   rate: 0.5, commissionRate: 35, effective: '2026-02-01', expires: '2030-02-01', status: 'Active' },
-      { id: 'B-2407', number: 'SF-2024-00170', accountId: 'A-1004', partnerId: 'P-02', type: 'Performance', obligee: 'Port of Seattle',        project: 'Pier 66 Dredging Maintenance',     amount: 875000,  premium: 14000,rate: 1.6, commissionRate: 25, effective: '2026-05-01', expires: '2027-05-01', status: 'Pending UW' },
-      { id: 'B-2408', number: 'SF-2024-00171', accountId: 'A-1007', partnerId: 'P-03', type: 'License',     obligee: 'CA CSLB',                project: 'Contractor License Bond',          amount: 25000,   premium: 250,  rate: 1.0, commissionRate: 30, effective: '2026-04-01', expires: '2027-04-01', status: 'Active' },
-    ],
+    bonds: (() => {
+      // Compute relative dates so the Renewals view has fresh content
+      // regardless of when the demo is opened.
+      const today = new Date();
+      const days = (n) => {
+        const d = new Date(today); d.setDate(d.getDate() + n);
+        return d.toISOString().slice(0,10);
+      };
+      return [
+        { id: 'B-2401', number: 'SF-2024-00121', accountId: 'A-1001', partnerId: 'P-01', type: 'Performance', obligee: 'City of Portland - PBOT', project: 'SE Division St Repaving (Phase 2)', amount: 1250000, premium: 18750, rate: 1.5, commissionRate: 25, effective: days(-300), expires: days(65),  status: 'Active' },
+        { id: 'B-2402', number: 'SF-2024-00122', accountId: 'A-1001', partnerId: 'P-01', type: 'Payment',     obligee: 'City of Portland - PBOT', project: 'SE Division St Repaving (Phase 2)', amount: 1250000, premium: 0,     rate: 0,   commissionRate: 0,  effective: days(-300), expires: days(65),  status: 'Active' },
+        { id: 'B-2403', number: 'SF-2024-00130', accountId: 'A-1002', partnerId: 'P-02', type: 'Bid',         obligee: 'Salem-Keizer School District', project: 'McKay HS HVAC Replacement',     amount: 480000,  premium: 0,     rate: 0,   commissionRate: 0,  effective: days(-30),  expires: days(28),  status: 'Active' },
+        { id: 'B-2404', number: 'SF-2024-00141', accountId: 'A-1003', partnerId: 'P-03', type: 'License',     obligee: 'FMCSA',                  project: 'BMC-84 Broker Authority',          amount: 75000,   premium: 1875,  rate: 2.5, commissionRate: 30, effective: days(-120), expires: days(245), status: 'Active' },
+        { id: 'B-2405', number: 'SF-2024-00150', accountId: 'A-1005', partnerId: 'P-04', type: 'License',     obligee: 'Oregon DMV',             project: 'MV Dealer Bond',                   amount: 50000,   premium: 350,   rate: 0.7, commissionRate: 30, effective: days(-330), expires: days(35),  status: 'Active' },
+        { id: 'B-2406', number: 'SF-2024-00155', accountId: 'A-1006', partnerId: 'P-05', type: 'License',     obligee: 'Idaho SOS',              project: 'Notary Bond',                      amount: 10000,   premium: 50,    rate: 0.5, commissionRate: 35, effective: days(-90),  expires: days(1370),status: 'Active' },
+        { id: 'B-2407', number: 'SF-2024-00170', accountId: 'A-1004', partnerId: 'P-02', type: 'Performance', obligee: 'Port of Seattle',        project: 'Pier 66 Dredging Maintenance',     amount: 875000,  premium: 14000, rate: 1.6, commissionRate: 25, effective: days(-13),  expires: days(50),  status: 'Active' },
+        { id: 'B-2408', number: 'SF-2024-00171', accountId: 'A-1007', partnerId: 'P-03', type: 'License',     obligee: 'CA CSLB',                project: 'Contractor License Bond',          amount: 25000,   premium: 250,   rate: 1.0, commissionRate: 30, effective: days(-42),  expires: days(82),  status: 'Active' },
+        { id: 'B-2409', number: 'SF-2024-00180', accountId: 'A-1001', partnerId: 'P-06', type: 'Performance', obligee: 'Multnomah County',       project: 'Library Renovation',               amount: 620000,  premium: 9300,  rate: 1.5, commissionRate: 25, effective: days(-280), expires: days(85),  status: 'Active' },
+      ];
+    })(),
     partners: [
       { id: 'P-01', name: 'Hartford Surety',          rating: 'A+ XV',  appetite: 'Mid-large GC, Performance/Payment up to $25M single', contactName: 'Tom Reyes',       email: 'tom.reyes@hartford-surety.example',     phone: '(800) 555-0101', portalUrl: 'https://underwriting.hartford-surety.example', commissionRate: 25, active: true },
       { id: 'P-02', name: 'Liberty Mutual Surety',    rating: 'A   XV', appetite: 'Mid GC, mechanical, marine', contactName: 'Priya Subramanian',                                  email: 'psubramanian@lms.example',              phone: '(800) 555-0102', portalUrl: 'https://lms.example/portal',                  commissionRate: 25, active: true },
@@ -215,6 +225,27 @@ window.DB = (() => {
       { id: 'INV-1005', bondId: 'B-2408', accountId: 'A-1007', date: '2026-04-01', amount: 250,   status: 'Open',    qboId: null,      dueDate: '2026-05-01' },
       { id: 'INV-1006', bondId: 'B-2407', accountId: 'A-1004', date: '2026-05-09', amount: 14000, status: 'Draft',   qboId: null,      dueDate: '2026-06-08' },
     ],
+    renewals: [
+      // Seeded renewal workflow rows. Bonds not listed here get an
+      // 'upcoming' record auto-created on first view if they expire
+      // within the renewal window.
+      { id: 'R-001', bondId: 'B-2403', status: 'outreach',     decision: null,     newAmount: null,    contactedDate: '2026-05-10', nextFollowUp: '2026-05-17', assignedTo: 'Casey V.', notes: [
+        { date: '2026-05-10', author: 'Casey V.', text: 'Emailed Mike Trillo asking if McKay HS bid is still active and if performance bond will be needed.' },
+        { date: '2026-05-12', author: 'Casey V.', text: 'Left voicemail with PM at Salem-Keizer SD confirming bond requirement.' },
+      ] },
+      { id: 'R-002', bondId: 'B-2407', status: 'decided',      decision: 'increase', newAmount: 1100000, contactedDate: '2026-05-08', nextFollowUp: '2026-05-20', assignedTo: 'Casey V.', notes: [
+        { date: '2026-05-08', author: 'Casey V.', text: 'Spoke with Greg Adler — Port of Seattle added Phase 2 to the contract, requesting an increase from $875K to $1.1M.' },
+        { date: '2026-05-09', author: 'Casey V.', text: 'Notified Liberty Mutual underwriter; awaiting endorsement.' },
+      ] },
+      { id: 'R-003', bondId: 'B-2401', status: 'awaiting_response', decision: null, newAmount: null, contactedDate: '2026-05-05', nextFollowUp: '2026-05-19', assignedTo: 'Casey V.', notes: [
+        { date: '2026-05-05', author: 'Casey V.', text: 'Sent renewal questionnaire to Janet Pierce — need confirmation if SE Division project is still active.' },
+      ] },
+      { id: 'R-004', bondId: 'B-2405', status: 'upcoming',     decision: null,     newAmount: null,    contactedDate: null,         nextFollowUp: null,         assignedTo: 'Casey V.', notes: [] },
+      { id: 'R-005', bondId: 'B-2408', status: 'upcoming',     decision: null,     newAmount: null,    contactedDate: null,         nextFollowUp: null,         assignedTo: 'Casey V.', notes: [] },
+      { id: 'R-006', bondId: 'B-2409', status: 'decided',      decision: 'release', newAmount: null,    contactedDate: '2026-05-06', nextFollowUp: null,         assignedTo: 'Casey V.', notes: [
+        { date: '2026-05-06', author: 'Casey V.', text: 'Northridge confirmed library renovation completed and accepted. Obligee letter of release received — bond will be cancelled flat.' },
+      ] },
+    ],
     settings: {
       agency: {
         name: 'Vanderbeck Surety Agency',
@@ -256,6 +287,7 @@ window.DB = (() => {
     docs:     () => state.documents,
     emails:   () => state.emails,
     invoices: () => state.invoices,
+    renewals: () => (state.renewals = state.renewals || []),
     settings: () => state.settings,
 
     findAccount: (id) => state.accounts.find(a => a.id === id),

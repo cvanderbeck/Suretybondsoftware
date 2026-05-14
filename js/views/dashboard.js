@@ -50,9 +50,15 @@ Views.dashboard = {
           <div class="stat-delta-up">+8.4% vs last year</div>
         </div>
         <div class="stat-card">
-          <div class="stat-label">Pipeline Value</div>
-          <div class="stat-value">${U.usd(pipeTotal)}</div>
-          <div class="stat-delta-up">${pipe.filter(p=>p.stage==='Bid Awaiting').length} bids awaiting</div>
+          <div class="stat-label">Renewals · next 30d</div>
+          <div class="stat-value">${(() => {
+            const t = new Date();
+            return activeBonds.filter(b => {
+              const d = Math.ceil((new Date(b.expires)-t)/86400000);
+              return d <= 30 && d >= -30;
+            }).length;
+          })()}</div>
+          <div class="stat-delta-up">${pipe.filter(p=>p.stage==='Bid Awaiting').length} bids awaiting · ${U.usd(pipeTotal)} pipeline</div>
         </div>
       </div>
 
@@ -70,22 +76,42 @@ Views.dashboard = {
       <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <div class="card lg:col-span-2">
           <div class="card-header">
-            <div class="card-title">Bonds expiring in next 90 days</div>
-            <button class="btn-ghost" onclick="App.go('bonds')">View all →</button>
+            <div class="card-title">Upcoming Renewals (next 90 days)</div>
+            <button class="btn-ghost" onclick="App.go('renewals')">Open workflow →</button>
           </div>
           <table class="tbl">
-            <thead><tr><th>Bond #</th><th>Principal</th><th>Obligee</th><th>Amount</th><th>Expires</th></tr></thead>
+            <thead><tr><th>Bond #</th><th>Principal</th><th>Obligee</th><th class="text-right">Amount</th><th>Expires</th><th>Status</th></tr></thead>
             <tbody>
-              ${activeBonds.slice(0,5).map(b => {
-                const a = DB.findAccount(b.accountId) || {};
-                return `<tr class="cursor-pointer" onclick="Views.bonds.open('${b.id}')">
-                  <td class="font-medium text-brand-700">${b.number}</td>
-                  <td>${U.esc(a.name)}</td>
-                  <td>${U.esc(b.obligee)}</td>
-                  <td>${U.usd(b.amount)}</td>
-                  <td>${U.date(b.expires)}</td>
-                </tr>`;
-              }).join('')}
+              ${(() => {
+                const today = new Date();
+                const upcoming = activeBonds
+                  .map(b => ({ b, days: Math.ceil((new Date(b.expires) - today)/86400000) }))
+                  .filter(x => x.days <= 90 && x.days >= -30)
+                  .sort((a,b) => a.days - b.days)
+                  .slice(0, 6);
+                if (!upcoming.length) return `<tr><td colspan="6" class="text-center text-slate-400 py-6">No bonds expiring in the next 90 days.</td></tr>`;
+                return upcoming.map(({b, days}) => {
+                  const a = DB.findAccount(b.accountId) || {};
+                  const ren = DB.renewals().find(r => r.bondId === b.id);
+                  const stLabel = ren ? Views.renewals.STATUS_LABEL[ren.status] : 'Upcoming';
+                  const stClass = ren ? Views.renewals.STATUS_BADGE[ren.status] : 'badge-slate';
+                  const dayBadge = days < 0
+                    ? `<span class="badge badge-rose">Overdue ${Math.abs(days)}d</span>`
+                    : days <= 30 ? `<span class="badge badge-amber">${days}d</span>`
+                    : `<span class="badge badge-slate">${days}d</span>`;
+                  const onClick = ren
+                    ? `App.go('renewals'); setTimeout(()=>Views.renewals.open('${ren.id}'), 50);`
+                    : `App.go('renewals');`;
+                  return `<tr class="cursor-pointer" onclick="${onClick}">
+                    <td class="font-medium text-brand-700">${b.number}</td>
+                    <td>${U.esc(a.name)}</td>
+                    <td class="max-w-[14rem] truncate">${U.esc(b.obligee)}</td>
+                    <td class="text-right">${U.usd(b.amount)}</td>
+                    <td>${U.date(b.expires)} ${dayBadge}</td>
+                    <td><span class="badge ${stClass}">${stLabel}</span></td>
+                  </tr>`;
+                }).join('');
+              })()}
             </tbody>
           </table>
         </div>

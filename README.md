@@ -31,6 +31,13 @@ State persists in `localStorage`. Use **Settings → Reset Demo Data** to start 
   - **Documents** — files tied to the account
   - **Emails** — mapped messages
 - **Bonds** — Full CRUD for bonds with per-bond **commission %**, premium calc, status, surety partner, and **PDF bond certificate export**. Bulk bonds report PDF too.
+- **Renewals** — Dedicated page for upcoming bond expirations with a follow-up workflow:
+  - Filter by window (30 / 60 / 90 / 120 / 180 days) and status
+  - Per-bond renewal record with a 5-step pipeline: Upcoming → Outreach Started → Awaiting Response → Decision Made → Closed
+  - Decision outcomes: **Renew** (rolls expiration forward 1 yr), **Released** (no longer needed → cancel), **Reduce** / **Increase** bond amount (auto-updates bond + premium), **Cancel** (not renewing)
+  - Activity log of follow-up notes with date / author
+  - Quick "Log FU" inline action sets next follow-up date and advances status
+  - CSV export
 - **Premium Calculator** — Bond class + subclass, credit/experience/working-capital/indemnity adjustments, per-partner spread, commission preview, and **PDF quote export**.
 - **Documents** — Drag-drop uploads, batch attach to account/bond, category tagging, simulated preview, delete.
 - **Commissions** — Per-bond and per-surety roll-ups, YTD totals, CSV export.
@@ -57,6 +64,6 @@ js/
   icons.js         inline SVG icons
   views/
     dashboard.js   pipeline.js   accounts.js    bonds.js
-    calculator.js  documents.js  commissions.js invoicing.js
-    email.js       partners.js   settings.js
+    renewals.js    calculator.js documents.js   commissions.js
+    invoicing.js   email.js      partners.js    settings.js
 ```
