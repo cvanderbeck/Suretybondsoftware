@@ -10,19 +10,22 @@ window.PDF = (() => {
     doc.setLineWidth(0.6);
     doc.line(0, 24, 210, 24);
     doc.setTextColor(253, 249, 240);          // cream-50
-    doc.setFontSize(20); doc.setFont('times', 'bold');
-    doc.text('Bond', 14, 14);
-    doc.setTextColor(208, 127, 90);           // brand-400 (rust)
-    doc.setFont('times', 'italic');
-    doc.text('Vault', 34, 14);
+    doc.setFontSize(22); doc.setFont('times', 'bold');
+    doc.text('Bond', 14, 13);
+    doc.setTextColor(193, 98, 63);            // rust accent
+    doc.setFont('times', 'bolditalic');
+    doc.text('Vault', 35, 13);
+    doc.setTextColor(220, 210, 195);
+    doc.setFontSize(7); doc.setFont('helvetica', 'normal');
+    doc.setCharSpace(1.6);
+    doc.text('EVERY BOND, ACCOUNTED FOR', 14, 20);
+    doc.setCharSpace(0);
     doc.setTextColor(253, 249, 240);
-    doc.setFontSize(9); doc.setFont('helvetica', 'italic');
-    doc.text('Every bond, accounted for.', 14, 20);
     doc.setFontSize(12); doc.setFont('helvetica', 'bold');
     doc.text(title, 196, 14, { align: 'right' });
     const s = DB.settings().agency;
     doc.setFontSize(8); doc.setFont('helvetica', 'normal');
-    doc.text(s.name, 196, 19, { align: 'right' });
+    doc.text(s.name, 196, 20, { align: 'right' });
     doc.setTextColor(34, 28, 18);             // ink-700 for body
   }
 
@@ -165,14 +168,19 @@ window.PDF = (() => {
     doc.setLineWidth(0.6);
     doc.line(0, 22, 297, 22);
     doc.setTextColor(253, 249, 240);
-    doc.setFontSize(20); doc.setFont('times','bold');
-    doc.text('Bond', 14, 14);
-    doc.setTextColor(208, 127, 90);
-    doc.setFont('times','italic');
-    doc.text('Vault', 34, 14);
+    doc.setFontSize(22); doc.setFont('times','bold');
+    doc.text('Bond', 14, 13);
+    doc.setTextColor(193, 98, 63);
+    doc.setFont('times','bolditalic');
+    doc.text('Vault', 35, 13);
+    doc.setTextColor(220, 210, 195);
+    doc.setFontSize(7); doc.setFont('helvetica','normal');
+    doc.setCharSpace(1.6);
+    doc.text('EVERY BOND, ACCOUNTED FOR', 14, 19);
+    doc.setCharSpace(0);
     doc.setTextColor(253, 249, 240);
     doc.setFontSize(12); doc.setFont('helvetica','bold');
-    doc.text('Active Bonds Report', 283, 14, { align: 'right' });
+    doc.text('Active Bonds Report', 283, 13, { align: 'right' });
     doc.setTextColor(34, 28, 18);
 
     doc.autoTable({
