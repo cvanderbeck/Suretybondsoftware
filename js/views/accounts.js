@@ -146,6 +146,7 @@ Views.accounts = {
     const footer = `
       <button class="btn-ghost" data-close>Close</button>
       <button class="btn-secondary" onclick="U.closeModals(); Views.accounts.openForm('${id}')">Edit Account</button>
+      <button class="btn-secondary" onclick="Compose.open({ accountId: '${id}' })">✉ Email</button>
       <button class="btn-primary"   onclick="U.closeModals(); App.openNewBond('${id}')">New Bond</button>
     `;
     const m = U.modal({ title: 'Account', body, footer, size: 'lg' });
@@ -314,7 +315,8 @@ Views.accounts = {
                 <td><a class="text-brand-600" href="mailto:${U.esc(c.email||'')}">${U.esc(c.email||'')}</a></td>
                 <td>${U.esc(c.phone||'')}</td>
                 <td>${c.primary ? '<span class="badge badge-green">Primary</span>' : `<button class="btn-ghost text-xs" onclick="Views.accounts.makePrimaryContact('${a.id}','${c.id}')">Make primary</button>`}</td>
-                <td class="text-right">
+                <td class="text-right whitespace-nowrap">
+                  <button class="btn-ghost" onclick="Compose.open({ accountId: '${a.id}', to: '${U.esc(c.email||'')}' })">✉ Email</button>
                   <button class="btn-ghost" onclick="Views.accounts.editContact('${a.id}','${c.id}')">Edit</button>
                   <button class="btn-ghost text-rose-600" onclick="Views.accounts.deleteContact('${a.id}','${c.id}')">Delete</button>
                 </td>

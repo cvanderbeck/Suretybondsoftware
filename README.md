@@ -42,7 +42,8 @@ State persists in `localStorage`. Use **Settings → Reset Demo Data** to start 
 - **Documents** — Drag-drop uploads, batch attach to account/bond, category tagging, simulated preview, delete.
 - **Commissions** — Per-bond and per-surety roll-ups, YTD totals, CSV export.
 - **Invoicing & QuickBooks Online** — Connect / disconnect QBO (simulated OAuth), sync individual or all invoices, map A/R + Income accounts, PDF invoice export, status flow (Draft → Open → Paid).
-- **Email Integration** — Connect Microsoft 365 / Google Workspace (simulated OAuth), inbox view with **auto-mapping** rules (bond-# regex, sender domain, partner sender, obligee fuzzy match) and manual map-to-account/map-to-bond.
+- **Email Integration** — Connect Microsoft 365 / Google Workspace (simulated OAuth), Inbox / Sent / Drafts folders, **reusable email templates** with `{{variable}}` substitution (account/contact/bond/renewal/agency context), template manager (CRUD by category), auto-mapping rules, and a **Compose** modal you can launch from anywhere.
+- **Compose anywhere** — ✉ Email buttons in Renewals, Bonds, Accounts (incl. per-contact), and Pipeline open a context-aware composer. Sending from a Renewal also logs a follow-up note and advances workflow.
 - **Bond Company Partners** — Card grid of sureties: appetite, AM Best rating, contact, portal link, default commission, per-partner bond/premium/commission totals.
 - **Settings** — Agency profile, integrations overview, reset / export demo data.
 

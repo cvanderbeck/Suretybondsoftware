@@ -139,6 +139,7 @@ Views.bonds = {
     const footer = `
       <button class="btn-ghost" data-close>Close</button>
       <button class="btn-secondary" onclick="Views.bonds.openForm('${id}')">Edit</button>
+      <button class="btn-secondary" onclick="Compose.open({ bondId: '${id}' })">✉ Email Principal</button>
       <button class="btn-secondary" onclick="Views.bonds.exportOne('${id}')">Export Bond PDF</button>
       <button class="btn-primary" onclick="Views.bonds.createInvoice('${id}')">Create Invoice</button>
     `;

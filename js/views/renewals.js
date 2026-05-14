@@ -184,7 +184,8 @@ Views.renewals = {
         <td>${statusBadge}</td>
         <td>${decisionBadge}</td>
         <td>${followUp}</td>
-        <td class="text-right">
+        <td class="text-right whitespace-nowrap">
+          <button class="btn-ghost" onclick="event.stopPropagation(); Compose.open({ renewalId: '${r.renewal.id}', templateId: 'T-renewal' })">✉ Email</button>
           <button class="btn-ghost" onclick="event.stopPropagation(); Views.renewals.quickFollowUp('${r.renewal.id}')">Log FU</button>
         </td>
       </tr>`;
@@ -310,7 +311,9 @@ Views.renewals = {
     `;
     const footer = `
       <button class="btn-ghost" data-close>Close</button>
-      <button class="btn-secondary" onclick="Views.renewals.deleteRenewal('${r.id}')">Delete</button>
+      <button class="btn-secondary text-rose-600" onclick="Views.renewals.deleteRenewal('${r.id}')">Delete</button>
+      <button class="btn-secondary" onclick="Compose.open({ renewalId: '${r.id}' })">Email Principal</button>
+      <button class="btn-primary"   onclick="Compose.open({ renewalId: '${r.id}', templateId: 'T-renewal' })">Send Renewal Follow-up</button>
     `;
     const m = U.modal({ title: 'Renewal Workflow', body, footer, size: 'lg' });
     m.el.querySelector('[data-close]').addEventListener('click', m.close);

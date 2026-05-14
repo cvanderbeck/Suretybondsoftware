@@ -1,24 +1,74 @@
 window.Views = window.Views || {};
 Views.email = {
+  _section: 'mail',   // 'mail' | 'templates'
+  _folder: 'inbox',   // inbox | sent | drafts | unmapped
+
   render() {
     const e = DB.settings().email;
-    const emails = DB.emails();
-    const unmapped = emails.filter(x => !x.accountId);
-    const totalUnread = emails.filter(x => !x.read).length;
 
     document.getElementById('view').innerHTML = `
       <div class="mb-6 flex items-center justify-between">
         <div>
-          <h1 class="section-title">Email Integration</h1>
-          <p class="section-sub">Connect Microsoft 365 or Google Workspace. Inbound mail is auto-mapped to accounts and bonds by sender, subject, and bond number patterns.</p>
+          <h1 class="section-title">Email</h1>
+          <p class="section-sub">Connect your mailbox, send templated messages tied to accounts/bonds/renewals, and manage reusable templates.</p>
         </div>
         <div class="flex items-center gap-2">
           <button class="btn-secondary" onclick="Views.email.refresh()">Refresh Inbox</button>
-          <button class="btn-primary"   onclick="Views.email.openRules()">Mapping Rules</button>
+          <button class="btn-primary"   onclick="Compose.open({})">+ Compose</button>
         </div>
       </div>
 
-      <div class="card mb-6">
+      <div class="border-b border-slate-200 mb-5 flex gap-1">
+        ${this._tabBtn('mail',      'Mail')}
+        ${this._tabBtn('templates', 'Templates (' + DB.templates().length + ')')}
+        ${this._tabBtn('rules',     'Mapping Rules')}
+      </div>
+
+      <div id="email-body">${this._renderSection()}</div>
+    `;
+  },
+
+  _tabBtn(key, label) {
+    const active = this._section === key;
+    return `<button onclick="Views.email._setSection('${key}')" class="px-3 py-2 text-sm border-b-2 -mb-px transition
+        ${active ? 'border-brand-500 text-brand-700 font-semibold' : 'border-transparent text-slate-600 hover:text-slate-900'}">${label}</button>`;
+  },
+  _setSection(s) { this._section = s; document.getElementById('email-body').innerHTML = this._renderSection(); },
+
+  _renderSection() {
+    if (this._section === 'templates') return this._renderTemplates();
+    if (this._section === 'rules')     return this._renderRules();
+    return this._renderMail();
+  },
+
+  // ---------- Mail (inbox / sent / drafts) ----------
+  _renderMail() {
+    const e = DB.settings().email;
+    const all = DB.emails();
+    const counts = {
+      inbox: all.filter(x => (x.folder||'inbox')==='inbox').length,
+      sent:  all.filter(x => x.folder==='sent').length,
+      drafts:all.filter(x => x.folder==='drafts').length,
+      unmapped: all.filter(x => (x.folder||'inbox')==='inbox' && !x.accountId).length,
+    };
+    const list = all.filter(x => {
+      const f = x.folder || 'inbox';
+      if (this._folder === 'inbox') return f === 'inbox';
+      if (this._folder === 'sent')  return f === 'sent';
+      if (this._folder === 'drafts')return f === 'drafts';
+      if (this._folder === 'unmapped') return f === 'inbox' && !x.accountId;
+      return true;
+    }).sort((a,b) => new Date(b.date) - new Date(a.date));
+
+    const folderBtn = (key, label, c) => `
+      <button onclick="Views.email._setFolder('${key}')"
+        class="px-3 py-1.5 rounded-full text-xs font-medium border transition
+          ${this._folder===key ? 'bg-slate-900 text-white border-slate-900' : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'}">
+        ${label} <span class="ml-1 opacity-70">${c}</span>
+      </button>`;
+
+    return `
+      <div class="card mb-5">
         <div class="p-5 flex items-center justify-between">
           <div class="flex items-center gap-4">
             <div class="w-12 h-12 rounded-lg bg-blue-100 text-blue-700 flex items-center justify-center font-bold text-xl">✉</div>
@@ -37,39 +87,68 @@ Views.email = {
         </div>
       </div>
 
-      <div class="grid grid-cols-3 gap-4 mb-6">
-        <div class="stat-card"><div class="stat-label">Inbox</div><div class="stat-value">${emails.length}</div></div>
-        <div class="stat-card"><div class="stat-label">Unread</div><div class="stat-value">${totalUnread}</div></div>
-        <div class="stat-card"><div class="stat-label">Unmapped</div><div class="stat-value">${unmapped.length}</div><div class="text-xs text-slate-400 mt-1">Needing manual assignment</div></div>
+      <div class="flex items-center gap-2 mb-4 flex-wrap">
+        ${folderBtn('inbox',   'Inbox',     counts.inbox)}
+        ${folderBtn('sent',    'Sent',      counts.sent)}
+        ${folderBtn('drafts',  'Drafts',    counts.drafts)}
+        ${folderBtn('unmapped','Unmapped',  counts.unmapped)}
       </div>
 
       <div class="card">
-        <div class="card-header"><div class="card-title">Inbox</div></div>
         <table class="tbl">
-          <thead><tr><th></th><th>From</th><th>Subject</th><th>Mapped Account</th><th>Mapped Bond</th><th>Date</th><th></th></tr></thead>
+          <thead><tr>
+            <th></th>
+            <th>${this._folder==='sent'||this._folder==='drafts' ? 'To' : 'From'}</th>
+            <th>Subject</th><th>Mapped Account</th><th>Mapped Bond</th><th>Date</th><th></th>
+          </tr></thead>
           <tbody>
-            ${emails.map(em => {
-              const a = em.accountId ? DB.findAccount(em.accountId) : null;
-              const b = em.bondId    ? DB.findBond(em.bondId)       : null;
-              return `<tr class="${!em.read?'bg-blue-50/30':''}">
-                <td><span class="w-2 h-2 inline-block rounded-full ${em.read?'bg-transparent':'bg-blue-500'}"></span></td>
-                <td><div class="text-sm">${U.esc(em.from)}</div></td>
-                <td>
-                  <div class="font-medium text-slate-800 cursor-pointer" onclick="Views.email.openMessage('${em.id}')">${U.esc(em.subject)}</div>
-                  <div class="text-xs text-slate-500 truncate max-w-[28rem]">${U.esc(em.preview)}</div>
-                </td>
-                <td>${a ? `<span class="badge badge-blue cursor-pointer" onclick="App.go('accounts');">${U.esc(a.name)}</span>` : '<span class="text-xs text-slate-400">— unmapped —</span>'}</td>
-                <td>${b ? `<span class="badge badge-violet cursor-pointer" onclick="Views.bonds.open('${b.id}')">${b.number}</span>` : '<span class="text-xs text-slate-400">—</span>'}</td>
-                <td class="whitespace-nowrap">${U.datetime(em.date)}</td>
-                <td class="text-right">
-                  <button class="btn-ghost" onclick="Views.email.openMapping('${em.id}')">Map</button>
-                </td>
-              </tr>`;
-            }).join('')}
+            ${list.length ? list.map(em => this._mailRow(em)).join('')
+              : '<tr><td colspan="7" class="text-center text-slate-400 py-12">No messages.</td></tr>'}
           </tbody>
         </table>
       </div>
     `;
+  },
+
+  _mailRow(em) {
+    const folder = em.folder || 'inbox';
+    const addr = folder === 'sent' || folder === 'drafts' ? (em.to || '') : em.from;
+    const a = em.accountId ? DB.findAccount(em.accountId) : null;
+    const b = em.bondId    ? DB.findBond(em.bondId)       : null;
+    const bgClass = (!em.read && folder === 'inbox') ? 'bg-blue-50/30' : '';
+    return `<tr class="${bgClass}">
+      <td><span class="w-2 h-2 inline-block rounded-full ${(!em.read && folder==='inbox')?'bg-blue-500':'bg-transparent'}"></span></td>
+      <td><div class="text-sm">${U.esc(addr)}</div></td>
+      <td>
+        <div class="font-medium text-slate-800 cursor-pointer" onclick="Views.email.openMessage('${em.id}')">${U.esc(em.subject)}</div>
+        <div class="text-xs text-slate-500 truncate max-w-[28rem]">${U.esc(em.preview)}</div>
+      </td>
+      <td>${a ? `<span class="badge badge-blue cursor-pointer" onclick="App.go('accounts');">${U.esc(a.name)}</span>` : '<span class="text-xs text-slate-400">— unmapped —</span>'}</td>
+      <td>${b ? `<span class="badge badge-violet cursor-pointer" onclick="Views.bonds.open('${b.id}')">${b.number}</span>` : '<span class="text-xs text-slate-400">—</span>'}</td>
+      <td class="whitespace-nowrap">${U.datetime(em.date)}</td>
+      <td class="text-right">
+        ${folder==='inbox' ? `<button class="btn-ghost" onclick="Views.email.openMapping('${em.id}')">Map</button>
+                              <button class="btn-ghost" onclick="Views.email.replyTo('${em.id}')">Reply</button>` : ''}
+        ${folder==='drafts' ? `<button class="btn-ghost" onclick="Views.email.openDraft('${em.id}')">Edit</button>` : ''}
+      </td>
+    </tr>`;
+  },
+
+  _setFolder(f) { this._folder = f; document.getElementById('email-body').innerHTML = this._renderSection(); },
+
+  refresh() {
+    DB.settings().email.lastSync = new Date().toISOString();
+    DB.save();
+    U.toast('Inbox refreshed');
+    let mapped = 0;
+    DB.emails().forEach(em => {
+      if ((em.folder||'inbox')!=='inbox' || em.accountId) return;
+      const domain = (em.from.split('@')[1]||'').toLowerCase();
+      const acct = DB.accounts().find(a => (a.email||'').toLowerCase().endsWith('@'+domain));
+      if (acct) { em.accountId = acct.id; mapped++; }
+    });
+    if (mapped) { DB.save(); U.toast(`${mapped} email${mapped>1?'s':''} auto-mapped to accounts`); }
+    this.render();
   },
 
   connect() {
@@ -78,17 +157,11 @@ Views.email = {
       <div class="grid grid-cols-2 gap-3 mb-3">
         <label class="border border-slate-200 rounded-lg p-3 cursor-pointer hover:bg-slate-50 flex items-center gap-3">
           <input type="radio" name="prov" value="Microsoft 365" checked class="chk">
-          <div>
-            <div class="font-medium">Microsoft 365</div>
-            <div class="text-xs text-slate-500">Graph API — Mail.ReadWrite</div>
-          </div>
+          <div><div class="font-medium">Microsoft 365</div><div class="text-xs text-slate-500">Graph API — Mail.ReadWrite</div></div>
         </label>
         <label class="border border-slate-200 rounded-lg p-3 cursor-pointer hover:bg-slate-50 flex items-center gap-3">
           <input type="radio" name="prov" value="Google Workspace" class="chk">
-          <div>
-            <div class="font-medium">Google Workspace</div>
-            <div class="text-xs text-slate-500">Gmail API — gmail.modify</div>
-          </div>
+          <div><div class="font-medium">Google Workspace</div><div class="text-xs text-slate-500">Gmail API — gmail.modify</div></div>
         </label>
       </div>
       <div><div class="field-label">Mailbox</div><input id="em-addr" class="field-input" value="producers@vanderbeck-surety.example"></div>
@@ -104,34 +177,13 @@ Views.email = {
     s.provider = document.querySelector('input[name="prov"]:checked').value;
     s.address  = document.getElementById('em-addr').value;
     s.lastSync = new Date().toISOString();
-    DB.save();
-    U.closeModals();
-    U.toast('Mailbox connected');
+    DB.save(); U.closeModals(); U.toast('Mailbox connected');
     this.render();
   },
 
   disconnect() {
     DB.settings().email.connected = false;
-    DB.save();
-    U.toast('Mailbox disconnected', 'info');
-    this.render();
-  },
-
-  refresh() {
-    DB.settings().email.lastSync = new Date().toISOString();
-    DB.save();
-    U.toast('Inbox refreshed');
-    // Auto-map unmapped emails by simple sender-domain rule
-    let mapped = 0;
-    DB.emails().forEach(em => {
-      if (!em.accountId) {
-        const domain = (em.from.split('@')[1]||'').toLowerCase();
-        const acct = DB.accounts().find(a => (a.email||'').toLowerCase().endsWith('@'+domain));
-        if (acct) { em.accountId = acct.id; mapped++; }
-      }
-    });
-    if (mapped) { DB.save(); U.toast(`${mapped} email${mapped>1?'s':''} auto-mapped to accounts`); }
-    this.render();
+    DB.save(); U.toast('Mailbox disconnected', 'info'); this.render();
   },
 
   testSync() { U.toast('Connection healthy — IMAP/Graph reachable'); },
@@ -139,33 +191,63 @@ Views.email = {
   openMessage(id) {
     const em = DB.emails().find(e => e.id === id);
     if (!em) return;
-    em.read = true; DB.save();
+    if ((em.folder||'inbox') === 'inbox') { em.read = true; DB.save(); }
     const a = em.accountId ? DB.findAccount(em.accountId) : null;
     const b = em.bondId ? DB.findBond(em.bondId) : null;
+    const folder = em.folder || 'inbox';
+    const addrLine = folder==='sent'||folder==='drafts'
+      ? `To <b>${U.esc(em.to||'')}</b>` : `From <b>${U.esc(em.from)}</b>`;
     const body = `
       <div class="border-b border-slate-200 pb-3 mb-3">
         <div class="text-base font-semibold">${U.esc(em.subject)}</div>
-        <div class="text-sm text-slate-600">From <b>${U.esc(em.from)}</b> · ${U.datetime(em.date)}</div>
+        <div class="text-sm text-slate-600">${addrLine} · ${U.datetime(em.date)}</div>
         <div class="mt-2 flex flex-wrap gap-2">
           ${a ? `<span class="badge badge-blue">Account: ${U.esc(a.name)}</span>`: ''}
           ${b ? `<span class="badge badge-violet">Bond: ${b.number}</span>`: ''}
+          <span class="badge ${folder==='sent'?'badge-green':folder==='drafts'?'badge-amber':'badge-slate'}">${folder}</span>
         </div>
       </div>
-      <div class="text-sm text-slate-700 whitespace-pre-line">${U.esc(em.preview)}\n\n…(message body)…</div>
+      <div class="text-sm text-slate-700 whitespace-pre-line">${U.esc(em.body || em.preview)}${em.body?'':'\n\n…(message body)…'}</div>
     `;
     const footer = `<button class="btn-ghost" data-close>Close</button>
-      <button class="btn-secondary" onclick="Views.email.openMapping('${id}')">Edit Mapping</button>
-      <button class="btn-primary" onclick="U.toast('Reply window opened (demo)')">Reply</button>`;
-    const m = U.modal({ title: 'Message', body, footer });
+      ${folder==='inbox' ? `
+        <button class="btn-secondary" onclick="Views.email.openMapping('${id}')">Edit Mapping</button>
+        <button class="btn-primary" onclick="Views.email.replyTo('${id}')">Reply</button>` :
+        folder==='drafts' ? `<button class="btn-primary" onclick="Views.email.openDraft('${id}')">Edit Draft</button>` :
+        ''}`;
+    const m = U.modal({ title: 'Message', body, footer, size: 'lg' });
     m.el.querySelector('[data-close]').addEventListener('click', m.close);
     this.render();
   },
 
-  openMapping(id) {
+  replyTo(id) {
     const em = DB.emails().find(e => e.id === id);
     if (!em) return;
-    const accts = DB.accounts();
-    const bonds = DB.bonds();
+    U.closeModals();
+    Compose.open({
+      accountId: em.accountId,
+      bondId:    em.bondId,
+      to: em.from,
+      subject: em.subject.startsWith('Re:') ? em.subject : 'Re: ' + em.subject,
+      body: `\n\n---\nOn ${U.datetime(em.date)}, ${em.from} wrote:\n> ${(em.preview||'').replace(/\n/g,'\n> ')}\n`,
+    });
+  },
+
+  openDraft(id) {
+    const em = DB.emails().find(e => e.id === id);
+    if (!em) return;
+    DB.state.emails = DB.emails().filter(x => x.id !== id); // re-open as fresh compose
+    DB.save();
+    Compose.open({
+      accountId: em.accountId, bondId: em.bondId,
+      to: em.to, cc: em.cc, bcc: em.bcc,
+      subject: em.subject, body: em.body || em.preview,
+    });
+  },
+
+  openMapping(id) {
+    const em = DB.emails().find(e => e.id === id); if (!em) return;
+    const accts = DB.accounts(), bonds = DB.bonds();
     const body = `
       <div class="mb-3 text-sm">From <b>${U.esc(em.from)}</b> — <i>${U.esc(em.subject)}</i></div>
       <div class="grid grid-cols-2 gap-3">
@@ -185,21 +267,104 @@ Views.email = {
     const m = U.modal({ title: 'Email Mapping', body, footer });
     m.el.querySelector('[data-close]').addEventListener('click', m.close);
   },
-
   saveMapping(id) {
     const em = DB.emails().find(e => e.id === id);
     em.accountId = document.getElementById('map-acct').value || null;
     em.bondId    = document.getElementById('map-bond').value || null;
-    DB.save();
-    U.closeModals();
-    U.toast('Mapping saved');
+    DB.save(); U.closeModals(); U.toast('Mapping saved'); this.render();
+  },
+
+  // ---------- Templates ----------
+  _renderTemplates() {
+    const list = DB.templates();
+    const byCat = {};
+    list.forEach(t => { (byCat[t.category||'General'] = byCat[t.category||'General']||[]).push(t); });
+
+    return `
+      <div class="flex items-center justify-between mb-3">
+        <div class="text-sm text-slate-500">Reusable email templates. Variables like <code>{{contact_first}}</code> are substituted automatically when sending.</div>
+        <button class="btn-primary" onclick="Views.email.editTemplate()">+ New Template</button>
+      </div>
+
+      ${Object.entries(byCat).map(([cat, items]) => `
+        <div class="mb-5">
+          <div class="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">${U.esc(cat)}</div>
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-3">
+            ${items.map(t => `
+              <div class="card">
+                <div class="p-4">
+                  <div class="flex items-start justify-between">
+                    <div>
+                      <div class="font-semibold text-slate-900">${U.esc(t.name)}</div>
+                      <div class="text-xs text-slate-500 mt-1">Subject: <span class="font-mono">${U.esc(t.subject)}</span></div>
+                    </div>
+                    <span class="badge badge-slate">${U.esc(t.category || 'General')}</span>
+                  </div>
+                  <div class="text-xs text-slate-600 mt-2 line-clamp-3 whitespace-pre-line">${U.esc((t.body||'').slice(0, 240))}${(t.body||'').length>240?'…':''}</div>
+                  <div class="flex justify-end mt-3 gap-1">
+                    <button class="btn-ghost" onclick="Compose.open({ templateId: '${t.id}' })">Use</button>
+                    <button class="btn-ghost" onclick="Views.email.editTemplate('${t.id}')">Edit</button>
+                    <button class="btn-ghost text-rose-600" onclick="Views.email.deleteTemplate('${t.id}')">Delete</button>
+                  </div>
+                </div>
+              </div>`).join('')}
+          </div>
+        </div>`).join('') ||
+        '<div class="card p-8 text-center text-slate-400 text-sm">No templates yet.</div>'}
+    `;
+  },
+
+  editTemplate(id) {
+    const t = id ? DB.templates().find(x => x.id === id) : { id: U.uid('T'), category: 'General', subject: '', body: '' };
+    const body = `
+      <div class="grid grid-cols-2 gap-3">
+        <div class="col-span-2"><div class="field-label">Template Name</div>
+          <input id="tpl-name" class="field-input" value="${U.esc(t.name||'')}" placeholder="e.g. Renewal — Confirm Release"></div>
+        <div><div class="field-label">Category</div>
+          <select id="tpl-cat" class="field-select">
+            ${['Renewal','Pipeline','Bond','Underwriting','Billing','General','Other'].map(c => `<option ${c===(t.category||'General')?'selected':''}>${c}</option>`).join('')}
+          </select></div>
+        <div></div>
+        <div class="col-span-2"><div class="field-label">Subject</div>
+          <input id="tpl-subject" class="field-input font-mono text-sm" value="${U.esc(t.subject||'')}" placeholder="{{bond_type}} bond — renewal in {{days_until_expires}} days"></div>
+        <div class="col-span-2"><div class="field-label">Body</div>
+          <textarea id="tpl-body" class="field-textarea font-sans" rows="14" placeholder="Hi {{contact_first}},&#10;&#10;…">${U.esc(t.body||'')}</textarea></div>
+      </div>
+      <div class="mt-3 text-xs text-slate-500">
+        <div class="font-medium text-slate-600 mb-1">Available variables:</div>
+        <div class="flex flex-wrap gap-1">
+          ${['account_name','contact_name','contact_first','contact_email','bond_number','bond_type','bond_amount','obligee','project','effective','expires','days_until_expires','producer_name','agency_name','agency_phone','agency_email','today'].map(k => `<span class="kbd">{{${k}}}</span>`).join(' ')}
+        </div>
+      </div>
+    `;
+    const footer = `<button class="btn-ghost" data-close>Cancel</button><button class="btn-primary" onclick="Views.email.saveTemplate('${t.id}')">Save</button>`;
+    const m = U.modal({ title: id ? 'Edit Template' : 'New Template', body, footer, size: 'lg' });
+    m.el.querySelector('[data-close]').addEventListener('click', m.close);
+  },
+
+  saveTemplate(id) {
+    let t = DB.templates().find(x => x.id === id);
+    const isNew = !t;
+    if (isNew) { t = { id }; DB.templates().push(t); }
+    t.name     = document.getElementById('tpl-name').value;
+    t.category = document.getElementById('tpl-cat').value;
+    t.subject  = document.getElementById('tpl-subject').value;
+    t.body     = document.getElementById('tpl-body').value;
+    DB.save(); U.closeModals(); U.toast(isNew ? 'Template created' : 'Template updated');
     this.render();
   },
 
-  openRules() {
-    const body = `
+  deleteTemplate(id) {
+    if (!confirm('Delete this template?')) return;
+    DB.state.emailTemplates = DB.templates().filter(t => t.id !== id);
+    DB.save(); U.toast('Template deleted', 'info'); this.render();
+  },
+
+  // ---------- Mapping rules ----------
+  _renderRules() {
+    return `
       <p class="text-sm text-slate-600 mb-3">Rules are evaluated top-down on each inbound message. The first match wins.</p>
-      <div class="bg-slate-50 rounded-lg overflow-hidden border border-slate-200">
+      <div class="card overflow-hidden">
         <table class="tbl">
           <thead><tr><th>Priority</th><th>If</th><th>Then map to</th></tr></thead>
           <tbody>
@@ -212,8 +377,8 @@ Views.email = {
         </table>
       </div>
     `;
-    const footer = `<button class="btn-primary" data-close>Done</button>`;
-    const m = U.modal({ title: 'Inbound Mapping Rules', body, footer, size: 'lg' });
-    m.el.querySelector('[data-close]').addEventListener('click', m.close);
-  }
+  },
+
+  // Back-compat — old Inbox 'Rules' button
+  openRules() { this._section = 'rules'; this.render(); },
 };

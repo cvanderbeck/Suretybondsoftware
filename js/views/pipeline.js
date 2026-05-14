@@ -50,7 +50,10 @@ Views.pipeline = {
         </div>
         <div class="text-xs text-slate-600 mb-2">${U.esc(it.bondType)} · ${U.usd(it.amount)}</div>
         <div class="text-xs text-slate-500 truncate">${U.esc(it.obligee||'')}</div>
-        <div class="text-xs text-slate-400 mt-1">${due}</div>
+        <div class="flex items-center justify-between mt-1">
+          <div class="text-xs text-slate-400">${due}</div>
+          <button class="text-xs text-brand-600 hover:underline" onclick="event.stopPropagation(); Compose.open({ pipelineId: '${it.id}', templateId: 'T-bid-followup' })">✉ Email</button>
+        </div>
       </div>
     `;
   },
@@ -96,6 +99,7 @@ Views.pipeline = {
     `;
     const footer = `
       <button class="btn-ghost" data-close>Cancel</button>
+      <button class="btn-secondary" onclick="Compose.open({ pipelineId: '${id}', templateId: 'T-bid-followup' })">✉ Email Follow-up</button>
       <button class="btn-secondary" onclick="Views.pipeline.convertToBond('${id}')">Convert to Bond</button>
       <button class="btn-primary" onclick="Views.pipeline.save('${id}')">Save</button>
     `;

@@ -1,6 +1,6 @@
 // ---------- Sample / seed data, persistence layer ----------
 window.DB = (() => {
-  const KEY = 'bondvault.db.v2';
+  const KEY = 'bondvault.db.v3';
 
   const sampleData = () => ({
     accounts: [
@@ -210,12 +210,124 @@ window.DB = (() => {
       { id: 'D-4', name: 'Pioneer_BMC84_Form.pdf',           size: 180*1024,      type: 'application/pdf', accountId: 'A-1003', bondId: 'B-2404', category: 'Bond Form', uploaded: '2026-01-12' },
     ],
     emails: [
-      { id: 'E-1', from: 'tom.reyes@hartford-surety.example', subject: 'Re: SF-2024-00121 — Performance bond issued', preview: 'Hi Casey, attached find the executed performance & payment bonds for Northridge…', date: '2026-03-04T15:12', accountId: 'A-1001', bondId: 'B-2401', read: true },
-      { id: 'E-2', from: 'psubramanian@lms.example',         subject: 'BlueWater Marine — UW requests',           preview: 'Casey, we need the 12-month WIP detail and bank line confirmation before we can issue…', date: '2026-05-09T09:44', accountId: 'A-1004', bondId: 'B-2407', read: false },
-      { id: 'E-3', from: 'jpierce@northridgebuilders.com',   subject: 'New bid opportunity — ODOT Hwy 26',        preview: 'We are bidding the Hwy 26 widening project, est. value $2.5M, need performance + payment…', date: '2026-05-10T11:02', accountId: 'A-1001', bondId: null, read: false },
-      { id: 'E-4', from: 'marcus@apexautos.com',             subject: 'MV dealer bond — renewal',                 preview: 'Reminder: my dealer bond expires 12/1. Please prep renewal.', date: '2026-05-12T08:20', accountId: 'A-1005', bondId: 'B-2405', read: true },
-      { id: 'E-5', from: 'noreply@bidnet.example',           subject: 'Bid opening notice — McKay HS HVAC',       preview: 'Bid opening: 5/15/2026 @ 2:00 PM. 8 bidders pre-qualified.', date: '2026-05-13T07:10', accountId: 'A-1002', bondId: 'B-2403', read: false },
-      { id: 'E-6', from: 'rtan@greatamerican.example',       subject: 'New producer agreement — countersign',     preview: 'Please countersign the attached producer agreement…', date: '2026-05-13T13:01', accountId: null, bondId: null, read: false },
+      { id: 'E-1', folder: 'inbox', from: 'tom.reyes@hartford-surety.example', subject: 'Re: SF-2024-00121 — Performance bond issued', preview: 'Hi Casey, attached find the executed performance & payment bonds for Northridge…', date: '2026-03-04T15:12', accountId: 'A-1001', bondId: 'B-2401', read: true },
+      { id: 'E-2', folder: 'inbox', from: 'psubramanian@lms.example',         subject: 'BlueWater Marine — UW requests',           preview: 'Casey, we need the 12-month WIP detail and bank line confirmation before we can issue…', date: '2026-05-09T09:44', accountId: 'A-1004', bondId: 'B-2407', read: false },
+      { id: 'E-3', folder: 'inbox', from: 'jpierce@northridgebuilders.com',   subject: 'New bid opportunity — ODOT Hwy 26',        preview: 'We are bidding the Hwy 26 widening project, est. value $2.5M, need performance + payment…', date: '2026-05-10T11:02', accountId: 'A-1001', bondId: null, read: false },
+      { id: 'E-4', folder: 'inbox', from: 'marcus@apexautos.com',             subject: 'MV dealer bond — renewal',                 preview: 'Reminder: my dealer bond expires 12/1. Please prep renewal.', date: '2026-05-12T08:20', accountId: 'A-1005', bondId: 'B-2405', read: true },
+      { id: 'E-5', folder: 'inbox', from: 'noreply@bidnet.example',           subject: 'Bid opening notice — McKay HS HVAC',       preview: 'Bid opening: 5/15/2026 @ 2:00 PM. 8 bidders pre-qualified.', date: '2026-05-13T07:10', accountId: 'A-1002', bondId: 'B-2403', read: false },
+      { id: 'E-6', folder: 'inbox', from: 'rtan@greatamerican.example',       subject: 'New producer agreement — countersign',     preview: 'Please countersign the attached producer agreement…', date: '2026-05-13T13:01', accountId: null, bondId: null, read: false },
+      { id: 'E-7', folder: 'sent',  from: 'producers@vanderbeck-surety.example', to: 'mike@cascademech.com', subject: 'McKay HS HVAC — renewal check-in', preview: 'Hi Mike, checking in on the McKay HS HVAC bid bond — is the project still active?', date: '2026-05-10T10:15', accountId: 'A-1002', bondId: 'B-2403', read: true },
+    ],
+    emailTemplates: [
+      {
+        id: 'T-renewal',
+        name: 'Renewal Follow-up — Is the bond still needed?',
+        category: 'Renewal',
+        subject: '{{bond_type}} bond {{bond_number}} — renewal coming up ({{days_until_expires}} days)',
+        body: `Hi {{contact_first}},
+
+Your {{bond_type}} bond for {{obligee}} (project: {{project}}) expires on {{expires}}, which is {{days_until_expires}} days from today.
+
+Before we renew, can you confirm a few things:
+
+  1. Is the bond still required? (Project complete / released?)
+  2. Has the contract amount changed? Current bond is {{bond_amount}}.
+  3. Any changes to financials, ownership, or indemnitors we should know about?
+
+If everything is unchanged, reply "OK to renew" and we'll get the renewal in motion. If the bond has been released, please forward the obligee's release letter.
+
+Thanks,
+{{producer_name}}
+{{agency_name}} · {{agency_phone}}`
+      },
+      {
+        id: 'T-release',
+        name: 'Renewal — Confirm Release / Cancel',
+        category: 'Renewal',
+        subject: 'Confirming release of bond {{bond_number}}',
+        body: `Hi {{contact_first}},
+
+Per our conversation, we will not be renewing {{bond_number}} ({{bond_type}}, {{bond_amount}}, obligee: {{obligee}}). The bond will be released effective {{expires}}.
+
+If you receive any release / acceptance letter from the obligee, please forward it for our file. Once we have that we'll close out the bond.
+
+Thank you,
+{{producer_name}}
+{{agency_name}}`
+      },
+      {
+        id: 'T-bid-followup',
+        name: 'Bid Follow-up — Awaiting Results',
+        category: 'Pipeline',
+        subject: '{{obligee}} bid — any update?',
+        body: `Hi {{contact_first}},
+
+Just checking in on the {{obligee}} bid (project: {{project}}). Have results been announced yet?
+
+If you're awarded, we'll have the performance and payment bonds ready to issue as soon as you forward the notice to proceed.
+
+Thanks,
+{{producer_name}}
+{{agency_name}}`
+      },
+      {
+        id: 'T-bond-issued',
+        name: 'Bond Issued — Delivery',
+        category: 'Bond',
+        subject: 'Bond {{bond_number}} issued — copies attached',
+        body: `Hi {{contact_first}},
+
+Good news — your {{bond_type}} bond for {{obligee}} (project: {{project}}, amount: {{bond_amount}}) has been issued.
+
+Attached are:
+  • Executed bond originals
+  • Power of attorney
+  • Premium invoice
+
+Please return one set of executed originals to the obligee and keep one for your records.
+
+Let me know if you need anything else.
+
+Best,
+{{producer_name}}
+{{agency_name}} · {{agency_phone}}`
+      },
+      {
+        id: 'T-uw-financials',
+        name: 'Underwriting — Request Updated Financials / WIP',
+        category: 'Underwriting',
+        subject: '{{account_name}} — updated financials and WIP needed',
+        body: `Hi {{contact_first}},
+
+To keep your bonding capacity in good standing, the surety has asked for the following:
+
+  • Year-end financial statements (CPA reviewed or audited)
+  • Current work-in-progress schedule
+  • Aged accounts receivable and payable
+  • Updated personal financial statements for each indemnitor
+
+Could you have these to us by end of next week? I'm happy to jump on a call to go over anything.
+
+Thanks,
+{{producer_name}}
+{{agency_name}}`
+      },
+      {
+        id: 'T-premium-due',
+        name: 'Premium Invoice — Reminder',
+        category: 'Billing',
+        subject: 'Reminder — premium due for bond {{bond_number}}',
+        body: `Hi {{contact_first}},
+
+Friendly reminder that the premium invoice for bond {{bond_number}} ({{bond_type}}, {{bond_amount}}) is outstanding.
+
+You can remit by check to {{agency_name}} or via ACH (routing on request).
+
+Let me know if you have any questions.
+
+Thanks,
+{{producer_name}}`
+      },
     ],
     invoices: [
       { id: 'INV-1001', bondId: 'B-2401', accountId: 'A-1001', date: '2026-03-04', amount: 18750, status: 'Paid',    qboId: 'qbo-3341', dueDate: '2026-04-03' },
@@ -286,9 +398,10 @@ window.DB = (() => {
     uw:       () => state.underwriting,
     docs:     () => state.documents,
     emails:   () => state.emails,
-    invoices: () => state.invoices,
-    renewals: () => (state.renewals = state.renewals || []),
-    settings: () => state.settings,
+    invoices:  () => state.invoices,
+    renewals:  () => (state.renewals = state.renewals || []),
+    templates: () => (state.emailTemplates = state.emailTemplates || []),
+    settings:  () => state.settings,
 
     findAccount: (id) => state.accounts.find(a => a.id === id),
     findBond:    (id) => state.bonds.find(b => b.id === id),
