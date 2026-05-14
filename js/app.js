@@ -25,8 +25,9 @@ window.App = (() => {
     }
   }
 
-  function openQuickQuote() {
-    go('calculator');
+  function openNewRequest() {
+    go('pipeline');
+    setTimeout(() => Views.pipeline.addModal(), 50);
   }
 
   function globalSearch(q) {
@@ -58,7 +59,7 @@ window.App = (() => {
     }, 400);
   }
 
-  return { go, init, openNewBond, openQuickQuote };
+  return { go, init, openNewBond, openNewRequest };
 })();
 
 document.addEventListener('DOMContentLoaded', App.init);

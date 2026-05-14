@@ -549,7 +549,7 @@ Views.pipeline = {
       <div class="mt-3"><div class="field-label">Notes</div><textarea id="op-notes" class="field-textarea" rows="3"></textarea></div>
     `;
     const footer = `<button class="btn-ghost" data-close>Cancel</button><button class="btn-primary" onclick="Views.pipeline.create()">Create</button>`;
-    const m = U.modal({ title: 'New Opportunity', body, footer });
+    const m = U.modal({ title: 'New Request', body, footer });
     m.el.querySelector('[data-close]').addEventListener('click', m.close);
   },
 
