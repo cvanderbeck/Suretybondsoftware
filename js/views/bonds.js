@@ -29,6 +29,7 @@ Views.bonds = {
             <th>Bond #</th><th>QBO Inv #</th><th>Type</th><th>Principal</th><th>Obligee</th>
             <th class="text-right">Amount</th><th class="text-right">Premium</th>
             <th>Surety</th><th>Status</th><th title="Reported / Approved / Sent">Tracking</th>
+            <th class="min-w-[140px]">% Complete</th>
             <th>Effective</th><th>Expires</th><th></th>
           </tr></thead>
           <tbody id="bonds-tbody">${this.rows(bonds)}</tbody>
@@ -49,7 +50,7 @@ Views.bonds = {
   },
 
   rows(list) {
-    if (!list.length) return `<tr><td colspan="13" class="text-center text-slate-400 py-12">No bonds match.</td></tr>`;
+    if (!list.length) return `<tr><td colspan="14" class="text-center text-slate-400 py-12">No bonds match.</td></tr>`;
     return list.map(b => {
       const a = DB.findAccount(b.accountId) || {};
       const p = DB.findPartner(b.partnerId) || {};
@@ -65,6 +66,7 @@ Views.bonds = {
           <td>${U.esc(p.name||'')}</td>
           <td>${U.statusBadge(b.status)}</td>
           <td>${this.trackingDots(b)}</td>
+          <td>${WIP.inlineBar(b, { compact: true })}</td>
           <td>${U.date(b.effective)}</td>
           <td>${U.date(b.expires)}</td>
           <td class="text-right">
@@ -139,6 +141,8 @@ Views.bonds = {
           ${this._trackingTile('Sent Out to Principal', 'sentToPrincipal', b)}
         </div>
       </div>
+
+      ${this._wipCard(b)}
 
       <div class="card mb-4">
         <div class="card-header"><div class="card-title">QuickBooks</div></div>
@@ -232,6 +236,76 @@ Views.bonds = {
     const amt = +document.getElementById('bf-amt').value || 0;
     const rate = +document.getElementById('bf-rate').value || 0;
     document.getElementById('bf-prem').value = Math.round(amt * rate / 100);
+  },
+
+  _wipCard(b) {
+    const w   = b.wip;
+    const pct = WIP.percent(b);
+    const t   = WIP.tone(pct);
+    const applicable = WIP.applicable(b);
+
+    if (!w || w.percentComplete == null) {
+      return `
+        <div class="card mb-4">
+          <div class="card-header">
+            <div class="card-title">Work in Progress</div>
+            <span class="text-xs text-ink-300">${applicable ? 'Track % complete to refine aggregate-limit exposure' : 'Not typically tracked for this bond type'}</span>
+          </div>
+          <div class="p-4 flex items-center justify-between">
+            <div class="text-sm text-ink-300">No WIP data yet for this bond.</div>
+            <button class="btn-secondary" onclick="Views.accounts.editWip('${b.accountId}','${b.id}')">+ Add WIP</button>
+          </div>
+        </div>`;
+    }
+
+    const earned = WIP.earned(b);
+    const ou     = WIP.overUnder(b);
+    const back   = WIP.backlog(b);
+    const totalEst = (w.costToDate||0) + (w.estCostToComplete||0);
+    return `
+      <div class="card mb-4">
+        <div class="card-header">
+          <div class="card-title">Work in Progress</div>
+          <div class="text-xs text-ink-300">As of ${U.date(w.asOfDate)}</div>
+        </div>
+        <div class="p-4">
+          <div class="flex items-center justify-between text-sm mb-2">
+            <div class="flex items-baseline gap-2">
+              <span class="text-2xl font-display font-semibold ${t.text}">${pct}%</span>
+              <span class="text-ink-300">complete</span>
+            </div>
+            <div class="text-xs text-ink-300">Backlog (uncompleted): <b class="text-ink-700">${U.usd(back)}</b></div>
+          </div>
+          <div class="progress mb-4"><div class="${t.bar}" style="width:${pct}%"></div></div>
+
+          <div class="grid grid-cols-4 gap-3 text-sm">
+            <div><div class="field-label">Contract Amount</div><div class="font-semibold">${U.usd(w.contractAmount || b.amount)}</div></div>
+            <div><div class="field-label">Est. Profit %</div><div class="font-semibold">${w.estProfitPercent||0}%</div></div>
+            <div><div class="field-label">Total Est. Cost</div><div class="font-semibold">${U.usd(totalEst)}</div></div>
+            <div><div class="field-label">Cost to Date</div><div class="font-semibold">${U.usd(w.costToDate||0)}</div></div>
+            <div><div class="field-label">Est. Cost to Complete</div><div class="font-semibold">${U.usd(w.estCostToComplete||0)}</div></div>
+            <div><div class="field-label">Earned Revenue</div><div class="font-semibold">${U.usd(earned||0)}</div></div>
+            <div><div class="field-label">Billed to Date</div><div class="font-semibold">${U.usd(w.billedToDate||0)}</div></div>
+            <div><div class="field-label">Over / Under Billing</div>
+              <div class="font-semibold ${ou >= 0 ? 'text-emerald-700' : 'text-amber-700'}">${ou >= 0 ? '+' : ''}${U.usd(ou)}</div></div>
+          </div>
+
+          ${(w.history||[]).length ? `
+            <div class="divider"></div>
+            <div class="text-xs font-semibold text-ink-400 uppercase mb-2">Update History (${w.history.length})</div>
+            <div class="space-y-1 text-sm max-h-32 overflow-y-auto">
+              ${w.history.slice().reverse().slice(0,5).map(h => `
+                <div class="border-l-2 border-cream-300 pl-3 py-1">
+                  <div class="text-xs text-ink-300">${U.date(h.date)} · ${h.percent}% · cost ${U.usd(h.costToDate)} · billed ${U.usd(h.billedToDate)}</div>
+                  ${h.note?`<div class="text-sm">${U.esc(h.note)}</div>`:''}
+                </div>`).join('')}
+            </div>` : ''}
+
+          <div class="mt-3 flex justify-end">
+            <button class="btn-primary" onclick="Views.accounts.editWip('${b.accountId}','${b.id}')">Update WIP</button>
+          </div>
+        </div>
+      </div>`;
   },
 
   _trackingTile(label, key, b) {

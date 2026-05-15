@@ -5,12 +5,16 @@ Views.accounts = {
   OPEN_STATUSES: ['Active', 'Pending UW'],
 
   // ---------- Aggregate capacity helper ----------
+  // `used` is the WIP-adjusted backlog when WIP is tracked, otherwise full
+  // bond amount. `usedNominal` keeps the raw sum for comparison.
   capacityFor(accountId) {
     const a = DB.findAccount(accountId);
     const single = a?.company?.singleLimit || 0;
     const agg    = a?.company?.aggregateLimit || 0;
     const open = DB.bonds().filter(b => b.accountId === accountId && this.OPEN_STATUSES.includes(b.status));
-    const used   = open.reduce((s,b) => s + (b.amount||0), 0);
+    const usedNominal = open.reduce((s,b) => s + (b.amount||0), 0);
+    const used = open.reduce((s,b) => s + WIP.backlog(b), 0);
+    const credit = Math.max(0, usedNominal - used);
     const remaining = Math.max(0, agg - used);
     const pct = agg ? Math.round(used / agg * 100) : 0;
     const overSingle = open.filter(b => single && b.amount > single);
@@ -19,7 +23,7 @@ Views.accounts = {
       pct >= 85  ? { bar: 'bg-rose-500',    text: 'text-rose-700',    badge: 'badge-rose'  } :
       pct >= 65  ? { bar: 'bg-amber-500',   text: 'text-amber-700',   badge: 'badge-amber' } :
                    { bar: 'bg-emerald-500', text: 'text-emerald-700', badge: 'badge-green' };
-    return { single, aggregate: agg, used, remaining, pct, overSingle, openCount: open.length, openBonds: open, tone };
+    return { single, aggregate: agg, used, usedNominal, credit, remaining, pct, overSingle, openCount: open.length, openBonds: open, tone };
   },
 
   capacityBar(accountId, opts = {}) {
@@ -135,6 +139,7 @@ Views.accounts = {
     const bondIds = bonds.map(b => b.id);
     const uwFiles = DB.uw().filter(u => bondIds.includes(u.bondId));
 
+    const wipRoll = WIP.rollup(id);
     const TABS = [
       ['overview',   'Overview',  ''],
       ['company',    'Company',   ''],
@@ -142,6 +147,7 @@ Views.accounts = {
       ['indemnity',  'Indemnity', (a.indemnitors?.length || 0)],
       ['uw',         'Underwriting', uwFiles.length],
       ['bonds',      'Bonds',     bonds.length],
+      ['wip',        'Work in Progress', wipRoll.tracked.length],
       ['pipeline',   'Pipeline / Bids', pipe.length],
       ['documents',  'Documents', docs.length],
       ['emails',     'Emails',    emails.length],
@@ -209,6 +215,7 @@ Views.accounts = {
       case 'indemnity': return this._tabIndemnity(a);
       case 'uw':        return this._tabUW(a, ctx);
       case 'bonds':     return this._tabBonds(a, ctx);
+      case 'wip':       return this._tabWip(a);
       case 'pipeline':  return this._tabPipeline(a, ctx);
       case 'documents': return this._tabDocuments(a, ctx);
       case 'emails':    return this._tabEmails(a, ctx);
@@ -236,12 +243,17 @@ Views.accounts = {
       <div class="card mb-4">
         <div class="card-header">
           <div class="card-title">Aggregate Capacity</div>
-          <span class="text-xs text-ink-300">Open exposure (Active + Pending UW) ÷ aggregate limit</span>
+          <span class="text-xs text-ink-300">Open exposure adjusted for WIP — backlog ÷ aggregate limit</span>
         </div>
-        <div class="p-4 grid grid-cols-4 gap-4">
+        <div class="p-4 grid grid-cols-5 gap-4">
           <div>
-            <div class="field-label">Used</div>
+            <div class="field-label">Used (Backlog)</div>
             <div class="text-lg font-semibold ${cap.tone.text}">${U.usd(cap.used)}</div>
+            ${cap.credit ? `<div class="text-[11px] text-emerald-700 mt-0.5">−${U.usd(cap.credit)} WIP credit</div>` : ''}
+          </div>
+          <div>
+            <div class="field-label">Open Bonds (Nominal)</div>
+            <div class="text-lg font-semibold">${U.usd(cap.usedNominal)}</div>
           </div>
           <div>
             <div class="field-label">Aggregate Limit</div>
@@ -775,6 +787,204 @@ Views.accounts = {
       ${groupHTML('Cancelled', groups['Cancelled'], 'badge-rose')}
       ${bonds.length ? '' : '<div class="card p-8 text-center text-slate-400 text-sm">No bonds yet for this account.</div>'}
     `;
+  },
+
+  // ---------- Tab: Work in Progress ----------
+  _tabWip(a) {
+    const roll = WIP.rollup(a.id);
+    const tracked = roll.tracked;
+    const untracked = roll.untrackedContract;
+
+    const summary = `
+      <div class="grid grid-cols-5 gap-4 mb-4">
+        <div class="stat-card !p-3"><div class="stat-label">Tracked Jobs</div><div class="stat-value text-lg">${tracked.length}</div></div>
+        <div class="stat-card !p-3"><div class="stat-label">Avg % Complete</div><div class="stat-value text-lg">${roll.avgPct == null ? '—' : roll.avgPct + '%'}</div></div>
+        <div class="stat-card !p-3"><div class="stat-label">Total Contract Value</div><div class="stat-value text-lg">${U.usd(roll.totalContract)}</div></div>
+        <div class="stat-card !p-3"><div class="stat-label">Backlog (Uncompleted)</div><div class="stat-value text-lg">${U.usd(roll.totalBacklog)}</div></div>
+        <div class="stat-card !p-3"><div class="stat-label">Over / Under Billing</div><div class="stat-value text-lg ${roll.overUnderTot >= 0 ? 'text-emerald-700' : 'text-amber-700'}">${roll.overUnderTot >= 0 ? '+' : ''}${U.usd(roll.overUnderTot)}</div></div>
+      </div>`;
+
+    const rows = tracked.map(b => {
+      const pct = WIP.percent(b);
+      const t = WIP.tone(pct);
+      const ou = WIP.overUnder(b);
+      const e  = WIP.earned(b);
+      return `
+        <tr class="cursor-pointer" onclick="U.closeModals(); Views.bonds.open('${b.id}')">
+          <td class="font-medium text-brand-700">${b.number}</td>
+          <td class="max-w-[18rem] truncate">${U.esc(b.project||'')}</td>
+          <td>${U.esc(b.obligee||'')}</td>
+          <td class="text-right">${U.usd(b.wip.contractAmount || b.amount)}</td>
+          <td>
+            <div class="flex items-center justify-between text-xs"><span class="${t.text} font-medium">${pct}%</span></div>
+            <div class="progress mt-1"><div class="${t.bar}" style="width:${pct}%"></div></div>
+          </td>
+          <td class="text-right">${U.usd((b.wip.costToDate||0) + (b.wip.estCostToComplete||0))}</td>
+          <td class="text-right">${U.usd(b.wip.costToDate||0)}</td>
+          <td class="text-right">${U.usd(e||0)}</td>
+          <td class="text-right">${U.usd(b.wip.billedToDate||0)}</td>
+          <td class="text-right ${ou >= 0 ? 'text-emerald-700' : 'text-amber-700'}">${ou >= 0 ? '+' : ''}${U.usd(ou)}</td>
+          <td class="text-right">${U.usd(WIP.backlog(b))}</td>
+          <td class="text-right text-xs text-ink-300">${U.date(b.wip.asOfDate)}</td>
+          <td class="text-right"><button class="btn-ghost" onclick="event.stopPropagation(); Views.accounts.editWip('${a.id}','${b.id}')">Update</button></td>
+        </tr>`;
+    }).join('');
+
+    const totalsRow = tracked.length ? `
+      <tr class="font-semibold bg-cream-50">
+        <td colspan="3" class="text-right">Totals</td>
+        <td class="text-right">${U.usd(roll.totalContract)}</td>
+        <td></td>
+        <td class="text-right">${U.usd(roll.totalCost + roll.totalETC)}</td>
+        <td class="text-right">${U.usd(roll.totalCost)}</td>
+        <td class="text-right">${U.usd(roll.totalEarned)}</td>
+        <td class="text-right">${U.usd(roll.totalBilled)}</td>
+        <td class="text-right ${roll.overUnderTot >= 0 ? 'text-emerald-700' : 'text-amber-700'}">${roll.overUnderTot >= 0 ? '+' : ''}${U.usd(roll.overUnderTot)}</td>
+        <td class="text-right">${U.usd(roll.totalBacklog)}</td>
+        <td colspan="2"></td>
+      </tr>` : '';
+
+    return `
+      <div class="flex items-center justify-between mb-3">
+        <div class="text-sm text-ink-300">Job-by-job WIP for this account. % complete drives the WIP-adjusted aggregate capacity number.</div>
+        ${untracked.length ? `<button class="btn-secondary" onclick="Views.accounts.editWip('${a.id}','${untracked[0].id}')">+ Add WIP for ${untracked[0].number}</button>` : ''}
+      </div>
+
+      ${tracked.length ? summary : ''}
+
+      <div class="card overflow-hidden">
+        <table class="tbl">
+          <thead><tr>
+            <th>Bond</th><th>Project</th><th>Obligee</th>
+            <th class="text-right">Contract</th>
+            <th>% Complete</th>
+            <th class="text-right">Total Est. Cost</th>
+            <th class="text-right">Cost to Date</th>
+            <th class="text-right">Earned</th>
+            <th class="text-right">Billed</th>
+            <th class="text-right">Over / Under</th>
+            <th class="text-right">Backlog</th>
+            <th class="text-right">As of</th>
+            <th></th>
+          </tr></thead>
+          <tbody>
+            ${tracked.length ? rows + totalsRow : '<tr><td colspan="13" class="text-center text-ink-300 py-8">No WIP records yet for this account.</td></tr>'}
+          </tbody>
+        </table>
+      </div>
+
+      ${untracked.length ? `
+        <div class="card mt-4">
+          <div class="card-header"><div class="card-title">Contract Bonds Without WIP (${untracked.length})</div></div>
+          <div class="p-3">
+            ${untracked.map(b => `
+              <div class="flex items-center justify-between p-2 hover:bg-cream-50 rounded">
+                <div>
+                  <div class="text-sm font-medium">${b.number} — ${U.esc(b.type)}</div>
+                  <div class="text-xs text-ink-300">${U.esc(b.obligee||'')} · ${U.usd(b.amount)}</div>
+                </div>
+                <button class="btn-secondary" onclick="Views.accounts.editWip('${a.id}','${b.id}')">Add WIP</button>
+              </div>`).join('')}
+          </div>
+        </div>` : ''}
+    `;
+  },
+
+  // ---------- WIP edit modal (reusable from accounts AND bonds detail) ----------
+  editWip(accountId, bondId) {
+    const b = DB.findBond(bondId);
+    if (!b) return;
+    const w = b.wip || { contractAmount: b.amount, percentComplete: 0, costToDate: 0, estCostToComplete: 0, billedToDate: 0, estProfitPercent: 0, asOfDate: new Date().toISOString().slice(0,10), notes: '', history: [] };
+    const body = `
+      <div class="text-sm text-ink-400 mb-3"><b>${b.number}</b> · ${U.esc(b.type)} · ${U.esc(b.obligee||'')}</div>
+      <div class="grid grid-cols-2 gap-3">
+        <div><div class="field-label">Contract Amount</div>
+          <input id="w-contract" type="number" class="field-input" value="${w.contractAmount||b.amount||0}"></div>
+        <div><div class="field-label">As-of Date</div>
+          <input id="w-asof" type="date" class="field-input" value="${U.esc(w.asOfDate||'')}"></div>
+        <div class="col-span-2">
+          <div class="flex items-center justify-between">
+            <div class="field-label">% Complete</div>
+            <span id="w-pct-val" class="text-sm font-semibold">${w.percentComplete||0}%</span>
+          </div>
+          <input id="w-pct" type="range" min="0" max="100" step="1" class="w-full" value="${w.percentComplete||0}"
+            oninput="document.getElementById('w-pct-val').textContent=this.value+'%'; Views.accounts._wipRecalc()">
+        </div>
+        <div><div class="field-label">Cost to Date</div>
+          <input id="w-cost" type="number" class="field-input" value="${w.costToDate||0}" oninput="Views.accounts._wipRecalc()"></div>
+        <div><div class="field-label">Est. Cost to Complete</div>
+          <input id="w-etc" type="number" class="field-input" value="${w.estCostToComplete||0}" oninput="Views.accounts._wipRecalc()"></div>
+        <div><div class="field-label">Billed to Date</div>
+          <input id="w-billed" type="number" class="field-input" value="${w.billedToDate||0}" oninput="Views.accounts._wipRecalc()"></div>
+        <div><div class="field-label">Est. Profit %</div>
+          <input id="w-profit" type="number" step="0.5" class="field-input" value="${w.estProfitPercent||0}"></div>
+        <div class="col-span-2"><div class="field-label">Notes for this update</div>
+          <textarea id="w-note" class="field-textarea" rows="2" placeholder="Milestones reached, surprises, schedule notes…"></textarea></div>
+      </div>
+
+      <div class="divider"></div>
+      <div class="bg-cream-50 rounded-lg p-3 grid grid-cols-3 gap-3 text-sm">
+        <div><div class="field-label">Earned Revenue</div><span id="w-earned" class="font-semibold">$0</span></div>
+        <div><div class="field-label">Over / Under Billing</div><span id="w-ou" class="font-semibold">$0</span></div>
+        <div><div class="field-label">Backlog (Uncompleted)</div><span id="w-backlog" class="font-semibold">$0</span></div>
+      </div>
+
+      ${(w.history || []).length ? `
+        <div class="divider"></div>
+        <div class="text-xs font-semibold text-ink-400 uppercase mb-2">Update History (${w.history.length})</div>
+        <div class="max-h-40 overflow-y-auto text-sm space-y-1">
+          ${w.history.slice().reverse().map(h => `
+            <div class="border-l-2 border-cream-300 pl-3 py-1">
+              <div class="text-xs text-ink-300">${U.date(h.date)} · ${h.percent}% · cost ${U.usd(h.costToDate)} · billed ${U.usd(h.billedToDate)}</div>
+              ${h.note?`<div class="text-sm">${U.esc(h.note)}</div>`:''}
+            </div>`).join('')}
+        </div>` : ''}
+    `;
+    const footer = `<button class="btn-ghost" data-close>Cancel</button>
+      <button class="btn-primary" onclick="Views.accounts._saveWip('${accountId||''}','${bondId}')">Save Update</button>`;
+    const m = U.modal({ title: 'Update Work in Progress', body, footer, size: 'lg' });
+    m.el.querySelector('[data-close]').addEventListener('click', m.close);
+    setTimeout(() => this._wipRecalc(), 0);
+  },
+
+  _wipRecalc() {
+    const contract = +document.getElementById('w-contract').value || 0;
+    const pct      = +document.getElementById('w-pct').value || 0;
+    const billed   = +document.getElementById('w-billed').value || 0;
+    const earned   = Math.round(contract * pct / 100);
+    const ou       = billed - earned;
+    const backlog  = Math.round(contract * (100 - pct) / 100);
+    document.getElementById('w-earned').textContent  = U.usd(earned);
+    const ouEl = document.getElementById('w-ou');
+    ouEl.textContent = (ou >= 0 ? '+' : '') + U.usd(ou);
+    ouEl.className = 'font-semibold ' + (ou >= 0 ? 'text-emerald-700' : 'text-amber-700');
+    document.getElementById('w-backlog').textContent = U.usd(backlog);
+  },
+
+  _saveWip(accountId, bondId) {
+    const b = DB.findBond(bondId); if (!b) return;
+    b.wip = b.wip || { history: [] };
+    b.wip.contractAmount    = +document.getElementById('w-contract').value || 0;
+    b.wip.percentComplete   = Math.max(0, Math.min(100, +document.getElementById('w-pct').value || 0));
+    b.wip.costToDate        = +document.getElementById('w-cost').value || 0;
+    b.wip.estCostToComplete = +document.getElementById('w-etc').value || 0;
+    b.wip.billedToDate      = +document.getElementById('w-billed').value || 0;
+    b.wip.estProfitPercent  = +document.getElementById('w-profit').value || 0;
+    b.wip.asOfDate          = document.getElementById('w-asof').value || new Date().toISOString().slice(0,10);
+    const note              = document.getElementById('w-note').value.trim();
+    b.wip.history = b.wip.history || [];
+    b.wip.history.push({
+      date: b.wip.asOfDate,
+      percent: b.wip.percentComplete,
+      costToDate: b.wip.costToDate,
+      billedToDate: b.wip.billedToDate,
+      note,
+    });
+    DB.save();
+    U.closeModals();
+    U.toast('WIP updated');
+    if (accountId) { this._tab = 'wip'; this._currentId = accountId; this._renderDetail(); }
+    else if (Views.bonds && document.getElementById('view')) { Views.bonds.open(bondId); }
   },
 
   // ---------- Tab: Pipeline ----------

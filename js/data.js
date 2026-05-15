@@ -1,6 +1,6 @@
 // ---------- Sample / seed data, persistence layer ----------
 window.DB = (() => {
-  const KEY = 'bondvault.db.v5';
+  const KEY = 'bondvault.db.v6';
 
   const sampleData = () => ({
     accounts: [
@@ -159,16 +159,40 @@ window.DB = (() => {
         const d = new Date(today); d.setDate(d.getDate() + n);
         return d.toISOString().slice(0,10);
       };
+      const wip = (contract, pct, costToDate, billed, eta, profit, asOf, history) => ({
+        contractAmount: contract,
+        percentComplete: pct,
+        costToDate,
+        estCostToComplete: eta,
+        billedToDate: billed,
+        estProfitPercent: profit,
+        asOfDate: asOf,
+        notes: '',
+        history: history || [],
+      });
       return [
-        { id: 'B-2401', number: 'SF-2024-00121', accountId: 'A-1001', partnerId: 'P-01', type: 'Performance', obligee: 'City of Portland - PBOT', project: 'SE Division St Repaving (Phase 2)', amount: 1250000, premium: 18750, rate: 1.5, commissionRate: 25, effective: days(-300), expires: days(65),  status: 'Active', qboInvoiceNumber: '1041',          reportedToBondCo: days(-301), obligeeApproved: days(-298), sentToPrincipal: days(-298) },
+        { id: 'B-2401', number: 'SF-2024-00121', accountId: 'A-1001', partnerId: 'P-01', type: 'Performance', obligee: 'City of Portland - PBOT', project: 'SE Division St Repaving (Phase 2)', amount: 1250000, premium: 18750, rate: 1.5, commissionRate: 25, effective: days(-300), expires: days(65),  status: 'Active', qboInvoiceNumber: '1041',          reportedToBondCo: days(-301), obligeeApproved: days(-298), sentToPrincipal: days(-298),
+          wip: wip(1250000, 82, 920000, 1010000, 198000, 11, days(-15), [
+            { date: days(-180), percent: 35, costToDate: 391000, billedToDate: 425000, note: 'Spring base course complete; weather delays Phase 2A.' },
+            { date: days(-90),  percent: 60, costToDate: 670000, billedToDate: 720000, note: 'Through milling and binder lift.' },
+            { date: days(-15),  percent: 82, costToDate: 920000, billedToDate: 1010000, note: 'Striping & punch list remaining.' },
+          ]) },
         { id: 'B-2402', number: 'SF-2024-00122', accountId: 'A-1001', partnerId: 'P-01', type: 'Payment',     obligee: 'City of Portland - PBOT', project: 'SE Division St Repaving (Phase 2)', amount: 1250000, premium: 0,     rate: 0,   commissionRate: 0,  effective: days(-300), expires: days(65),  status: 'Active', qboInvoiceNumber: '',              reportedToBondCo: days(-301), obligeeApproved: days(-298), sentToPrincipal: days(-298) },
         { id: 'B-2403', number: 'SF-2024-00130', accountId: 'A-1002', partnerId: 'P-02', type: 'Bid',         obligee: 'Salem-Keizer School District', project: 'McKay HS HVAC Replacement',     amount: 480000,  premium: 0,     rate: 0,   commissionRate: 0,  effective: days(-30),  expires: days(28),  status: 'Active', qboInvoiceNumber: '',              reportedToBondCo: days(-31),  obligeeApproved: days(-28),  sentToPrincipal: days(-28) },
         { id: 'B-2404', number: 'SF-2024-00141', accountId: 'A-1003', partnerId: 'P-03', type: 'License',     obligee: 'FMCSA',                  project: 'BMC-84 Broker Authority',          amount: 75000,   premium: 1875,  rate: 2.5, commissionRate: 30, effective: days(-120), expires: days(245), status: 'Active', qboInvoiceNumber: '1042',          reportedToBondCo: days(-121), obligeeApproved: days(-118), sentToPrincipal: days(-118) },
         { id: 'B-2405', number: 'SF-2024-00150', accountId: 'A-1005', partnerId: 'P-04', type: 'License',     obligee: 'Oregon DMV',             project: 'MV Dealer Bond',                   amount: 50000,   premium: 350,   rate: 0.7, commissionRate: 30, effective: days(-330), expires: days(35),  status: 'Active', qboInvoiceNumber: '1043',          reportedToBondCo: days(-331), obligeeApproved: days(-328), sentToPrincipal: days(-328) },
         { id: 'B-2406', number: 'SF-2024-00155', accountId: 'A-1006', partnerId: 'P-05', type: 'License',     obligee: 'Idaho SOS',              project: 'Notary Bond',                      amount: 10000,   premium: 50,    rate: 0.5, commissionRate: 35, effective: days(-90),  expires: days(1370),status: 'Active', qboInvoiceNumber: '1044',          reportedToBondCo: days(-91),  obligeeApproved: days(-88),  sentToPrincipal: days(-88) },
-        { id: 'B-2407', number: 'SF-2024-00170', accountId: 'A-1004', partnerId: 'P-02', type: 'Performance', obligee: 'Port of Seattle',        project: 'Pier 66 Dredging Maintenance',     amount: 875000,  premium: 14000, rate: 1.6, commissionRate: 25, effective: days(-13),  expires: days(50),  status: 'Active', qboInvoiceNumber: '',              reportedToBondCo: days(-14),  obligeeApproved: null,         sentToPrincipal: null },
+        { id: 'B-2407', number: 'SF-2024-00170', accountId: 'A-1004', partnerId: 'P-02', type: 'Performance', obligee: 'Port of Seattle',        project: 'Pier 66 Dredging Maintenance',     amount: 875000,  premium: 14000, rate: 1.6, commissionRate: 25, effective: days(-13),  expires: days(50),  status: 'Active', qboInvoiceNumber: '',              reportedToBondCo: days(-14),  obligeeApproved: null,         sentToPrincipal: null,
+          wip: wip(875000, 8, 68000, 740000, 67000, 8, days(-2), [
+            { date: days(-2),   percent: 8,  costToDate: 68000, billedToDate: 50000, note: 'Mobilization + survey complete; first dredge cycle next week.' },
+          ]) },
         { id: 'B-2408', number: 'SF-2024-00171', accountId: 'A-1007', partnerId: 'P-03', type: 'License',     obligee: 'CA CSLB',                project: 'Contractor License Bond',          amount: 25000,   premium: 250,   rate: 1.0, commissionRate: 30, effective: days(-42),  expires: days(82),  status: 'Active', qboInvoiceNumber: '1045',          reportedToBondCo: days(-43),  obligeeApproved: days(-40),  sentToPrincipal: days(-40) },
-        { id: 'B-2409', number: 'SF-2024-00180', accountId: 'A-1001', partnerId: 'P-06', type: 'Performance', obligee: 'Multnomah County',       project: 'Library Renovation',               amount: 620000,  premium: 9300,  rate: 1.5, commissionRate: 25, effective: days(-280), expires: days(85),  status: 'Active', qboInvoiceNumber: '1046',          reportedToBondCo: days(-281), obligeeApproved: days(-278), sentToPrincipal: days(-278) },
+        { id: 'B-2409', number: 'SF-2024-00180', accountId: 'A-1001', partnerId: 'P-06', type: 'Performance', obligee: 'Multnomah County',       project: 'Library Renovation',               amount: 620000,  premium: 9300,  rate: 1.5, commissionRate: 25, effective: days(-280), expires: days(85),  status: 'Active', qboInvoiceNumber: '1046',          reportedToBondCo: days(-281), obligeeApproved: days(-278), sentToPrincipal: days(-278),
+          wip: wip(620000, 95, 538000, 590000, 28000, 9, days(-7), [
+            { date: days(-90),  percent: 55, costToDate: 312000, billedToDate: 340000, note: 'Drywall and MEP rough-in complete.' },
+            { date: days(-30),  percent: 78, costToDate: 442000, billedToDate: 488000, note: 'Finishes underway.' },
+            { date: days(-7),   percent: 95, costToDate: 538000, billedToDate: 590000, note: 'Punch list and final inspections only.' },
+          ]) },
       ];
     })(),
     partners: [
