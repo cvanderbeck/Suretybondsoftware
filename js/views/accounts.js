@@ -1174,6 +1174,7 @@ Views.accounts = {
     DB.save();
     U.closeModals();
     U.toast(isNew ? 'Account created' : 'Account updated');
+    if (isNew) Files.provisionAccount(a);
     this.render();
   }
 };

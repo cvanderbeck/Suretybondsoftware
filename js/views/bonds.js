@@ -365,6 +365,7 @@ Views.bonds = {
     DB.save();
     U.closeModals();
     U.toast(isNew ? 'Bond created' : 'Bond updated');
+    if (isNew) Files.provisionBond(b);
     this.render();
   },
 

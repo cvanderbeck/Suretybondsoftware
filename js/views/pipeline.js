@@ -429,6 +429,7 @@ Views.pipeline = {
     DB.save();
     U.closeModals();
     U.toast(`Bond ${newBond.number} created`);
+    Files.provisionBond(newBond);
     App.go('bonds');
     setTimeout(() => Views.bonds.open(newBond.id), 60);
   },

@@ -1,6 +1,6 @@
 // ---------- Sample / seed data, persistence layer ----------
 window.DB = (() => {
-  const KEY = 'bondvault.db.v6';
+  const KEY = 'bondvault.db.v7';
 
   const sampleData = () => ({
     accounts: [
@@ -262,10 +262,26 @@ window.DB = (() => {
       ], partnerId: 'P-02', assignedTo: 'Casey V.', notes: '' },
     ],
     documents: [
-      { id: 'D-1', name: 'Northridge_FinancialStmt_2025.pdf', size: 1.4*1024*1024, type: 'application/pdf', accountId: 'A-1001', bondId: null, category: 'Financial', uploaded: '2026-04-30' },
-      { id: 'D-2', name: 'Cascade_WIP_Apr2026.xlsx',         size: 220*1024,      type: 'spreadsheet',     accountId: 'A-1002', bondId: 'B-2403', category: 'WIP', uploaded: '2026-04-28' },
-      { id: 'D-3', name: 'BlueWater_GIA_signed.pdf',         size: 650*1024,      type: 'application/pdf', accountId: 'A-1004', bondId: 'B-2407', category: 'Indemnity', uploaded: '2026-05-02' },
-      { id: 'D-4', name: 'Pioneer_BMC84_Form.pdf',           size: 180*1024,      type: 'application/pdf', accountId: 'A-1003', bondId: 'B-2404', category: 'Bond Form', uploaded: '2026-01-12' },
+      { id: 'D-1',  name: 'Northridge_FinancialStmt_2025.pdf', size: 1.4*1024*1024, type: 'application/pdf', accountId: 'A-1001', bondId: null,     category: 'Financial',     uploaded: '2026-04-30' },
+      { id: 'D-2',  name: 'Cascade_WIP_Apr2026.xlsx',          size: 220*1024,      type: 'spreadsheet',     accountId: 'A-1002', bondId: 'B-2403', category: 'WIP',           uploaded: '2026-04-28' },
+      { id: 'D-3',  name: 'BlueWater_GIA_signed.pdf',          size: 650*1024,      type: 'application/pdf', accountId: 'A-1004', bondId: 'B-2407', category: 'Indemnity',     uploaded: '2026-05-02' },
+      { id: 'D-4',  name: 'Pioneer_BMC84_Form.pdf',            size: 180*1024,      type: 'application/pdf', accountId: 'A-1003', bondId: 'B-2404', category: 'Bond Form',     uploaded: '2026-01-12' },
+      { id: 'D-5',  name: 'Northridge_W-9_2024.pdf',           size: 110*1024,      type: 'application/pdf', accountId: 'A-1001', bondId: null,     category: 'Company Info',  uploaded: '2024-09-12' },
+      { id: 'D-6',  name: 'Northridge_LLC_Articles.pdf',       size: 480*1024,      type: 'application/pdf', accountId: 'A-1001', bondId: null,     category: 'Company Info',  uploaded: '2024-09-12' },
+      { id: 'D-7',  name: 'Northridge_PFS_JPierce_2025.pdf',   size: 920*1024,      type: 'application/pdf', accountId: 'A-1001', bondId: null,     category: 'PFS',           uploaded: '2025-11-15' },
+      { id: 'D-8',  name: 'Northridge_GIA_2018.pdf',           size: 1.1*1024*1024, type: 'application/pdf', accountId: 'A-1001', bondId: null,     category: 'Indemnity',     uploaded: '2018-04-10' },
+      { id: 'D-9',  name: 'SE_Division_Contract_Executed.pdf', size: 2.6*1024*1024, type: 'application/pdf', accountId: 'A-1001', bondId: 'B-2401', category: 'Contract',      uploaded: '2025-07-08' },
+      { id: 'D-10', name: 'SE_Division_BondForm_Executed.pdf', size: 540*1024,      type: 'application/pdf', accountId: 'A-1001', bondId: 'B-2401', category: 'Bond Form',     uploaded: '2025-07-08' },
+      { id: 'D-11', name: 'SE_Division_POA_Hartford.pdf',      size: 280*1024,      type: 'application/pdf', accountId: 'A-1001', bondId: 'B-2401', category: 'Bond Form',     uploaded: '2025-07-08' },
+      { id: 'D-12', name: 'SE_Division_WIP_2026-04.xlsx',      size: 145*1024,      type: 'spreadsheet',     accountId: 'A-1001', bondId: 'B-2401', category: 'WIP',           uploaded: '2026-05-01' },
+      { id: 'D-13', name: 'McKay_HS_BidPackage.zip',           size: 5.1*1024*1024, type: 'application/zip', accountId: 'A-1002', bondId: 'B-2403', category: 'Bid Document',  uploaded: '2026-04-12' },
+      { id: 'D-14', name: 'BlueWater_FY2025_CPA_Reviewed.pdf', size: 2.2*1024*1024, type: 'application/pdf', accountId: 'A-1004', bondId: null,     category: 'Financial',     uploaded: '2026-02-10' },
+      { id: 'D-15', name: 'BlueWater_PortOfSeattle_Submission.pdf', size: 3.4*1024*1024, type: 'application/pdf', accountId: 'A-1004', bondId: 'B-2407', category: 'Underwriting', uploaded: '2026-05-02' },
+      { id: 'D-16', name: 'Library_Reno_Release_Letter.pdf',   size: 220*1024,      type: 'application/pdf', accountId: 'A-1001', bondId: 'B-2409', category: 'Release',       uploaded: '2026-05-06' },
+      { id: 'D-17', name: 'Hartford_ProducerAgreement_2024.pdf', size: 780*1024,    type: 'application/pdf', accountId: null,     bondId: null,     category: 'Producer Agreement', partnerId: 'P-01', uploaded: '2024-01-20' },
+      { id: 'D-18', name: 'Liberty_AppetiteGuide_2026.pdf',    size: 510*1024,      type: 'application/pdf', accountId: null,     bondId: null,     category: 'Rate Sheet',    partnerId: 'P-02', uploaded: '2026-01-15' },
+      { id: 'D-19', name: 'BondVault_Indemnity_Template.docx', size: 95*1024,       type: 'document',        accountId: null,     bondId: null,     category: 'Template',      uploaded: '2024-03-01' },
+      { id: 'D-20', name: 'Agency_EO_Renewal_2026.pdf',        size: 320*1024,      type: 'application/pdf', accountId: null,     bondId: null,     category: 'Agency Admin',  uploaded: '2026-01-10' },
     ],
     emails: [
       { id: 'E-1', folder: 'inbox', from: 'tom.reyes@hartford-surety.example', subject: 'Re: SF-2024-00121 — Performance bond issued', preview: 'Hi Casey, attached find the executed performance & payment bonds for Northridge…', date: '2026-03-04T15:12', accountId: 'A-1001', bondId: 'B-2401', read: true },
@@ -427,6 +443,72 @@ Thanks,
       },
       qbo: { connected: true, realmId: '9341022938293', companyName: 'Vanderbeck Surety Agency', lastSync: '2026-05-13T22:15' },
       email: { connected: true, provider: 'Microsoft 365', address: 'producers@vanderbeck-surety.example', lastSync: '2026-05-13T22:30' },
+      storage: {
+        provider: 'onedrive',                           // 'onedrive' | 'dropbox' | null
+        connected: true,
+        account: 'producers@vanderbeck-surety.example',
+        siteName: 'Vanderbeck Surety — BondVault',
+        rootPath: 'BondVault Files',
+        lastSync: '2026-05-13T22:45',
+        autoProvision: true,
+      },
+      fileTemplate: {
+        toplevel: [
+          '01_Accounts', '02_Sureties', '03_Pipeline', '04_Templates', '05_Agency Admin',
+        ],
+        // Per-account folder tree (numbered to control sort order)
+        account: [
+          '00_Account Snapshot',
+          '01_Company Info',
+          '02_Financials',
+          '03_WIP Schedules',
+          '04_Personal Financials (PFS)',
+          '05_Indemnity Agreements',
+          '06_Bank & References',
+          '07_Bonds',                                   // bonds live under here
+          '08_Correspondence',
+        ],
+        // Per-bond folder tree
+        bond: [
+          '01_Bond Forms',
+          '02_Contract Docs',
+          '03_Underwriting',
+          '04_Bid Docs',
+          '05_Project Status',
+          '06_Invoices',
+          '07_Correspondence',
+          '08_Release & Closeout',
+        ],
+        // Map a document category → folder path (relative to the
+        // resolved parent folder). Keys come from doc.category.
+        // Use {bondFolder} as a marker for "inside the bond folder".
+        categoryRouting: {
+          // Account-level (no bond)
+          'Company Info':        '01_Company Info',
+          'Financial':           '02_Financials',
+          'PFS':                 '04_Personal Financials (PFS)',
+          'Indemnity':           '05_Indemnity Agreements',
+          'Bank Reference':      '06_Bank & References',
+          'Correspondence':      '08_Correspondence',
+          // WIP w/o bond goes to account WIP schedules
+          'WIP Schedule':        '03_WIP Schedules',
+          // Bond-level (require bondId)
+          'Bond Form':           '{bondFolder}/01_Bond Forms',
+          'Contract':            '{bondFolder}/02_Contract Docs',
+          'Underwriting':        '{bondFolder}/03_Underwriting',
+          'Bid Document':        '{bondFolder}/04_Bid Docs',
+          'WIP':                 '{bondFolder}/05_Project Status',
+          'Invoice':             '{bondFolder}/06_Invoices',
+          'Bond Correspondence': '{bondFolder}/07_Correspondence',
+          'Release':             '{bondFolder}/08_Release & Closeout',
+          // Surety-level
+          'Producer Agreement':  '02_Sureties/{partnerName}/Producer Agreement',
+          'Rate Sheet':          '02_Sureties/{partnerName}/Rate Sheets & Appetite',
+          // Top-level
+          'Template':            '04_Templates',
+          'Agency Admin':        '05_Agency Admin',
+        },
+      },
     }
   });
 
