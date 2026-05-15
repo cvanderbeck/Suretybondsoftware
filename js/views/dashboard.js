@@ -142,6 +142,71 @@ Views.dashboard = {
           </div>
         </div>
       </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-4">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">Aggregate Capacity — At Capacity</div>
+            <button class="btn-ghost" onclick="App.go('accounts')">All accounts →</button>
+          </div>
+          <div class="p-4">
+            ${(() => {
+              const rows = DB.accounts()
+                .map(a => ({ a, cap: Views.accounts.capacityFor(a.id) }))
+                .filter(x => x.cap.aggregate)
+                .sort((x,y) => y.cap.pct - x.cap.pct)
+                .slice(0, 6);
+              if (!rows.length) return '<div class="text-sm text-ink-300">No accounts with an aggregate limit set.</div>';
+              return rows.map(({a, cap}) => `
+                <div class="py-2 border-b border-cream-100 last:border-b-0 cursor-pointer hover:bg-cream-50 -mx-2 px-2 rounded"
+                     onclick="App.go('accounts'); setTimeout(()=>Views.accounts.open('${a.id}'), 50);">
+                  <div class="flex items-center justify-between">
+                    <div class="text-sm font-medium text-ink-700 truncate">${U.esc(a.name)}</div>
+                    <div class="text-xs ${cap.tone.text} font-medium">${cap.pct}%</div>
+                  </div>
+                  <div class="progress mt-1"><div class="${cap.tone.bar}" style="width:${Math.min(100,cap.pct)}%"></div></div>
+                  <div class="flex items-center justify-between text-[11px] text-ink-300 mt-1">
+                    <span>${U.usd(cap.used)} of ${U.usd(cap.aggregate)} · ${cap.openCount} open</span>
+                    <span>${U.usd(cap.remaining)} avail.</span>
+                  </div>
+                </div>
+              `).join('');
+            })()}
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">Bonds Above Single Limit</div>
+            <button class="btn-ghost" onclick="App.go('bonds')">All bonds →</button>
+          </div>
+          <div class="p-4">
+            ${(() => {
+              const flagged = [];
+              DB.accounts().forEach(a => {
+                const cap = Views.accounts.capacityFor(a.id);
+                cap.overSingle.forEach(b => flagged.push({ a, cap, b }));
+              });
+              if (!flagged.length) return '<div class="text-sm text-ink-300">All open bonds are within their single bond limit. ✓</div>';
+              return flagged.slice(0, 6).map(({a, cap, b}) => `
+                <div class="py-2 border-b border-cream-100 last:border-b-0 cursor-pointer hover:bg-cream-50 -mx-2 px-2 rounded"
+                     onclick="Views.bonds.open('${b.id}')">
+                  <div class="flex items-center justify-between">
+                    <div>
+                      <div class="text-sm font-medium text-ink-700">${b.number}</div>
+                      <div class="text-xs text-ink-300">${U.esc(a.name)} · ${U.esc(b.obligee||'')}</div>
+                    </div>
+                    <div class="text-right">
+                      <div class="text-sm font-semibold text-rose-700">${U.usd(b.amount)}</div>
+                      <div class="text-[11px] text-ink-300">single limit ${U.usd(cap.single)}</div>
+                    </div>
+                  </div>
+                </div>
+              `).join('');
+            })()}
+          </div>
+        </div>
+      </div>
     `;
 
     // charts

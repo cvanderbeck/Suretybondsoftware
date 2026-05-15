@@ -1,6 +1,45 @@
 window.Views = window.Views || {};
 
 Views.accounts = {
+  // Open exposure = active + pending UW (commitment to surety).
+  OPEN_STATUSES: ['Active', 'Pending UW'],
+
+  // ---------- Aggregate capacity helper ----------
+  capacityFor(accountId) {
+    const a = DB.findAccount(accountId);
+    const single = a?.company?.singleLimit || 0;
+    const agg    = a?.company?.aggregateLimit || 0;
+    const open = DB.bonds().filter(b => b.accountId === accountId && this.OPEN_STATUSES.includes(b.status));
+    const used   = open.reduce((s,b) => s + (b.amount||0), 0);
+    const remaining = Math.max(0, agg - used);
+    const pct = agg ? Math.round(used / agg * 100) : 0;
+    const overSingle = open.filter(b => single && b.amount > single);
+    const tone =
+      pct >= 100 ? { bar: 'bg-rose-500',    text: 'text-rose-700',    badge: 'badge-rose'  } :
+      pct >= 85  ? { bar: 'bg-rose-500',    text: 'text-rose-700',    badge: 'badge-rose'  } :
+      pct >= 65  ? { bar: 'bg-amber-500',   text: 'text-amber-700',   badge: 'badge-amber' } :
+                   { bar: 'bg-emerald-500', text: 'text-emerald-700', badge: 'badge-green' };
+    return { single, aggregate: agg, used, remaining, pct, overSingle, openCount: open.length, openBonds: open, tone };
+  },
+
+  capacityBar(accountId, opts = {}) {
+    const c = this.capacityFor(accountId);
+    if (!c.aggregate) {
+      return `<span class="text-xs text-ink-300">No aggregate set</span>`;
+    }
+    const width = Math.min(100, c.pct);
+    const compact = opts.compact;
+    return `
+      <div class="${compact ? 'min-w-[140px]' : ''}">
+        <div class="flex items-center justify-between text-xs">
+          <span class="${c.tone.text} font-medium">${c.pct}% used</span>
+          <span class="text-ink-300">${U.usd(c.remaining)} avail.</span>
+        </div>
+        <div class="progress mt-1"><div class="${c.tone.bar}" style="width:${width}%"></div></div>
+        ${compact ? '' : `<div class="text-[11px] text-ink-300 mt-1">${U.usd(c.used)} of ${U.usd(c.aggregate)} aggregate · ${c.openCount} open bond${c.openCount===1?'':'s'}</div>`}
+      </div>`;
+  },
+
   // ---------- List view ----------
   render() {
     const accts = DB.accounts();
@@ -20,8 +59,8 @@ Views.accounts = {
         <table class="tbl">
           <thead><tr>
             <th>Account</th><th>Type</th><th>Primary Contact</th><th>Location</th>
-            <th class="text-right">Active Bonds</th><th class="text-right">In-Force</th>
-            <th>Capacity</th><th>Credit</th><th>Renewals</th><th></th>
+            <th class="text-right">Open Bonds</th><th class="text-right">In-Force</th>
+            <th class="min-w-[180px]">Aggregate Capacity</th><th>Credit</th><th>Renewals</th><th></th>
           </tr></thead>
           <tbody id="acct-tbody">${this.rows(accts)}</tbody>
         </table>
@@ -30,23 +69,20 @@ Views.accounts = {
   },
 
   rows(list) {
-    const bonds = DB.bonds();
     return list.map(a => {
-      const ab = bonds.filter(b => b.accountId === a.id && b.status === 'Active');
-      const total = ab.reduce((s,b)=>s+b.amount,0);
-      const creditColor = a.credit >= 740 ? 'text-emerald-600' : a.credit >= 680 ? 'text-amber-600' : 'text-rose-600';
-      const cap = a.company?.singleLimit ? `${U.usd(a.company.singleLimit)} / ${U.usd(a.company.aggregateLimit)}` : '—';
+      const cap = this.capacityFor(a.id);
+      const creditColor = a.credit >= 740 ? 'text-emerald-700' : a.credit >= 680 ? 'text-amber-700' : 'text-rose-700';
       const renewal = this.renewalBadge(a);
       const primary = (a.contacts && a.contacts.find(c => c.primary)) || { name: a.contact || '', email: a.email || '' };
       return `
         <tr class="cursor-pointer" onclick="Views.accounts.open('${a.id}')">
-          <td><div class="font-medium text-slate-800">${U.esc(a.name)}</div><div class="text-xs text-slate-500">${a.id}${a.dba?` · DBA ${U.esc(a.dba)}`:''}</div></td>
+          <td><div class="font-medium text-ink-700">${U.esc(a.name)}</div><div class="text-xs text-ink-300">${a.id}${a.dba?` · DBA ${U.esc(a.dba)}`:''}</div></td>
           <td>${U.esc(a.type)}</td>
-          <td><div>${U.esc(primary.name||'')}</div><div class="text-xs text-slate-500">${U.esc(primary.email||'')}</div></td>
+          <td><div>${U.esc(primary.name||'')}</div><div class="text-xs text-ink-300">${U.esc(primary.email||'')}</div></td>
           <td>${U.esc(a.city||'')}, ${U.esc(a.state||'')}</td>
-          <td class="text-right">${ab.length}</td>
-          <td class="text-right">${U.usd(total)}</td>
-          <td class="text-xs">${cap}</td>
+          <td class="text-right">${cap.openCount}</td>
+          <td class="text-right">${U.usd(cap.used)}</td>
+          <td>${this.capacityBar(a.id, { compact: true })}</td>
           <td class="${creditColor} font-medium">${a.credit||'—'}</td>
           <td>${renewal}</td>
           <td class="text-right"><button class="btn-ghost" onclick="event.stopPropagation(); Views.accounts.openForm('${a.id}')">Edit</button></td>
@@ -124,10 +160,16 @@ Views.accounts = {
             ${a.dba?`DBA ${U.esc(a.dba)} · `:''}${a.id} · ${U.esc(a.city||'')}, ${U.esc(a.state||'')}
           </div>
         </div>
-        <div class="text-right text-xs text-slate-500">
-          <div>Capacity</div>
-          <div class="text-sm font-semibold text-slate-800">${a.company?.singleLimit?U.usd(a.company.singleLimit):'—'} <span class="text-slate-400">/</span> ${a.company?.aggregateLimit?U.usd(a.company.aggregateLimit):'—'}</div>
-          <div class="text-xs text-slate-400">single / aggregate</div>
+        <div class="text-right text-xs text-slate-500 min-w-[180px]">
+          <div>Aggregate Capacity</div>
+          ${(() => {
+            const cap = this.capacityFor(a.id);
+            if (!cap.aggregate) return `<div class="text-sm text-slate-400">No aggregate set</div>`;
+            return `
+              <div class="text-sm font-semibold ${cap.tone.text}">${U.usd(cap.used)} <span class="text-slate-400">of</span> ${U.usd(cap.aggregate)}</div>
+              <div class="progress mt-1"><div class="${cap.tone.bar}" style="width:${Math.min(100,cap.pct)}%"></div></div>
+              <div class="text-[11px] text-slate-400 mt-0.5">${cap.pct}% used · ${U.usd(cap.remaining)} available</div>`;
+          })()}
         </div>
       </div>
       <div class="border-b border-slate-200 -mx-6 px-6 flex flex-wrap gap-1">
@@ -181,6 +223,7 @@ Views.accounts = {
     const wipPipeline = pipe.filter(p => !['Won','Lost'].includes(p.stage)).reduce((s,p)=>s+p.amount,0);
     const c = a.company || {};
     const r = a.renewals || {};
+    const cap = this.capacityFor(a.id);
     const primary = (a.contacts || []).find(x => x.primary) || {};
     return `
       <div class="grid grid-cols-4 gap-4 mb-5">
@@ -188,6 +231,41 @@ Views.accounts = {
         <div class="stat-card !p-3"><div class="stat-label">In-Force</div><div class="stat-value text-lg">${U.usd(inForce)}</div></div>
         <div class="stat-card !p-3"><div class="stat-label">Open Pipeline</div><div class="stat-value text-lg">${U.usd(wipPipeline)}</div></div>
         <div class="stat-card !p-3"><div class="stat-label">UW Files</div><div class="stat-value text-lg">${uwFiles.length}</div></div>
+      </div>
+
+      <div class="card mb-4">
+        <div class="card-header">
+          <div class="card-title">Aggregate Capacity</div>
+          <span class="text-xs text-ink-300">Open exposure (Active + Pending UW) ÷ aggregate limit</span>
+        </div>
+        <div class="p-4 grid grid-cols-4 gap-4">
+          <div>
+            <div class="field-label">Used</div>
+            <div class="text-lg font-semibold ${cap.tone.text}">${U.usd(cap.used)}</div>
+          </div>
+          <div>
+            <div class="field-label">Aggregate Limit</div>
+            <div class="text-lg font-semibold">${cap.aggregate ? U.usd(cap.aggregate) : '—'}</div>
+          </div>
+          <div>
+            <div class="field-label">Available</div>
+            <div class="text-lg font-semibold">${cap.aggregate ? U.usd(cap.remaining) : '—'}</div>
+          </div>
+          <div>
+            <div class="field-label">Single Limit</div>
+            <div class="text-lg font-semibold">${cap.single ? U.usd(cap.single) : '—'}</div>
+            ${cap.overSingle.length ? `<div class="text-[11px] text-rose-700 mt-0.5">${cap.overSingle.length} bond${cap.overSingle.length===1?'':'s'} above single limit</div>` : ''}
+          </div>
+        </div>
+        <div class="px-4 pb-4">
+          ${cap.aggregate ? `
+            <div class="progress mt-1"><div class="${cap.tone.bar}" style="width:${Math.min(100,cap.pct)}%"></div></div>
+            <div class="flex items-center justify-between text-xs mt-1">
+              <span class="${cap.tone.text} font-medium">${cap.pct}% used · ${cap.openCount} open bond${cap.openCount===1?'':'s'}</span>
+              <span class="text-ink-300">${U.usd(cap.used)} of ${U.usd(cap.aggregate)}</span>
+            </div>
+          ` : `<div class="text-sm text-ink-300">No aggregate limit set on this account. Add it in the Company tab to track utilization.</div>`}
+        </div>
       </div>
 
       <div class="grid grid-cols-2 gap-4">
@@ -256,6 +334,7 @@ Views.accounts = {
   // ---------- Tab: Company ----------
   _tabCompany(a) {
     const c = a.company || {};
+    const cap = this.capacityFor(a.id);
     return `
       <div class="grid grid-cols-2 gap-6">
         <div class="card">
@@ -282,15 +361,28 @@ Views.accounts = {
           </div>
         </div>
         <div class="card col-span-2">
-          <div class="card-header"><div class="card-title">Financial Profile &amp; Capacity</div></div>
+          <div class="card-header">
+            <div class="card-title">Financial Profile &amp; Bonding Capacity</div>
+            <span class="badge ${cap.tone.badge}">${cap.aggregate ? cap.pct + '% used' : 'No aggregate set'}</span>
+          </div>
           <div class="p-4 grid grid-cols-4 gap-3 text-sm">
             <div><div class="field-label">Gross Revenue</div>${c.grossRevenue?U.usd(c.grossRevenue):'—'}</div>
             <div><div class="field-label">Employees</div>${c.employees||'—'}</div>
             <div><div class="field-label">Credit Score</div>${a.credit||'—'}</div>
-            <div><div class="field-label"></div></div>
-            <div><div class="field-label">Single Bond Limit</div><span class="text-base font-semibold">${c.singleLimit?U.usd(c.singleLimit):'—'}</span></div>
-            <div><div class="field-label">Aggregate Limit</div><span class="text-base font-semibold">${c.aggregateLimit?U.usd(c.aggregateLimit):'—'}</span></div>
+            <div><div class="field-label">Open Bonds</div>${cap.openCount}</div>
+
+            <div><div class="field-label">Single Bond Limit</div><span class="text-base font-semibold">${cap.single?U.usd(cap.single):'—'}</span></div>
+            <div><div class="field-label">Aggregate Limit</div><span class="text-base font-semibold">${cap.aggregate?U.usd(cap.aggregate):'—'}</span></div>
+            <div><div class="field-label">Used (Open Exposure)</div><span class="text-base font-semibold ${cap.tone.text}">${U.usd(cap.used)}</span></div>
+            <div><div class="field-label">Available</div><span class="text-base font-semibold">${cap.aggregate?U.usd(cap.remaining):'—'}</span></div>
           </div>
+          ${cap.aggregate ? `
+            <div class="px-4 pb-4">
+              <div class="progress"><div class="${cap.tone.bar}" style="width:${Math.min(100,cap.pct)}%"></div></div>
+              <div class="text-[11px] text-ink-300 mt-1">${U.usd(cap.used)} of ${U.usd(cap.aggregate)} aggregate · ${cap.openCount} open bond${cap.openCount===1?'':'s'} (Active + Pending UW)</div>
+              ${cap.overSingle.length ? `<div class="text-xs text-rose-700 mt-1">⚠ ${cap.overSingle.length} bond${cap.overSingle.length===1?'':'s'} above the single bond limit (${U.usd(cap.single)}): ${cap.overSingle.map(b => b.number).join(', ')}</div>` : ''}
+            </div>` : `
+            <div class="px-4 pb-4 text-xs text-ink-300">Set the Aggregate Limit (Edit Account) to start tracking utilization.</div>`}
         </div>
       </div>
     `;
