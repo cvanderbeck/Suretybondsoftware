@@ -143,6 +143,39 @@ Views.dashboard = {
         </div>
       </div>
 
+      <div class="card mt-4">
+        <div class="card-header">
+          <div class="card-title">Leads Pipeline — Top of Funnel</div>
+          <button class="btn-ghost" onclick="App.go('leads')">All leads →</button>
+        </div>
+        <div class="p-4">
+          ${(() => {
+            const open = DB.leads().filter(l => l.status === 'open');
+            if (!open.length) return '<div class="text-sm text-ink-300">No open leads. Click <b>New Lead</b> in the Leads Pipeline to add one.</div>';
+            const counts = {};
+            (DB.leadStages ? DB.leadStages() : []).forEach(s => counts[s] = open.filter(l => l.stage === s).length);
+            const totalPremium = open.reduce((s,l) => s + (l.estimatedAnnualPremium||0), 0);
+            const top = open.slice().sort((a,b) => (b.probability||0) - (a.probability||0)).slice(0, 5);
+            return `
+              <div class="grid grid-cols-4 gap-3 mb-4">
+                <div><div class="field-label">Open Leads</div><div class="text-lg font-semibold">${open.length}</div></div>
+                <div><div class="field-label">Est. Annual Premium</div><div class="text-lg font-semibold">${U.usd(totalPremium)}</div></div>
+                <div><div class="field-label">Top Stage</div><div class="text-sm">${U.esc(Object.entries(counts).sort((a,b)=>b[1]-a[1])[0]?.[0] || '—')}</div></div>
+                <div><div class="field-label">Following Up Soon</div><div class="text-sm">${open.filter(l => l.nextFollowUp && new Date(l.nextFollowUp) <= new Date(Date.now()+7*86400000)).length} in next 7d</div></div>
+              </div>
+              <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-2">
+                ${top.map(l => `
+                  <div class="border border-cream-200 rounded-lg p-3 cursor-pointer hover:bg-cream-50"
+                       onclick="App.go('leads'); setTimeout(()=>Views.leads.open('${l.id}'), 50);">
+                    <div class="text-sm font-semibold text-ink-700 truncate">${U.esc(l.companyName)}</div>
+                    <div class="text-xs text-ink-300 truncate">${U.esc(l.stage)} · ${l.probability}%</div>
+                    <div class="text-xs text-ink-300 mt-1">${l.estimatedAnnualPremium?U.usd(l.estimatedAnnualPremium)+' est':''}</div>
+                  </div>`).join('')}
+              </div>`;
+          })()}
+        </div>
+      </div>
+
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-4">
         <div class="card">
           <div class="card-header">

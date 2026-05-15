@@ -34,7 +34,7 @@ window.Compose = (() => {
       today:         new Date().toISOString().slice(0,10),
     };
 
-    let account, bond, renewal, pipeline;
+    let account, bond, renewal, pipeline, lead;
     if (opts.renewalId) {
       renewal = DB.renewals().find(r => r.id === opts.renewalId);
       if (renewal) opts.bondId = opts.bondId || renewal.bondId;
@@ -44,6 +44,7 @@ window.Compose = (() => {
     if (opts.accountId) account  = DB.findAccount(opts.accountId);
     if (opts.pipelineId) pipeline = DB.pipeline().find(p => p.id === opts.pipelineId);
     if (pipeline && !account) account = DB.findAccount(pipeline.accountId);
+    if (opts.leadId) lead = DB.findLead && DB.findLead(opts.leadId);
 
     if (account) {
       const primary = (account.contacts || []).find(c => c.primary) || (account.contacts || [])[0] || {};
@@ -76,7 +77,17 @@ window.Compose = (() => {
         bond_type:        ctx.bond_type || pipeline.bondType,
       });
     }
-    return { ctx, account, bond, renewal, pipeline };
+    if (lead) {
+      Object.assign(ctx, {
+        lead_company:  lead.companyName,
+        lead_contact:  lead.contactName,
+        contact_name:  ctx.contact_name  || lead.contactName  || '',
+        contact_first: ctx.contact_first || firstName(lead.contactName || ''),
+        contact_email: ctx.contact_email || lead.email || '',
+        contact_phone: ctx.contact_phone || lead.phone || '',
+      });
+    }
+    return { ctx, account, bond, renewal, pipeline, lead };
   }
 
   function interpolate(str, ctx) {
@@ -90,9 +101,9 @@ window.Compose = (() => {
   let _state = null; // current compose state
 
   function open(opts = {}) {
-    const { ctx, account, bond, renewal, pipeline } = buildContext(opts);
-    const defaultTo = opts.to || ctx.contact_email || '';
-    _state = { opts, ctx, account, bond, renewal, pipeline,
+    const { ctx, account, bond, renewal, pipeline, lead } = buildContext(opts);
+    const defaultTo = opts.to || ctx.contact_email || (lead && lead.email) || '';
+    _state = { opts, ctx, account, bond, renewal, pipeline, lead,
                to: defaultTo, cc: opts.cc || '', bcc: opts.bcc || '',
                subject: opts.subject || '', body: opts.body || '',
                templateId: opts.templateId || '' };
@@ -120,6 +131,7 @@ window.Compose = (() => {
     const contextChips = ctxKeys.map(k => `<button type="button" class="kbd hover:bg-slate-200" onclick="Compose._insertVar('${k}')">{{${k}}}</button>`).join(' ');
 
     const linkChips = [
+      _state.lead    && `<span class="badge badge-green">Lead: ${U.esc(_state.lead.companyName)}</span>`,
       _state.account && `<span class="badge badge-blue">Account: ${U.esc(_state.account.name)}</span>`,
       _state.bond    && `<span class="badge badge-violet">Bond: ${_state.bond.number}</span>`,
       _state.renewal && `<span class="badge badge-amber">Renewal workflow</span>`,
@@ -230,6 +242,7 @@ window.Compose = (() => {
       bondId:     _state.bond?.id     || null,
       pipelineId: _state.pipeline?.id || null,
       renewalId:  _state.renewal?.id  || null,
+      leadId:     _state.lead?.id     || null,
       read:   true,
     });
 
@@ -257,6 +270,21 @@ window.Compose = (() => {
         text:    `Sent to ${_state.to}: ${body.slice(0, 240)}${body.length>240?'…':''}`,
         emailId: id,
       });
+    }
+
+    // If wired to a lead, log it on the lead activity timeline.
+    if (_state.lead) {
+      _state.lead.activity = _state.lead.activity || [];
+      _state.lead.activity.push({
+        id: U.uid('LA'),
+        date: new Date().toISOString(),
+        author: 'Casey V.',
+        type:   'email',
+        subject: subj,
+        text:    `Sent to ${_state.to}: ${body.slice(0, 240)}${body.length>240?'…':''}`,
+        emailId: id,
+      });
+      _state.lead.lastTouch = new Date().toISOString().slice(0,10);
     }
 
     DB.save();

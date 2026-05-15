@@ -1,6 +1,6 @@
 // ---------- Sample / seed data, persistence layer ----------
 window.DB = (() => {
-  const KEY = 'bondvault.db.v8';
+  const KEY = 'bondvault.db.v9';
 
   const sampleData = () => ({
     accounts: [
@@ -266,6 +266,128 @@ window.DB = (() => {
       { id: 'PL-010', stage: 'Pre-Qualification',             accountId: 'A-1006', bondType: 'Probate',               amount: 180000,  obligee: 'Canyon County Probate Court', dueDate: '2026-06-01', notes: 'Conservatorship request — estate ~$650K',     producer: 'CV', probability: 50, bidResult: 'pending',
         typeSpecific: { courtName: 'Canyon County Probate Court', fiduciaryType: 'Conservator', estateValue: 650000 } },
     ],
+    leadStages: [
+      'New Lead',
+      'Contacted',
+      'Qualified',
+      'Application Sent',
+      'Submitted to Surety',
+      'Approved',
+      'Onboarded',
+      'Lost / No Fit',
+    ],
+    leads: [
+      {
+        id: 'L-001', companyName: 'Cascade Stone & Masonry', dba: '', contactName: 'Tony Miura', contactTitle: 'Owner',
+        email: 'tony@cascadestone.example', phone: '(503) 555-0411', city: 'Tigard', state: 'OR',
+        industry: 'Stone & Concrete Contractor', naics: '238140',
+        leadSource: 'Referral', referredBy: 'Janet Pierce (Northridge Builders)',
+        bondTypes: ['Payment & Performance','Bid'],
+        estimatedAnnualPremium: 18000, estimatedRevenue: 4800000, yearsInBusiness: 12,
+        stage: 'Qualified', probability: 60, status: 'open',
+        owner: 'CV', producer: 'CV',
+        createdDate: '2026-04-21', lastTouch: '2026-05-12', nextFollowUp: '2026-05-19',
+        notes: 'GC subcontractor referral from Northridge. Strong CPA-reviewed financials, ~$4.8M GR. Looking for $1M/$3M.',
+        activity: [
+          { id: 'LA-001', date: '2026-04-21T09:00', author: 'Janet Pierce', type: 'note',  text: 'Referred by Janet Pierce — said Tony bonds a few projects a year up to $750K.' },
+          { id: 'LA-002', date: '2026-04-23T11:30', author: 'Casey V.',     type: 'call',  text: 'Initial call — Tony is interested. Sent introductory email + agency overview.' },
+          { id: 'LA-003', date: '2026-05-05T14:10', author: 'Casey V.',     type: 'meeting', text: 'On-site coffee at Cascade office. Reviewed bonding needs.' },
+          { id: 'LA-004', date: '2026-05-12T08:45', author: 'Casey V.',     type: 'note',  text: 'Qualified — fits Hartford & Liberty appetite. Sending application package next.' },
+        ],
+        convertedAccountId: null,
+      },
+      {
+        id: 'L-002', companyName: 'Sundance Builders Inc.', dba: 'Sundance', contactName: 'Wendy Hall', contactTitle: 'CFO',
+        email: 'whall@sundancebuilders.example', phone: '(208) 555-0188', city: 'Coeur d\'Alene', state: 'ID',
+        industry: 'Residential & Light Commercial GC', naics: '236118',
+        leadSource: 'Website', referredBy: '',
+        bondTypes: ['Payment & Performance'],
+        estimatedAnnualPremium: 9000, estimatedRevenue: 6200000, yearsInBusiness: 8,
+        stage: 'New Lead', probability: 25, status: 'open',
+        owner: 'CV', producer: 'CV',
+        createdDate: '2026-05-13', lastTouch: '2026-05-13', nextFollowUp: '2026-05-16',
+        notes: 'Inquiry form submitted off the website — needs P&P bond for $1.4M school addition.',
+        activity: [
+          { id: 'LA-101', date: '2026-05-13T09:33', author: 'BondVault', type: 'note', text: 'Web form submitted: P&P bond, $1.4M, school addition. Schedule intro call.' },
+        ],
+        convertedAccountId: null,
+      },
+      {
+        id: 'L-003', companyName: 'Whitewater Earthworks LLC', dba: '', contactName: 'Brent Cho', contactTitle: 'President',
+        email: 'brent@whitewaterearth.example', phone: '(503) 555-0277', city: 'Hood River', state: 'OR',
+        industry: 'Excavation & Site Prep', naics: '238910',
+        leadSource: 'Surety Partner', referredBy: 'Liberty Mutual (Priya Subramanian)',
+        bondTypes: ['Payment & Performance','Subdivision/Site Improvement'],
+        estimatedAnnualPremium: 22000, estimatedRevenue: 7900000, yearsInBusiness: 14,
+        stage: 'Application Sent', probability: 70, status: 'open',
+        owner: 'CV', producer: 'CV',
+        createdDate: '2026-04-02', lastTouch: '2026-05-08', nextFollowUp: '2026-05-22',
+        notes: 'Liberty referred — looking for $5M/$15M. Excellent FY2024 numbers ($7.9M GR, ~12% NP).',
+        activity: [
+          { id: 'LA-201', date: '2026-04-02T13:05', author: 'Priya Subramanian', type: 'email',   text: 'Liberty referred Whitewater Earthworks for bonding (current carrier capacity tapped).' },
+          { id: 'LA-202', date: '2026-04-05T10:20', author: 'Casey V.',          type: 'call',    text: 'Initial call with Brent — strong interest, requesting capacity up to $15M agg.' },
+          { id: 'LA-203', date: '2026-05-02T11:00', author: 'Casey V.',          type: 'email',   text: 'Sent agency application + indemnity packet via DocuSign.' },
+          { id: 'LA-204', date: '2026-05-08T09:30', author: 'Brent Cho',          type: 'email',   text: 'Returned signed application; included FY2024 audit, WIP, AP/AR aging.' },
+        ],
+        convertedAccountId: null,
+      },
+      {
+        id: 'L-004', companyName: 'Highline Steel Erectors', dba: '', contactName: 'Marta Voss', contactTitle: 'CEO',
+        email: 'mvoss@highlinesteel.example', phone: '(206) 555-0399', city: 'Kent', state: 'WA',
+        industry: 'Structural Steel Erection', naics: '238120',
+        leadSource: 'Networking', referredBy: 'AGC of WA Chapter Lunch',
+        bondTypes: ['Payment & Performance'],
+        estimatedAnnualPremium: 35000, estimatedRevenue: 14500000, yearsInBusiness: 19,
+        stage: 'Submitted to Surety', probability: 80, status: 'open',
+        owner: 'CV', producer: 'CV',
+        createdDate: '2026-03-14', lastTouch: '2026-05-10', nextFollowUp: '2026-05-21',
+        notes: 'Strong steel sub looking to switch agents after their producer retired. Submitted to Hartford and Liberty for capacity quote.',
+        activity: [
+          { id: 'LA-301', date: '2026-03-14T16:00', author: 'Casey V.', type: 'meeting', text: 'Met at AGC Chapter Lunch. Marta open to switching agents.' },
+          { id: 'LA-302', date: '2026-04-10T11:00', author: 'Casey V.', type: 'email',   text: 'Sent application; followed up 4/22.' },
+          { id: 'LA-303', date: '2026-05-01T09:00', author: 'Casey V.', type: 'note',    text: 'Application returned 4/30. Submitted to Hartford + Liberty for parallel quotes.' },
+          { id: 'LA-304', date: '2026-05-10T15:00', author: 'Tom Reyes', type: 'email',  text: 'Hartford signaled $5M/$12M capacity, awaiting formal letter.' },
+        ],
+        convertedAccountId: null,
+      },
+      {
+        id: 'L-005', companyName: 'Coast Range Roofing', dba: '', contactName: 'Daniel Park', contactTitle: 'Owner',
+        email: 'dan@coastrangeroofing.example', phone: '(541) 555-0117', city: 'Newport', state: 'OR',
+        industry: 'Roofing Contractor', naics: '238160',
+        leadSource: 'Cold Outreach', referredBy: '',
+        bondTypes: ['License/Permit'],
+        estimatedAnnualPremium: 600, estimatedRevenue: 1100000, yearsInBusiness: 3,
+        stage: 'Lost / No Fit', probability: 0, status: 'lost',
+        owner: 'CV', producer: 'CV',
+        createdDate: '2026-03-20', lastTouch: '2026-04-18', nextFollowUp: null,
+        notes: 'Wanted CCB license bond but switched to a direct online carrier instead. Keep in touch for future.',
+        activity: [
+          { id: 'LA-401', date: '2026-03-20T10:00', author: 'Casey V.', type: 'call', text: 'Cold call — needs OR CCB license bond.' },
+          { id: 'LA-402', date: '2026-04-18T13:15', author: 'Daniel Park', type: 'email', text: 'Went with an online direct carrier. Closing lead.' },
+          { id: 'LA-403', date: '2026-04-18T13:20', author: 'Casey V.', type: 'note',  text: 'Marked Lost — keep in touch for any growth into commercial roofing later.' },
+        ],
+        convertedAccountId: null,
+      },
+      {
+        id: 'L-006', companyName: 'Pacific Probate Services', dba: '', contactName: 'Aisha Rahman', contactTitle: 'Trust Officer',
+        email: 'arahman@pacificprobate.example', phone: '(415) 555-0244', city: 'San Francisco', state: 'CA',
+        industry: 'Fiduciary / Trust Services', naics: '523991',
+        leadSource: 'Trade Show', referredBy: 'NASBP Annual Meeting',
+        bondTypes: ['Probate'],
+        estimatedAnnualPremium: 8500, estimatedRevenue: null, yearsInBusiness: 22,
+        stage: 'Approved', probability: 95, status: 'open',
+        owner: 'CV', producer: 'CV',
+        createdDate: '2026-04-29', lastTouch: '2026-05-11', nextFollowUp: '2026-05-18',
+        notes: 'Fiduciary firm needing ongoing probate / conservator bonds. NGM appointed. Ready to onboard once they sign the producer agreement.',
+        activity: [
+          { id: 'LA-501', date: '2026-04-29T16:00', author: 'Casey V.', type: 'meeting', text: 'Met at NASBP — Aisha needs a producer that can turn around probate bonds same-day.' },
+          { id: 'LA-502', date: '2026-05-02T10:00', author: 'Casey V.', type: 'email',   text: 'Sent agency overview, NGM brochure, sample probate forms.' },
+          { id: 'LA-503', date: '2026-05-08T11:30', author: 'Aisha Rahman', type: 'email', text: 'Approved internally. Reviewing producer agreement.' },
+          { id: 'LA-504', date: '2026-05-11T14:00', author: 'Casey V.', type: 'note',    text: 'Ready to convert to account once agreement is countersigned.' },
+        ],
+        convertedAccountId: null,
+      },
+    ],
     underwriting: [
       { id: 'UW-001', bondId: 'B-2407', step: 3, requirements: [
         { name: 'Financial statements (CPA)', status: 'received' },
@@ -313,6 +435,51 @@ window.DB = (() => {
       { id: 'E-7', folder: 'sent',  from: 'producers@vanderbeck-surety.example', to: 'mike@cascademech.com', subject: 'McKay HS HVAC — renewal check-in', preview: 'Hi Mike, checking in on the McKay HS HVAC bid bond — is the project still active?', date: '2026-05-10T10:15', accountId: 'A-1002', bondId: 'B-2403', read: true },
     ],
     emailTemplates: [
+      {
+        id: 'T-lead-intro',
+        name: 'Lead — Introduction & Agency Overview',
+        category: 'Lead',
+        subject: '{{agency_name}} — surety bonding partner',
+        body: `Hi {{contact_first}},
+
+Great connecting today. Following up on our conversation about your bonding needs at {{lead_company}}.
+
+A bit about {{agency_name}}: we're an independent surety producer agency appointed with Hartford, Liberty Mutual, Old Republic, Great American, Merchants Bonding, and NGM. That gives us the flexibility to place a wide range of contract, license, and probate bonds, and to shop the right market for your situation.
+
+Next steps, when you're ready:
+  1. Brief agency application (5 minutes)
+  2. Recent CPA-reviewed or audited financial statements
+  3. Current work-in-progress schedule
+  4. Personal financial statements for each indemnitor
+
+I'll take it from there and turn around a capacity letter for you within a few business days.
+
+Thanks,
+{{producer_name}}
+{{agency_name}} · {{agency_phone}}`,
+      },
+      {
+        id: 'T-lead-application',
+        name: 'Lead — Application & Indemnity Package Sent',
+        category: 'Lead',
+        subject: 'Application package for {{lead_company}}',
+        body: `Hi {{contact_first}},
+
+Sending over our agency application + indemnity package for your review. Highlights:
+
+  • Agency application
+  • General Indemnity Agreement (GIA)
+  • Personal Financial Statement form (one per indemnitor)
+  • Producer's authorization
+
+Once you've signed and returned, we'll send it to the surety for pre-qualification. Typical turnaround is 3–5 business days once they have a complete package.
+
+Happy to walk through anything on a quick call.
+
+Best,
+{{producer_name}}
+{{agency_name}}`,
+      },
       {
         id: 'T-renewal',
         name: 'Renewal Follow-up — Is the bond still needed?',
@@ -566,6 +733,12 @@ Thanks,
       'Submitted to Underwriter','Underwriter Review',
       'Approved – Pending Bid Results','Awarded - Ready to Issue',
     ]),
+    leads:      () => (state.leads = state.leads || []),
+    leadStages: () => (state.leadStages = state.leadStages || [
+      'New Lead','Contacted','Qualified','Application Sent',
+      'Submitted to Surety','Approved','Onboarded','Lost / No Fit',
+    ]),
+    findLead:   (id) => (state.leads || []).find(l => l.id === id),
     settings:       () => state.settings,
 
     findAccount: (id) => state.accounts.find(a => a.id === id),
