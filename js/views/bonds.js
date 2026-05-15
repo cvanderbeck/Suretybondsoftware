@@ -13,9 +13,9 @@ Views.bonds = {
             <option value="">All status</option>
             <option>Active</option><option>Pending UW</option><option>Expired</option><option>Cancelled</option>
           </select>
-          <select id="bf-type" class="field-select w-40" onchange="Views.bonds.filter()">
+          <select id="bf-type" class="field-select w-56" onchange="Views.bonds.filter()">
             <option value="">All types</option>
-            ${['Bid','Performance','Payment','License','Court','Probate'].map(t=>`<option>${t}</option>`).join('')}
+            ${BondTypes.TYPES.map(t=>`<option>${U.esc(t)}</option>`).join('')}
           </select>
           <input id="bf-q" placeholder="Search bonds…" class="field-input w-56" oninput="Views.bonds.filter()">
           <button class="btn-secondary" onclick="Views.bonds.exportAll()">Export PDF</button>
@@ -130,6 +130,8 @@ Views.bonds = {
         </div>
       </div>
 
+      ${this._typeSpecificCard(b)}
+
       <div class="card mb-4">
         <div class="card-header">
           <div class="card-title">Bond Tracking</div>
@@ -197,7 +199,9 @@ Views.bonds = {
       <div class="grid grid-cols-2 gap-4">
         <div><div class="field-label">Bond Number</div><input id="bf-num" class="field-input" value="${U.esc(b.number||('SF-'+new Date().getFullYear()+'-'+String(DB.bonds().length+200).padStart(5,'0')))}"></div>
         <div><div class="field-label">Type</div>
-          <select id="bf-type" class="field-select">${['Bid','Performance','Payment','License','Court','Probate','Customs'].map(t=>`<option ${t===b.type?'selected':''}>${t}</option>`).join('')}</select></div>
+          <select id="bf-type" class="field-select" onchange="Views.bonds._reRenderTypeFields()">
+            ${BondTypes.TYPES.map(t=>`<option ${t===BondTypes.normalize(b.type)?'selected':''}>${U.esc(t)}</option>`).join('')}
+          </select></div>
         <div><div class="field-label">Principal (Account)</div>
           <select id="bf-acct" class="field-select">${accts.map(a=>`<option value="${a.id}" ${a.id===b.accountId?'selected':''}>${U.esc(a.name)}</option>`).join('')}</select></div>
         <div><div class="field-label">Surety Partner</div>
@@ -217,6 +221,13 @@ Views.bonds = {
       </div>
 
       <div class="divider"></div>
+      <div class="flex items-center justify-between mb-2">
+        <div class="text-xs font-semibold text-ink-400 uppercase tracking-wider">${U.esc(BondTypes.normalize(b.type) || 'Bond')} — Type-Specific Details</div>
+        <span class="text-[11px] text-ink-300 italic">${U.esc(BondTypes.blurbFor(b.type) || '')}</span>
+      </div>
+      <div id="bf-typefields">${BondTypes.renderFields(BondTypes.normalize(b.type), b)}</div>
+
+      <div class="divider"></div>
       <div class="text-xs font-semibold text-slate-500 uppercase mb-2">Bond Tracking</div>
       <div class="grid grid-cols-3 gap-3">
         <div><div class="field-label">Reported to Bond Co.</div>
@@ -230,6 +241,51 @@ Views.bonds = {
     const footer = `<button class="btn-ghost" data-close>Cancel</button><button class="btn-primary" onclick="Views.bonds.save('${b.id}')">Save</button>`;
     const m = U.modal({ title: id ? 'Edit Bond' : 'New Bond', body, footer, size: 'lg' });
     m.el.querySelector('[data-close]').addEventListener('click', m.close);
+  },
+
+  _reRenderTypeFields() {
+    const newType = document.getElementById('bf-type').value;
+    const wrap = document.getElementById('bf-typefields');
+    if (wrap) wrap.innerHTML = BondTypes.renderFields(newType, { typeSpecific: {} });
+  },
+
+  _typeSpecificCard(b) {
+    const schema = BondTypes.schemaFor(b.type);
+    const ts = b.typeSpecific || {};
+    if (!schema) return '';
+    const filled = schema.fields.filter(f => {
+      const v = ts[f.key];
+      if (Array.isArray(v)) return v.length;
+      return v !== undefined && v !== null && v !== '';
+    });
+    if (!filled.length) return `
+      <div class="card mb-4">
+        <div class="card-header">
+          <div class="card-title">${U.esc(BondTypes.normalize(b.type))} Details</div>
+          <button class="btn-ghost" onclick="Views.bonds.openForm('${b.id}')">Add details</button>
+        </div>
+        <div class="p-4 text-sm text-ink-300">No type-specific details yet. Click <b>Edit</b> to fill in fields specific to ${U.esc(BondTypes.normalize(b.type))} bonds.</div>
+      </div>`;
+
+    return `
+      <div class="card mb-4">
+        <div class="card-header">
+          <div class="card-title">${U.esc(BondTypes.normalize(b.type))} Details</div>
+          <span class="text-xs text-ink-300 italic">${U.esc(BondTypes.blurbFor(b.type))}</span>
+        </div>
+        <div class="p-4 grid grid-cols-3 gap-3 text-sm">
+          ${filled.map(f => {
+            const v = ts[f.key];
+            let display = '';
+            if (f.type === 'checkbox') display = v ? 'Yes' : 'No';
+            else if (f.type === 'multiselect') display = (v||[]).join(', ');
+            else if (f.type === 'money') display = U.usd(+v);
+            else if (f.type === 'date') display = U.date(v);
+            else display = String(v);
+            return `<div><div class="field-label">${U.esc(f.label)}</div><div class="font-medium">${U.esc(display)}</div></div>`;
+          }).join('')}
+        </div>
+      </div>`;
   },
 
   recalc() {
@@ -362,6 +418,7 @@ Views.bonds = {
     b.reportedToBondCo = document.getElementById('bf-rep').value  || null;
     b.obligeeApproved  = document.getElementById('bf-app').value  || null;
     b.sentToPrincipal  = document.getElementById('bf-sent').value || null;
+    b.typeSpecific     = BondTypes.readFields(b.type);
     DB.save();
     U.closeModals();
     U.toast(isNew ? 'Bond created' : 'Bond updated');

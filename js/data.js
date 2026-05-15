@@ -1,6 +1,6 @@
 // ---------- Sample / seed data, persistence layer ----------
 window.DB = (() => {
-  const KEY = 'bondvault.db.v7';
+  const KEY = 'bondvault.db.v8';
 
   const sampleData = () => ({
     accounts: [
@@ -171,28 +171,37 @@ window.DB = (() => {
         history: history || [],
       });
       return [
-        { id: 'B-2401', number: 'SF-2024-00121', accountId: 'A-1001', partnerId: 'P-01', type: 'Performance', obligee: 'City of Portland - PBOT', project: 'SE Division St Repaving (Phase 2)', amount: 1250000, premium: 18750, rate: 1.5, commissionRate: 25, effective: days(-300), expires: days(65),  status: 'Active', qboInvoiceNumber: '1041',          reportedToBondCo: days(-301), obligeeApproved: days(-298), sentToPrincipal: days(-298),
+        { id: 'B-2401', number: 'SF-2024-00121', accountId: 'A-1001', partnerId: 'P-01', type: 'Payment & Performance', obligee: 'City of Portland - PBOT', project: 'SE Division St Repaving (Phase 2)', amount: 1250000, premium: 18750, rate: 1.5, commissionRate: 25, effective: days(-300), expires: days(65),  status: 'Active', qboInvoiceNumber: '1041', reportedToBondCo: days(-301), obligeeApproved: days(-298), sentToPrincipal: days(-298),
+          typeSpecific: { contractDate: days(-302), contractType: 'Unit Price', noticeToProceed: days(-298), projectStart: days(-298), projectEnd: days(50), liquidatedDamages: 500, retainagePercent: 5, performancePct: 100, paymentPct: 100, warrantyPeriodMonths: 12, taxIncluded: false },
           wip: wip(1250000, 82, 920000, 1010000, 198000, 11, days(-15), [
             { date: days(-180), percent: 35, costToDate: 391000, billedToDate: 425000, note: 'Spring base course complete; weather delays Phase 2A.' },
             { date: days(-90),  percent: 60, costToDate: 670000, billedToDate: 720000, note: 'Through milling and binder lift.' },
             { date: days(-15),  percent: 82, costToDate: 920000, billedToDate: 1010000, note: 'Striping & punch list remaining.' },
           ]) },
-        { id: 'B-2402', number: 'SF-2024-00122', accountId: 'A-1001', partnerId: 'P-01', type: 'Payment',     obligee: 'City of Portland - PBOT', project: 'SE Division St Repaving (Phase 2)', amount: 1250000, premium: 0,     rate: 0,   commissionRate: 0,  effective: days(-300), expires: days(65),  status: 'Active', qboInvoiceNumber: '',              reportedToBondCo: days(-301), obligeeApproved: days(-298), sentToPrincipal: days(-298) },
-        { id: 'B-2403', number: 'SF-2024-00130', accountId: 'A-1002', partnerId: 'P-02', type: 'Bid',         obligee: 'Salem-Keizer School District', project: 'McKay HS HVAC Replacement',     amount: 480000,  premium: 0,     rate: 0,   commissionRate: 0,  effective: days(-30),  expires: days(28),  status: 'Active', qboInvoiceNumber: '',              reportedToBondCo: days(-31),  obligeeApproved: days(-28),  sentToPrincipal: days(-28) },
-        { id: 'B-2404', number: 'SF-2024-00141', accountId: 'A-1003', partnerId: 'P-03', type: 'License',     obligee: 'FMCSA',                  project: 'BMC-84 Broker Authority',          amount: 75000,   premium: 1875,  rate: 2.5, commissionRate: 30, effective: days(-120), expires: days(245), status: 'Active', qboInvoiceNumber: '1042',          reportedToBondCo: days(-121), obligeeApproved: days(-118), sentToPrincipal: days(-118) },
-        { id: 'B-2405', number: 'SF-2024-00150', accountId: 'A-1005', partnerId: 'P-04', type: 'License',     obligee: 'Oregon DMV',             project: 'MV Dealer Bond',                   amount: 50000,   premium: 350,   rate: 0.7, commissionRate: 30, effective: days(-330), expires: days(35),  status: 'Active', qboInvoiceNumber: '1043',          reportedToBondCo: days(-331), obligeeApproved: days(-328), sentToPrincipal: days(-328) },
-        { id: 'B-2406', number: 'SF-2024-00155', accountId: 'A-1006', partnerId: 'P-05', type: 'License',     obligee: 'Idaho SOS',              project: 'Notary Bond',                      amount: 10000,   premium: 50,    rate: 0.5, commissionRate: 35, effective: days(-90),  expires: days(1370),status: 'Active', qboInvoiceNumber: '1044',          reportedToBondCo: days(-91),  obligeeApproved: days(-88),  sentToPrincipal: days(-88) },
-        { id: 'B-2407', number: 'SF-2024-00170', accountId: 'A-1004', partnerId: 'P-02', type: 'Performance', obligee: 'Port of Seattle',        project: 'Pier 66 Dredging Maintenance',     amount: 875000,  premium: 14000, rate: 1.6, commissionRate: 25, effective: days(-13),  expires: days(50),  status: 'Active', qboInvoiceNumber: '',              reportedToBondCo: days(-14),  obligeeApproved: null,         sentToPrincipal: null,
+        { id: 'B-2403', number: 'SF-2024-00130', accountId: 'A-1002', partnerId: 'P-02', type: 'Bid', obligee: 'Salem-Keizer School District', project: 'McKay HS HVAC Replacement', amount: 48000, premium: 0, rate: 0, commissionRate: 0, effective: days(-30), expires: days(28), status: 'Active', qboInvoiceNumber: '', reportedToBondCo: days(-31), obligeeApproved: days(-28), sentToPrincipal: days(-28),
+          typeSpecific: { bidOpenDate: days(15), bidPercent: '10%', estimatedContractValue: 480000, preBidConference: days(-7), prequalRequired: true, plansLocation: 'BidNet — listing #SKSD-2026-014', engineerEstimate: 465000, fundingSource: 'Public — Local' } },
+        { id: 'B-2404', number: 'SF-2024-00141', accountId: 'A-1003', partnerId: 'P-03', type: 'License/Permit', obligee: 'FMCSA', project: 'BMC-84 Broker Authority', amount: 75000, premium: 1875, rate: 2.5, commissionRate: 30, effective: days(-120), expires: days(245), status: 'Active', qboInvoiceNumber: '1042', reportedToBondCo: days(-121), obligeeApproved: days(-118), sentToPrincipal: days(-118),
+          typeSpecific: { licenseType: 'Freight Broker (BMC-84)', licenseNumber: 'MC-887412', issuingAuthority: 'Federal Motor Carrier Safety Administration', statutoryAmount: 75000, renewalTerm: 'Annual', classification: 'Property Broker', continuousObligation: true } },
+        { id: 'B-2405', number: 'SF-2024-00150', accountId: 'A-1005', partnerId: 'P-04', type: 'License/Permit', obligee: 'Oregon DMV', project: 'MV Dealer Bond', amount: 50000, premium: 350, rate: 0.7, commissionRate: 30, effective: days(-330), expires: days(35), status: 'Active', qboInvoiceNumber: '1043', reportedToBondCo: days(-331), obligeeApproved: days(-328), sentToPrincipal: days(-328),
+          typeSpecific: { licenseType: 'Auto Dealer', licenseNumber: 'OR-DLR-449221', issuingAuthority: 'Oregon Driver & Motor Vehicle Services', statutoryAmount: 50000, renewalTerm: 'Annual', classification: 'New & Used Vehicles', continuousObligation: false } },
+        { id: 'B-2406', number: 'SF-2024-00155', accountId: 'A-1006', partnerId: 'P-05', type: 'License/Permit', obligee: 'Idaho SOS', project: 'Notary Bond', amount: 10000, premium: 50, rate: 0.5, commissionRate: 35, effective: days(-90), expires: days(1370), status: 'Active', qboInvoiceNumber: '1044', reportedToBondCo: days(-91), obligeeApproved: days(-88), sentToPrincipal: days(-88),
+          typeSpecific: { licenseType: 'Notary Public', licenseNumber: 'ID-NP-228144', issuingAuthority: 'Idaho Secretary of State', statutoryAmount: 10000, renewalTerm: '4-Year', classification: '', continuousObligation: false } },
+        { id: 'B-2407', number: 'SF-2024-00170', accountId: 'A-1004', partnerId: 'P-02', type: 'Payment & Performance', obligee: 'Port of Seattle', project: 'Pier 66 Dredging Maintenance', amount: 875000, premium: 14000, rate: 1.6, commissionRate: 25, effective: days(-13), expires: days(50), status: 'Active', qboInvoiceNumber: '', reportedToBondCo: days(-14), obligeeApproved: null, sentToPrincipal: null,
+          typeSpecific: { contractDate: days(-15), contractType: 'Lump Sum', noticeToProceed: days(-10), projectStart: days(-7), projectEnd: days(50), liquidatedDamages: 1200, retainagePercent: 10, performancePct: 100, paymentPct: 100, warrantyPeriodMonths: 24, taxIncluded: false },
           wip: wip(875000, 8, 68000, 740000, 67000, 8, days(-2), [
             { date: days(-2),   percent: 8,  costToDate: 68000, billedToDate: 50000, note: 'Mobilization + survey complete; first dredge cycle next week.' },
           ]) },
-        { id: 'B-2408', number: 'SF-2024-00171', accountId: 'A-1007', partnerId: 'P-03', type: 'License',     obligee: 'CA CSLB',                project: 'Contractor License Bond',          amount: 25000,   premium: 250,   rate: 1.0, commissionRate: 30, effective: days(-42),  expires: days(82),  status: 'Active', qboInvoiceNumber: '1045',          reportedToBondCo: days(-43),  obligeeApproved: days(-40),  sentToPrincipal: days(-40) },
-        { id: 'B-2409', number: 'SF-2024-00180', accountId: 'A-1001', partnerId: 'P-06', type: 'Performance', obligee: 'Multnomah County',       project: 'Library Renovation',               amount: 620000,  premium: 9300,  rate: 1.5, commissionRate: 25, effective: days(-280), expires: days(85),  status: 'Active', qboInvoiceNumber: '1046',          reportedToBondCo: days(-281), obligeeApproved: days(-278), sentToPrincipal: days(-278),
+        { id: 'B-2408', number: 'SF-2024-00171', accountId: 'A-1007', partnerId: 'P-03', type: 'License/Permit', obligee: 'CA CSLB', project: 'Contractor License Bond', amount: 25000, premium: 250, rate: 1.0, commissionRate: 30, effective: days(-42), expires: days(82), status: 'Active', qboInvoiceNumber: '1045', reportedToBondCo: days(-43), obligeeApproved: days(-40), sentToPrincipal: days(-40),
+          typeSpecific: { licenseType: 'Contractor License', licenseNumber: 'CSLB-1099442', issuingAuthority: 'California Contractors State License Board', statutoryAmount: 25000, renewalTerm: 'Biennial', classification: 'C-10 Electrical', continuousObligation: false } },
+        { id: 'B-2409', number: 'SF-2024-00180', accountId: 'A-1001', partnerId: 'P-06', type: 'Subdivision/Site Improvement', obligee: 'Multnomah County', project: 'Library Renovation — Site Improvements', amount: 620000, premium: 9300, rate: 1.5, commissionRate: 25, effective: days(-280), expires: days(85), status: 'Active', qboInvoiceNumber: '1046', reportedToBondCo: days(-281), obligeeApproved: days(-278), sentToPrincipal: days(-278),
+          typeSpecific: { subdivisionName: 'Library Plaza Site Work', jurisdiction: 'Multnomah County', lotCount: null, engineersEstimate: 590000, improvements: ['Water','Sanitary Sewer','Storm Drainage','Streets & Paving','Curbs & Sidewalks','Landscaping'], maintenancePeriodMonths: 24, completionDeadline: days(40), phaseNumber: 'Phase 1', releaseConditions: 'Release issued on County engineer acceptance plus 2-year maintenance period.' },
           wip: wip(620000, 95, 538000, 590000, 28000, 9, days(-7), [
-            { date: days(-90),  percent: 55, costToDate: 312000, billedToDate: 340000, note: 'Drywall and MEP rough-in complete.' },
-            { date: days(-30),  percent: 78, costToDate: 442000, billedToDate: 488000, note: 'Finishes underway.' },
+            { date: days(-90),  percent: 55, costToDate: 312000, billedToDate: 340000, note: 'Wet utilities and storm complete.' },
+            { date: days(-30),  percent: 78, costToDate: 442000, billedToDate: 488000, note: 'Curbs and base paving complete.' },
             { date: days(-7),   percent: 95, costToDate: 538000, billedToDate: 590000, note: 'Punch list and final inspections only.' },
           ]) },
+        { id: 'B-2410', number: 'SF-2026-00211', accountId: 'A-1006', partnerId: 'P-05', type: 'Probate', obligee: 'Ada County Probate Court', project: 'Estate of M. Choi', amount: 250000, premium: 1250, rate: 0.5, commissionRate: 30, effective: days(-30), expires: days(335), status: 'Active', qboInvoiceNumber: '1047', reportedToBondCo: days(-31), obligeeApproved: days(-28), sentToPrincipal: days(-28),
+          typeSpecific: { courtName: 'Ada County Probate Court', caseNumber: 'CV01-26-00882', estateName: 'Estate of Margaret Choi', fiduciaryType: 'Personal Representative', judge: 'Hon. R. Whitfield', courtOrderDate: days(-32), probateCodeSection: 'Idaho Code § 15-3-604', estateValue: 880000 } },
       ];
     })(),
     partners: [
@@ -213,38 +222,49 @@ window.DB = (() => {
       'Awarded - Ready to Issue',
     ],
     pipeline: [
-      { id: 'PL-001', stage: 'Request Received',              accountId: 'A-1001', bondType: 'Performance', amount: 2500000, obligee: 'ODOT',                  dueDate: '2026-06-10', notes: 'Hwy 26 widening — RFP just dropped',                producer: 'CV', probability: 20, bidResult: 'pending',
+      { id: 'PL-001', stage: 'Request Received',              accountId: 'A-1001', bondType: 'Payment & Performance', amount: 2500000, obligee: 'ODOT',                  dueDate: '2026-06-10', notes: 'Hwy 26 widening — RFP just dropped',                producer: 'CV', probability: 20, bidResult: 'pending',
+        typeSpecific: { contractType: 'Unit Price', liquidatedDamages: 750, retainagePercent: 5, performancePct: 100, paymentPct: 100 },
         activity: [
           { id: 'AC-001', date: '2026-05-10T11:02', author: 'Janet Pierce', type: 'email',    subject: 'New bid opportunity — ODOT Hwy 26', text: 'Inbound — Janet wants to bid Hwy 26 widening, est. $2.5M.' },
         ] },
-      { id: 'PL-002', stage: 'Pre-Qualification',             accountId: 'A-1002', bondType: 'Performance', amount: 800000,  obligee: 'Marion County',         dueDate: '2026-05-22', notes: 'Pulling financials and WIP for pre-qual',           producer: 'CV', probability: 40, bidResult: 'pending',
+      { id: 'PL-002', stage: 'Pre-Qualification',             accountId: 'A-1002', bondType: 'Payment & Performance', amount: 800000,  obligee: 'Marion County',         dueDate: '2026-05-22', notes: 'Pulling financials and WIP for pre-qual',           producer: 'CV', probability: 40, bidResult: 'pending',
+        typeSpecific: { contractType: 'Lump Sum', liquidatedDamages: 500, retainagePercent: 5, performancePct: 100, paymentPct: 100 },
         activity: [
           { id: 'AC-002', date: '2026-05-09T09:10', author: 'Casey V.', type: 'note', text: 'Requested updated WIP from Cascade for pre-qual.' },
         ] },
-      { id: 'PL-003', stage: 'Submission in Progress',        accountId: 'A-1004', bondType: 'Performance', amount: 875000,  obligee: 'Port of Seattle',       dueDate: '2026-05-20', notes: 'Building Liberty Mutual submission package',        producer: 'CV', probability: 55, bidResult: 'pending' },
-      { id: 'PL-004', stage: 'Submitted to Underwriter',      accountId: 'A-1002', bondType: 'Bid',         amount: 480000,  obligee: 'Salem-Keizer SD',       dueDate: '2026-05-15', notes: 'Sent to Liberty UW 5/12 — awaiting acknowledgement', producer: 'CV', probability: 60, bidResult: 'pending',
+      { id: 'PL-003', stage: 'Submission in Progress',        accountId: 'A-1004', bondType: 'Payment & Performance', amount: 875000,  obligee: 'Port of Seattle',       dueDate: '2026-05-20', notes: 'Building Liberty Mutual submission package',        producer: 'CV', probability: 55, bidResult: 'pending',
+        typeSpecific: { contractType: 'Lump Sum', performancePct: 100, paymentPct: 100, warrantyPeriodMonths: 24 } },
+      { id: 'PL-004', stage: 'Submitted to Underwriter',      accountId: 'A-1002', bondType: 'Bid',                   amount: 48000,   obligee: 'Salem-Keizer SD',       dueDate: '2026-05-15', notes: 'Sent to Liberty UW 5/12 — awaiting acknowledgement', producer: 'CV', probability: 60, bidResult: 'pending',
+        typeSpecific: { bidOpenDate: '2026-05-15', bidPercent: '10%', estimatedContractValue: 480000, fundingSource: 'Public — Local' },
         activity: [
           { id: 'AC-003', date: '2026-05-12T14:30', author: 'Casey V.', type: 'email', subject: 'McKay HS HVAC — submission', text: 'Sent submission package to Liberty Mutual UW.' },
         ] },
-      { id: 'PL-005', stage: 'Underwriter Review',            accountId: 'A-1007', bondType: 'Bid',         amount: 320000,  obligee: 'BART',                  dueDate: '2026-05-28', notes: 'Old Republic UW reviewing — additional questions',   producer: 'CV', probability: 65, bidResult: 'pending' },
-      { id: 'PL-006', stage: 'Approved – Pending Bid Results',accountId: 'A-1001', bondType: 'Bid',         amount: 1250000, obligee: 'City of Portland',      dueDate: '2026-05-29', notes: 'Approved by Hartford — bid opens 5/29 @ 2pm',         producer: 'CV', probability: 75, bidResult: 'pending' },
-      { id: 'PL-007', stage: 'Awarded - Ready to Issue',      accountId: 'A-1004', bondType: 'Performance', amount: 875000,  obligee: 'Port of Seattle',       dueDate: '2026-05-20', notes: 'Awarded — convert to bond and issue',                producer: 'CV', probability: 100, bidResult: 'awarded',
+      { id: 'PL-005', stage: 'Underwriter Review',            accountId: 'A-1007', bondType: 'Bid',                   amount: 32000,   obligee: 'BART',                  dueDate: '2026-05-28', notes: 'Old Republic UW reviewing — additional questions',   producer: 'CV', probability: 65, bidResult: 'pending',
+        typeSpecific: { bidOpenDate: '2026-05-28', bidPercent: '10%', estimatedContractValue: 320000, fundingSource: 'Public — Local' } },
+      { id: 'PL-006', stage: 'Approved – Pending Bid Results',accountId: 'A-1001', bondType: 'Bid',                   amount: 125000,  obligee: 'City of Portland',      dueDate: '2026-05-29', notes: 'Approved by Hartford — bid opens 5/29 @ 2pm',         producer: 'CV', probability: 75, bidResult: 'pending',
+        typeSpecific: { bidOpenDate: '2026-05-29', bidPercent: '10%', estimatedContractValue: 1250000, fundingSource: 'Public — Local' } },
+      { id: 'PL-007', stage: 'Awarded - Ready to Issue',      accountId: 'A-1004', bondType: 'Payment & Performance', amount: 875000,  obligee: 'Port of Seattle',       dueDate: '2026-05-20', notes: 'Awarded — convert to bond and issue',                producer: 'CV', probability: 100, bidResult: 'awarded',
         bidDate: '2026-05-20', bidOurAmount: 1748500, bidWinningAmount: 1748500, bidPlace: '1st of 3', bidWinner: 'BlueWater Marine Svcs',
+        typeSpecific: { contractType: 'Lump Sum', performancePct: 100, paymentPct: 100, warrantyPeriodMonths: 24 },
         activity: [
           { id: 'AC-004', date: '2026-05-20T15:30', author: 'Casey V.', type: 'bid_result', subject: 'Result: Awarded — we won', text: 'Port of Seattle confirmed award. Notice to proceed issued.' },
         ] },
-      { id: 'PL-008', stage: 'Approved – Pending Bid Results',accountId: 'A-1007', bondType: 'Bid',         amount: 420000,  obligee: 'Sacramento Regional Transit', dueDate: '2026-05-08', notes: 'Bid opened — we were 2nd lowest',           producer: 'CV', probability: 0,   bidResult: 'not_low',
+      { id: 'PL-008', stage: 'Approved – Pending Bid Results',accountId: 'A-1007', bondType: 'Bid',                   amount: 42000,   obligee: 'Sacramento Regional Transit', dueDate: '2026-05-08', notes: 'Bid opened — we were 2nd lowest',           producer: 'CV', probability: 0,   bidResult: 'not_low',
         bidDate: '2026-05-08', bidOurAmount: 418900, bidWinningAmount: 392450, bidPlace: '2nd of 4', bidWinner: 'Bayside Electric LLC', bidResultNotes: 'Lost on price by ~6.7%. Diane wants to debrief and target a similar RFP next quarter.',
+        typeSpecific: { bidOpenDate: '2026-05-08', bidPercent: '10%', estimatedContractValue: 420000, fundingSource: 'Public — Local' },
         activity: [
           { id: 'AC-005', date: '2026-05-08T16:00', author: 'Casey V.', type: 'bid_result', subject: 'Result: Not Low — lost on price', text: 'Bayside Electric was low at $392,450. We were 2nd of 4.' },
           { id: 'AC-006', date: '2026-05-09T08:14', author: 'Casey V.', type: 'call', text: 'Called Diane to debrief — interested in next AC Transit electrical RFP.' },
         ] },
-      { id: 'PL-009', stage: 'Pre-Qualification',             accountId: 'A-1003', bondType: 'Bid',         amount: 250000,  obligee: 'Port of Vancouver',     dueDate: '2026-05-13', notes: 'Principal pulled out — equipment shortage',         producer: 'CV', probability: 0,   bidResult: 'no_bid',
+      { id: 'PL-009', stage: 'Pre-Qualification',             accountId: 'A-1003', bondType: 'Bid',                   amount: 25000,   obligee: 'Port of Vancouver',     dueDate: '2026-05-13', notes: 'Principal pulled out — equipment shortage',         producer: 'CV', probability: 0,   bidResult: 'no_bid',
         bidDate: '2026-05-13', bidResultNotes: 'Sarah decided not to bid — short on rolling stock for the schedule. Will revisit if timeline slips.',
+        typeSpecific: { bidOpenDate: '2026-05-13', bidPercent: '10%', estimatedContractValue: 250000, fundingSource: 'Public — Local' },
         activity: [
           { id: 'AC-007', date: '2026-05-13T11:20', author: 'Sarah Lin', type: 'email',  subject: 'Pulling out of Port of Vancouver bid', text: 'Confirmed by phone — Sarah decided not to bid this round.' },
           { id: 'AC-008', date: '2026-05-13T11:35', author: 'Casey V.',  type: 'bid_result', subject: 'Result: Principal Did Not Bid', text: 'Logged as no-bid. Marking opp closed.' },
         ] },
+      { id: 'PL-010', stage: 'Pre-Qualification',             accountId: 'A-1006', bondType: 'Probate',               amount: 180000,  obligee: 'Canyon County Probate Court', dueDate: '2026-06-01', notes: 'Conservatorship request — estate ~$650K',     producer: 'CV', probability: 50, bidResult: 'pending',
+        typeSpecific: { courtName: 'Canyon County Probate Court', fiduciaryType: 'Conservator', estateValue: 650000 } },
     ],
     underwriting: [
       { id: 'UW-001', bondId: 'B-2407', step: 3, requirements: [

@@ -72,8 +72,9 @@ Views.pipeline = {
           <div class="text-sm font-semibold text-slate-800 truncate">${U.esc(a.name || '—')}</div>
           <span class="text-xs ${probColor} font-medium">${it.probability}%</span>
         </div>
-        <div class="text-xs text-slate-600 mb-2">${U.esc(it.bondType)} · ${U.usd(it.amount)}</div>
+        <div class="text-xs text-slate-600 mb-1">${U.esc(BondTypes.normalize(it.bondType))} · ${U.usd(it.amount)}</div>
         <div class="text-xs text-slate-500 truncate">${U.esc(it.obligee||'')}</div>
+        ${(() => { const s = BondTypes.fieldSummary(it.bondType, it); return s ? `<div class="text-[11px] text-ink-300 truncate mt-1">${U.esc(s)}</div>` : ''; })()}
         ${resultBadge ? `<div class="mt-2">${resultBadge}</div>` : ''}
         <div class="flex items-center justify-between mt-2">
           <div class="text-xs text-slate-400 flex items-center gap-2">
@@ -135,8 +136,8 @@ Views.pipeline = {
           <div><div class="field-label">Producer</div>
             <input id="pl-prod" class="field-input" value="${U.esc(it.producer||'')}"></div>
           <div><div class="field-label">Bond Type</div>
-            <select id="pl-type" class="field-select">
-              ${['Bid','Performance','Payment','License','Court','Probate','Customs'].map(t => `<option ${t===it.bondType?'selected':''}>${t}</option>`).join('')}
+            <select id="pl-type" class="field-select" onchange="Views.pipeline._reRenderTypeFields()">
+              ${BondTypes.TYPES.map(t => `<option ${t===BondTypes.normalize(it.bondType)?'selected':''}>${U.esc(t)}</option>`).join('')}
             </select></div>
           <div><div class="field-label">Amount</div>
             <input id="pl-amt" type="number" class="field-input" value="${it.amount||0}"></div>
@@ -155,6 +156,16 @@ Views.pipeline = {
           </div>
           <div class="col-span-2"><div class="field-label">Notes</div>
             <textarea class="field-textarea" id="pl-notes" rows="2">${U.esc(it.notes||'')}</textarea></div>
+        </div>
+      </div>
+
+      <div class="card mb-4">
+        <div class="card-header">
+          <div class="card-title">${U.esc(BondTypes.normalize(it.bondType) || 'Bond')} — Type-Specific Details</div>
+          <span class="text-xs text-ink-300 italic">${U.esc(BondTypes.blurbFor(it.bondType) || '')}</span>
+        </div>
+        <div class="p-4">
+          <div id="pl-typefields">${BondTypes.renderFields(BondTypes.normalize(it.bondType), it)}</div>
         </div>
       </div>
 
@@ -238,6 +249,12 @@ Views.pipeline = {
       </div>`;
   },
 
+  _reRenderTypeFields() {
+    const newType = document.getElementById('pl-type').value;
+    const wrap = document.getElementById('pl-typefields');
+    if (wrap) wrap.innerHTML = BondTypes.renderFields(newType, { typeSpecific: {} });
+  },
+
   _onResultChange() {
     const sel = document.getElementById('pl-result');
     if (!sel) return;
@@ -278,6 +295,7 @@ Views.pipeline = {
     it.producer  = document.getElementById('pl-prod').value;
     it.probability = +document.getElementById('pl-prob').value;
     it.notes     = document.getElementById('pl-notes').value;
+    it.typeSpecific = BondTypes.readFields(it.bondType);
 
     // Bid result fields
     const newResult = document.getElementById('pl-result').value;
@@ -340,7 +358,7 @@ Views.pipeline = {
         <div><div class="field-label">Bond Number</div>
           <input id="cv-num" class="field-input" value="${proposedNumber}"></div>
         <div><div class="field-label">Bond Type</div>
-          <select id="cv-type" class="field-select">${['Bid','Performance','Payment','License','Court','Probate','Customs'].map(t=>`<option ${t===it.bondType?'selected':''}>${t}</option>`).join('')}</select></div>
+          <select id="cv-type" class="field-select">${BondTypes.TYPES.map(t=>`<option ${t===BondTypes.normalize(it.bondType)?'selected':''}>${U.esc(t)}</option>`).join('')}</select></div>
 
         <div class="col-span-2"><div class="field-label">Principal</div>
           <input class="field-input bg-slate-50" value="${U.esc(a.name||'')}" disabled></div>
@@ -421,6 +439,8 @@ Views.pipeline = {
       reportedToBondCo: document.getElementById('cv-rep').value || null,
       obligeeApproved:  document.getElementById('cv-app').value || null,
       sentToPrincipal:  document.getElementById('cv-sent').value || null,
+      // Carry the opportunity's type-specific details into the new bond
+      typeSpecific: it.typeSpecific ? JSON.parse(JSON.stringify(it.typeSpecific)) : {},
     };
     DB.bonds().push(newBond);
     it.stage = 'Awarded - Ready to Issue';
@@ -540,7 +560,7 @@ Views.pipeline = {
         <div><div class="field-label">Account</div>
           <select id="op-acct" class="field-select">${accts.map(a => `<option value="${a.id}">${U.esc(a.name)}</option>`).join('')}</select></div>
         <div><div class="field-label">Bond Type</div>
-          <select id="op-type" class="field-select">${['Bid','Performance','Payment','License','Court','Probate','Customs'].map(t=>`<option>${t}</option>`).join('')}</select></div>
+          <select id="op-type" class="field-select">${BondTypes.TYPES.map(t=>`<option>${U.esc(t)}</option>`).join('')}</select></div>
         <div><div class="field-label">Amount</div><input id="op-amt" type="number" class="field-input" placeholder="500000"></div>
         <div><div class="field-label">Obligee</div><input id="op-ob" class="field-input"></div>
         <div><div class="field-label">Due / Bid Date</div><input id="op-due" type="date" class="field-input"></div>

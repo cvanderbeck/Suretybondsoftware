@@ -9,8 +9,13 @@
 
 window.WIP = (() => {
 
-  // Bond types where WIP tracking is meaningful (contract bonds).
-  const APPLICABLE = ['Performance', 'Payment', 'Customs'];
+  // Bond types where WIP tracking is meaningful (contract / improvement bonds).
+  const APPLICABLE = [
+    'Payment & Performance',
+    'Subdivision/Site Improvement',
+    // Legacy aliases still in older saved data:
+    'Performance', 'Payment', 'Customs',
+  ];
 
   function applicable(bond) {
     return APPLICABLE.includes(bond.type);
