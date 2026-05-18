@@ -1,6 +1,6 @@
 // ---------- Sample / seed data, persistence layer ----------
 window.DB = (() => {
-  const KEY = 'bondvault.db.v12';
+  const KEY = 'bondvault.db.v13';
 
   const sampleData = () => ({
     accounts: [
@@ -486,6 +486,23 @@ Thanks,
 {{agency_name}} · {{agency_phone}}`,
       },
       {
+        id: 'T-bond-request',
+        name: 'Intake — Bond Request link',
+        category: 'Lead',
+        subject: 'Online Bond Request — {{lead_company}}',
+        body: `Hi {{contact_first}},
+
+Please use the link below to submit your bond request online. When you click Submit, it will create an opportunity on our end and we'll reach out the same day with next steps.
+
+  {{intake_link}}
+
+Tip: have your contract / bid documents and obligee details handy — it'll only take a few minutes.
+
+Thanks,
+{{producer_name}}
+{{agency_name}} · {{agency_phone}}`,
+      },
+      {
         id: 'T-intake-cq',
         name: 'Intake — Contractor Questionnaire link',
         category: 'Lead',
@@ -770,6 +787,85 @@ Thanks,
           ],
         },
       },
+
+      // Bond Request examples (4 new form types)
+      // Commercial BRF (License/Permit) — outbound, awaiting fill
+      { id: 'IF-1004', type: 'commercialBRF', token: 'commBRF-demo-apex', status: 'sent',
+        leadId: null, accountId: 'A-1005',
+        contactName: 'Marcus Reed', contactEmail: 'marcus@apexautos.com',
+        sentDate: '2026-05-13', submittedDate: null, importedDate: null, data: {} },
+
+      // Contract BRF — submitted (Bid bond, ready to import as opportunity)
+      { id: 'IF-1005', type: 'contractBRF', token: 'contractBRF-demo-cascade', status: 'submitted',
+        leadId: null, accountId: 'A-1002',
+        contactName: 'Mike Trillo', contactEmail: 'mike@cascademech.com',
+        sentDate: '2026-05-09', submittedDate: '2026-05-11', importedDate: null,
+        data: {
+          bondType: 'Bid', neededDate: '2026-05-22',
+          contractorFullName: 'Mike Trillo', contractorBusiness: 'Cascade Mechanical Co.',
+          stateOfIncorporation: 'OR', contractorAddress: '210 Industrial Way, Salem, OR',
+          obligee: 'Marion County',  obligeeAddress: '555 Court St NE, Salem, OR',
+          projectName: 'Marion Co Justice Center HVAC', scope: 'Replace four AHUs and DDC controls.',
+          startDate: '2026-07-01', completionTime: '90 days',
+          warrantyPeriod: '1 year', workOnHand: '$2.1M', penalties: '$500/day LD', retainage: '5%',
+          bidDate: '2026-05-22', bidTime: '2:00 PM',
+          estimatedBid: 800000, bidLocation: 'Marion County Procurement, Salem',
+          bidPercent: '10%',
+          contractDate: null, contractAmount: null,
+          paymentPct: 100, performancePct: 100, maintenancePct: null, maintenancePeriod: null,
+          deliveryMethod: 'Electronic',
+          deliveryAddress: '', deliveryEmail: 'mike@cascademech.com',
+        },
+      },
+
+      // Subdivision App — submitted, ready to import (new opportunity + Northridge match)
+      { id: 'IF-1006', type: 'subdivisionApp', token: 'subdiv-demo-northridge', status: 'submitted',
+        leadId: null, accountId: 'A-1001',
+        contactName: 'Janet Pierce', contactEmail: 'jpierce@northridgebuilders.com',
+        sentDate: '2026-05-05', submittedDate: '2026-05-12', importedDate: null,
+        data: {
+          businessType: 'LLC',
+          companyName: 'Northridge Builders LLC',
+          ein: '93-1245678', phone: '(503) 555-0142',
+          address: '742 NE Broadway', city: 'Portland', state: 'OR', zip: '97232',
+          email: 'jpierce@northridgebuilders.com',
+          yearStarted: '2012', yearsCurrentMgmt: '13', licenseNo: 'OR-CCB-201144',
+          primaryTrade: 'GC — Commercial Building Construction',
+          largestComplete: 'Hillside Estates Phase 1 — water/sewer/streets',
+          largestCompletePrice: 2900000, largestCompleteYear: '2024',
+          largestUnderway: 'SE Division St Repaving (Phase 2)',
+          largestUnderwayPrice: 1250000, largestUnderwayPercent: 82,
+          disclosures: { bankruptcy: false, litigation: false, liens: false, taxDelinquent: false, suretyLoss: false, openWithOther: false, lessThanThreeYears: false, bondedBefore: true },
+          creditAuth: true,
+          owners: [
+            { name: 'Janet Pierce', title: 'President', email: 'jpierce@northridgebuilders.com', address: '742 NE Broadway', cityStateZip: 'Portland, OR 97232', ssn: '***-**-1234', dob: '1972-04-18', pctOwned: 60, married: 'Yes', spouseName: 'David Pierce', spouseSsn: '***-**-5566', spouseEmail: 'david.p@example.com' },
+            { name: 'Tom Reilly',   title: 'CFO',       email: 'treilly@northridgebuilders.com', address: '900 NE Halsey', cityStateZip: 'Portland, OR 97232', ssn: '***-**-7711', dob: '1975-09-05', pctOwned: 40, married: 'No' },
+          ],
+          obligeeName: 'City of Sherwood', obligeeAddress: '22560 SW Pine St', obligeeCity: 'Sherwood', obligeeState: 'OR', obligeeZip: '97140',
+          projectType: 'Residential',
+          projectName: 'Stafford Ridge Subdivision — Phase 1',
+          projectAddress: '14500 SW Stafford Rd', projectCity: 'Sherwood', projectState: 'OR', projectZip: '97140',
+          titleHolder: 'Stafford Ridge Properties LLC', fundingLender: 'Columbia Bank',
+          financingType: 'Construction Loan',
+          totalCost: 1450000, fundsAvailable: 1450000,
+          startDateProject: '2026-08-15', completionDateProject: '2027-08-01', maintenanceYears: 2,
+          contractor: 'Northridge Builders LLC',
+          bondType: 'Performance Only', bondForm: 'City / Municipality Form',
+          bondLines: [
+            { description: 'Subdivision Performance Bond — Phase 1 Improvements', amount: 1450000, work: 'Water mains, sanitary sewer, storm drainage, streets & curbs, landscaping' },
+          ],
+          maintAmount: null, maintPeriodYears: null,
+          completedAccepted: false, requiredPerfBond: true,
+          attachments: { engineerEstimate: true, bondForms: true, financials: true, pfs: true, operatingAgreement: true },
+          comments: 'Pulling permits 6/15. Engineer estimate attached.',
+        },
+      },
+
+      // Bond Express — outbound, awaiting fill (Redwood Electrical)
+      { id: 'IF-1007', type: 'bondExpress', token: 'express-demo-redwood', status: 'sent',
+        leadId: null, accountId: 'A-1007',
+        contactName: 'Diane Park', contactEmail: 'diane@redwoodelectric.com',
+        sentDate: '2026-05-13', submittedDate: null, importedDate: null, data: {} },
     ],
     automationTemplates: [
       {

@@ -40,9 +40,13 @@ Views.intake = {
     }
 
     let body;
-    if (type === 'cq')  body = this._formCQ(state);
-    else if (type === 'pfs') body = this._formPFS(state);
-    else if (type === 'wip') body = this._formWIP(state);
+    if (type === 'cq')                  body = this._formCQ(state);
+    else if (type === 'pfs')            body = this._formPFS(state);
+    else if (type === 'wip')            body = this._formWIP(state);
+    else if (type === 'contractBRF')    body = this._formContractBRF(state);
+    else if (type === 'commercialBRF')  body = this._formCommercialBRF(state);
+    else if (type === 'subdivisionApp') body = this._formSubdivisionApp(state);
+    else if (type === 'bondExpress')    body = this._formBondExpress(state);
     else {
       body = `<div class="card p-8 max-w-xl mx-auto text-center text-ink-300">Unknown form type.</div>`;
     }
@@ -109,7 +113,15 @@ Views.intake = {
   },
 
   _typeLabel(t) {
-    return { cq: 'Contractor Questionnaire', pfs: 'Personal Financial Statement', wip: 'Work-in-Progress Schedule' }[t] || t;
+    return {
+      cq:             'Contractor Questionnaire',
+      pfs:            'Personal Financial Statement',
+      wip:            'Work-in-Progress Schedule',
+      contractBRF:    'Contract Bond Request',
+      commercialBRF:  'Commercial Bond Request',
+      subdivisionApp: 'Subdivision Bond Application',
+      bondExpress:    'Bond Express Application',
+    }[t] || t;
   },
 
   // ===========================================================
@@ -566,6 +578,484 @@ Views.intake = {
   },
 
   // ===========================================================
+  // CONTRACT BOND REQUEST FORM (Bid / Performance / Payment / Maintenance)
+  // ===========================================================
+  _formContractBRF(form) {
+    const d = form.data || {};
+    const tok = form.token || 'demo';
+    return `
+      <div class="card p-6 mb-6">
+        <div class="text-xs uppercase tracking-[0.18em] text-ink-300 mb-1 font-display">Bond Request</div>
+        <h1 class="text-2xl font-display font-semibold mb-1">Contract Bond Request</h1>
+        <p class="text-sm text-ink-400">Submit your bid bond, performance &amp; payment, or maintenance bond request. We'll create an opportunity in our pipeline and reach out the same day.</p>
+      </div>
+
+      ${this._sectionCard('Bond Type & Timing', `
+        <div><div class="field-label">Bond Type</div>
+          ${this._radioGroup('cb-type', ['Bid Bond','Performance Bond','Payment Bond','Maintenance Bond'], d.bondType)}
+        </div>
+        <div class="grid grid-cols-2 gap-3 mt-3">
+          ${this._fld('cb-needed-date','Date Needed', d.neededDate, 'date')}
+          ${this._fld('cb-needed-time','Time Needed', d.neededTime)}
+          <div class="col-span-2"><div class="field-label">Required Bond Form attached?</div>
+            ${this._yesNo('cb-form-attached', d.bondFormAttached)}
+          </div>
+        </div>
+      `)}
+
+      ${this._sectionCard('Contractor & Project', `
+        <div class="grid grid-cols-2 gap-3">
+          ${this._fld('cb-contractor',  'Contractor Full Name',     d.contractorFullName)}
+          ${this._fld('cb-business',    'Contractor Business Name', d.contractorBusiness)}
+          ${this._fld('cb-state-inc',   'State of Incorporation',   d.stateOfIncorporation)}
+          ${this._fld('cb-contractor-addr','Contractor Address',     d.contractorAddress, 'text')}
+          ${this._fld('cb-obligee',     'Obligee (Bond Payable To)', d.obligee)}
+          ${this._fld('cb-obligee-addr','Obligee Address',           d.obligeeAddress)}
+          ${this._fld('cb-project',     'Legal Project Name (incl. ID #s)', d.projectName, 'text', 'col-span-2')}
+          ${this._fld('cb-scope',       'Scope of Work',            d.scope, 'text', 'col-span-2')}
+          ${this._fld('cb-start',       'Estimated Start Date',     d.startDate, 'date')}
+          ${this._fld('cb-completion',  'Completion Time',          d.completionTime)}
+          ${this._fld('cb-warranty',    'Warranty Period',          d.warrantyPeriod)}
+          ${this._fld('cb-work-on-hand','Current Work on Hand',     d.workOnHand)}
+          ${this._fld('cb-penalties',   'Penalties / LDs',          d.penalties)}
+          ${this._fld('cb-retainage',   'Retainage',                d.retainage)}
+        </div>
+      `)}
+
+      ${this._sectionCard('Bid Bond Information (if bid bond)', `
+        <div class="grid grid-cols-2 gap-3">
+          ${this._fld('cb-bid-date',    'Bid Date',      d.bidDate, 'date')}
+          ${this._fld('cb-bid-time',    'Bid Time',      d.bidTime)}
+          ${this._fld('cb-est-bid',     'Estimated Bid', d.estimatedBid, 'money')}
+          ${this._fld('cb-bid-location','Bid Opening Location', d.bidLocation)}
+          ${this._fld('cb-bid-pct',     'Bid Bond % / $', d.bidPercent)}
+        </div>
+      `)}
+
+      ${this._sectionCard('Performance / Payment / Maintenance Info (if applicable)', `
+        <div class="grid grid-cols-2 gap-3">
+          ${this._fld('cb-contract-date',  'Contract Date',          d.contractDate, 'date')}
+          ${this._fld('cb-contract-amount','Contract Amount',        d.contractAmount, 'money')}
+          ${this._fld('cb-payment-pct',    'Payment Bond %',         d.paymentPct, 'number')}
+          ${this._fld('cb-performance-pct','Performance Bond %',     d.performancePct, 'number')}
+          ${this._fld('cb-maintenance-pct','Maintenance Bond %',     d.maintenancePct, 'number')}
+          ${this._fld('cb-maintenance-pd', 'Maintenance Period',     d.maintenancePeriod)}
+        </div>
+      `)}
+
+      ${this._sectionCard('Delivery Instructions', `
+        <div><div class="field-label">Delivery Method</div>
+          ${this._radioGroup('cb-delivery', ['Electronic','FedEx','USPS','Pick Up'], d.deliveryMethod)}
+        </div>
+        <div class="grid grid-cols-2 gap-3 mt-3">
+          ${this._fld('cb-delivery-addr', 'Delivery Address', d.deliveryAddress, 'text', 'col-span-2')}
+          ${this._fld('cb-delivery-email','Email (for e-signing)', d.deliveryEmail, 'email')}
+        </div>
+      `)}
+
+      <div class="flex items-center justify-between mt-6 px-2">
+        <button class="btn-secondary" onclick="Views.intake._saveDraft('${form.id || ''}', 'contractBRF')">Save Draft</button>
+        <button class="btn-primary" onclick="Views.intake._submit('${form.id || ''}', '${tok}', 'contractBRF')">Submit Bond Request</button>
+      </div>
+    `;
+  },
+
+  // ===========================================================
+  // COMMERCIAL BOND REQUEST FORM (License/Permit, Court, Public Official, Misc)
+  // ===========================================================
+  _formCommercialBRF(form) {
+    const d = form.data || {};
+    const tok = form.token || 'demo';
+    return `
+      <div class="card p-6 mb-6">
+        <div class="text-xs uppercase tracking-[0.18em] text-ink-300 mb-1 font-display">Bond Request</div>
+        <h1 class="text-2xl font-display font-semibold mb-1">Commercial Bond Request</h1>
+        <p class="text-sm text-ink-400">For license & permit, court, public official, or miscellaneous commercial bonds.</p>
+      </div>
+
+      ${this._sectionCard('Business Information', `
+        <div class="grid grid-cols-2 gap-3">
+          ${this._fld('mb-requested', 'Requested By',  d.requestedBy)}
+          ${this._fld('mb-date',      'Date',          d.date || new Date().toISOString().slice(0,10), 'date')}
+          ${this._fld('mb-biz-addr',  'Business Address', d.businessAddress, 'text', 'col-span-2')}
+          ${this._fld('mb-phone',     'Phone',         d.phone)}
+          ${this._fld('mb-fax',       'Fax',           d.fax)}
+          ${this._fld('mb-email',     'Contact Email', d.contactEmail, 'email', 'col-span-2')}
+        </div>
+      `)}
+
+      ${this._sectionCard('Principal Information (as it should appear on bond)', `
+        <div class="grid grid-cols-2 gap-3">
+          ${this._fld('mb-prin-name', 'Name',  d.principalName, 'text', 'col-span-2')}
+          ${this._fld('mb-prin-addr', 'Address', d.principalAddress, 'text', 'col-span-2')}
+          ${this._fld('mb-prin-city', 'City',  d.principalCity)}
+          ${this._fld('mb-prin-state','State', d.principalState)}
+          ${this._fld('mb-prin-zip',  'Zip',   d.principalZip)}
+          ${this._fld('mb-prin-phone','Phone', d.principalPhone)}
+        </div>
+      `)}
+
+      ${this._sectionCard('Obligee (Party Requiring the Bond)', `
+        <div class="grid grid-cols-2 gap-3">
+          ${this._fld('mb-obl-name', 'Name',   d.obligeeName, 'text', 'col-span-2')}
+          ${this._fld('mb-obl-addr', 'Address', d.obligeeAddress, 'text', 'col-span-2')}
+          ${this._fld('mb-obl-city', 'City',   d.obligeeCity)}
+          ${this._fld('mb-obl-state','State',  d.obligeeState)}
+          ${this._fld('mb-obl-zip',  'Zip',    d.obligeeZip)}
+          ${this._fld('mb-obl-phone','Phone',  d.obligeePhone)}
+        </div>
+      `)}
+
+      ${this._sectionCard('Bond Details', `
+        <div><div class="field-label">Bond Form Category</div>
+          ${this._radioGroup('mb-bondform', ['License & Permit','Court','Public Official','Miscellaneous'], d.bondCategory)}
+        </div>
+        <div class="grid grid-cols-2 gap-3 mt-3">
+          ${this._fld('mb-amount',      'Bond Amount', d.bondAmount, 'money')}
+          ${this._fld('mb-effective',   'Bond Effective Date', d.effectiveDate, 'date')}
+          ${this._fld('mb-term',        'Term (if applicable)', d.term)}
+          ${this._fld('mb-termination', 'Termination Date (or "Continuous")', d.terminationDate)}
+          ${this._fld('mb-description', 'Bond Description & Additional Comments', d.description, 'text', 'col-span-2')}
+          ${this._fld('mb-special',     'Special Instructions', d.specialInstructions, 'text', 'col-span-2')}
+        </div>
+      `)}
+
+      <div class="flex items-center justify-between mt-6 px-2">
+        <button class="btn-secondary" onclick="Views.intake._saveDraft('${form.id || ''}', 'commercialBRF')">Save Draft</button>
+        <button class="btn-primary" onclick="Views.intake._submit('${form.id || ''}', '${tok}', 'commercialBRF')">Submit Bond Request</button>
+      </div>
+    `;
+  },
+
+  // ===========================================================
+  // SUBDIVISION BOND APPLICATION
+  // ===========================================================
+  _formSubdivisionApp(form) {
+    const d = form.data || {};
+    const tok = form.token || 'demo';
+    const owners = d.owners && d.owners.length ? d.owners : [{}, {}];
+    const dq = d.disclosures || {};
+    const att = d.attachments || {};
+    const lines = d.bondLines && d.bondLines.length ? d.bondLines : [{},{}];
+    return `
+      <div class="card p-6 mb-6">
+        <div class="text-xs uppercase tracking-[0.18em] text-ink-300 mb-1 font-display">Bond Request</div>
+        <h1 class="text-2xl font-display font-semibold mb-1">Subdivision Bond Application</h1>
+        <p class="text-sm text-ink-400">Developer / site improvement bonds — limits up to $2,000,000.</p>
+      </div>
+
+      ${this._sectionCard('Developer / Company Information', `
+        <div><div class="field-label">Type of Business</div>
+          ${this._radioGroup('sa-biztype', ['Sole Prop.','Partnership','LLC','LLP','S-Corp','C-Corp'], d.businessType)}
+        </div>
+        <div class="grid grid-cols-3 gap-3 mt-3">
+          ${this._fld('sa-name',  'Developer / Company Name (legal)', d.companyName, 'text', 'col-span-3')}
+          ${this._fld('sa-ein',   'EIN / Tax ID',  d.ein)}
+          ${this._fld('sa-phone', 'Phone',         d.phone)}
+          ${this._fld('sa-email', 'Email',         d.email, 'email')}
+          ${this._fld('sa-addr',  'Address',       d.address, 'text', 'col-span-3')}
+          ${this._fld('sa-city',  'City',          d.city)}
+          ${this._fld('sa-state', 'State',         d.state)}
+          ${this._fld('sa-zip',   'Zip',           d.zip)}
+          ${this._fld('sa-yearstarted','Year Started', d.yearStarted)}
+          ${this._fld('sa-yearsmgmt','Years Under Current Mgmt', d.yearsCurrentMgmt)}
+          ${this._fld('sa-licenseno','License No.', d.licenseNo)}
+          ${this._fld('sa-trade', 'Primary Type of Work / Trade', d.primaryTrade, 'text', 'col-span-3')}
+          ${this._fld('sa-largestcomplete', 'Largest Development Completed (last 3 yrs)', d.largestComplete, 'text', 'col-span-2')}
+          ${this._fld('sa-largestcompleteprice', 'Contract Price', d.largestCompletePrice, 'money')}
+          ${this._fld('sa-largestcompleteyr', 'Year Completed', d.largestCompleteYear)}
+          ${this._fld('sa-largestunderway', 'Largest Development Currently Underway', d.largestUnderway, 'text', 'col-span-2')}
+          ${this._fld('sa-largestunderwayprice', 'Contract Price', d.largestUnderwayPrice, 'money')}
+          ${this._fld('sa-largestunderwaypct',   '% Complete',     d.largestUnderwayPercent, 'number')}
+        </div>
+      `)}
+
+      ${this._sectionCard('Disclosure Questions', `
+        <div class="space-y-2 text-sm">
+          ${[
+            ['dq-bankruptcy', 'Filed for bankruptcy or failed in business?'],
+            ['dq-litigation', 'Involved in current or pending litigation?'],
+            ['dq-liens',      'Had liens filed against any project in the last 5 years?'],
+            ['dq-taxes',      'Been delinquent on taxes or payroll?'],
+            ['dq-loss',       'Caused a loss or claim expense to a surety?'],
+            ['dq-openother',  'Currently have any open bonds with another surety?'],
+            ['dq-lt3',        'In business or under current management for less than 3 years?'],
+            ['dq-bondedbefore','Been bonded before by another surety?'],
+          ].map(([id, label]) => `
+            <div class="flex items-center justify-between p-2 rounded hover:bg-cream-50">
+              <div>${U.esc(label)}</div>
+              ${this._yesNo(id, dq[id.replace('dq-','')])}
+            </div>`).join('')}
+        </div>
+        <div class="divider"></div>
+        <div class="text-sm flex items-center justify-between">
+          <div>I authorize The Keating Agency to obtain a consumer credit report on the developer and indemnitors.</div>
+          ${this._yesNo('sa-creditauth', d.creditAuth)}
+        </div>
+      `)}
+
+      ${this._sectionCard('Owner / Indemnitor Information', `
+        <div class="space-y-3" id="sa-owners">
+          ${owners.map((o, i) => `
+            <div class="border border-cream-200 rounded-lg p-3" data-owner="${i}">
+              <div class="text-xs font-semibold text-ink-400 mb-2">Owner / Indemnitor ${i+1}</div>
+              <div class="grid grid-cols-12 gap-2">
+                <div class="col-span-4"><div class="field-label">Name</div><input class="field-input" data-k="name" value="${U.esc(o.name||'')}"></div>
+                <div class="col-span-3"><div class="field-label">Title</div><input class="field-input" data-k="title" value="${U.esc(o.title||'')}"></div>
+                <div class="col-span-5"><div class="field-label">Email</div><input class="field-input" data-k="email" value="${U.esc(o.email||'')}"></div>
+                <div class="col-span-7"><div class="field-label">Address</div><input class="field-input" data-k="address" value="${U.esc(o.address||'')}"></div>
+                <div class="col-span-5"><div class="field-label">City, State, Zip</div><input class="field-input" data-k="cityStateZip" value="${U.esc(o.cityStateZip||'')}"></div>
+                <div class="col-span-3"><div class="field-label">SSN</div><input class="field-input font-mono" data-k="ssn" value="${U.esc(o.ssn||'')}"></div>
+                <div class="col-span-2"><div class="field-label">DOB</div><input class="field-input" type="date" data-k="dob" value="${U.esc(o.dob||'')}"></div>
+                <div class="col-span-2"><div class="field-label">% Ownership</div><input class="field-input" type="number" data-k="pctOwned" value="${o.pctOwned||''}"></div>
+                <div class="col-span-2"><div class="field-label">Married?</div>
+                  <select class="field-select" data-k="married"><option></option><option ${o.married==='Yes'?'selected':''}>Yes</option><option ${o.married==='No'?'selected':''}>No</option></select></div>
+                <div class="col-span-3"><div class="field-label">Spouse / DP Name</div><input class="field-input" data-k="spouseName" value="${U.esc(o.spouseName||'')}"></div>
+                <div class="col-span-3"><div class="field-label">Spouse SSN</div><input class="field-input font-mono" data-k="spouseSsn" value="${U.esc(o.spouseSsn||'')}"></div>
+                <div class="col-span-6"><div class="field-label">Spouse Email</div><input class="field-input" data-k="spouseEmail" value="${U.esc(o.spouseEmail||'')}"></div>
+              </div>
+            </div>`).join('')}
+        </div>
+      `)}
+
+      ${this._sectionCard('Obligee (Municipality / Authority Requiring the Bond)', `
+        <div class="grid grid-cols-3 gap-3">
+          ${this._fld('sa-obl-name',  'Obligee Name', d.obligeeName, 'text', 'col-span-3')}
+          ${this._fld('sa-obl-addr',  'Obligee Address', d.obligeeAddress, 'text', 'col-span-3')}
+          ${this._fld('sa-obl-city',  'City',  d.obligeeCity)}
+          ${this._fld('sa-obl-state', 'State', d.obligeeState)}
+          ${this._fld('sa-obl-zip',   'Zip',   d.obligeeZip)}
+        </div>
+      `)}
+
+      ${this._sectionCard('Subdivision Project Information', `
+        <div><div class="field-label">Type of Project</div>
+          ${this._radioGroup('sa-projtype', ['Commercial','Residential','Industrial','Mixed-Use'], d.projectType)}
+        </div>
+        <div class="grid grid-cols-3 gap-3 mt-3">
+          ${this._fld('sa-projname','Project Name / Description', d.projectName, 'text', 'col-span-3')}
+          ${this._fld('sa-projaddr','Project Address',  d.projectAddress, 'text', 'col-span-3')}
+          ${this._fld('sa-projcity','City',  d.projectCity)}
+          ${this._fld('sa-projstate','State', d.projectState)}
+          ${this._fld('sa-projzip', 'Zip',   d.projectZip)}
+          ${this._fld('sa-title',   'Title Holder of Property', d.titleHolder, 'text', 'col-span-2')}
+          ${this._fld('sa-lender',  'Funding Source / Lender Name', d.fundingLender)}
+        </div>
+        <div class="mt-3"><div class="field-label">Financing Type</div>
+          ${this._radioGroup('sa-financing', ['Construction Loan','Cash','Line of Credit'], d.financingType)}
+        </div>
+        <div class="grid grid-cols-3 gap-3 mt-3">
+          ${this._fld('sa-totalcost', 'Total Cost of Improvements', d.totalCost, 'money')}
+          ${this._fld('sa-funds',     'Funds / Loan Available for Construction', d.fundsAvailable, 'money')}
+          ${this._fld('sa-startp',    'Anticipated Start Date',   d.startDateProject, 'date')}
+          ${this._fld('sa-endp',      'Expected Completion Date', d.completionDateProject, 'date')}
+          ${this._fld('sa-maintyears','Maintenance / Warranty Period (years)', d.maintenanceYears, 'number')}
+          ${this._fld('sa-contractor','Contractor Performing the Work', d.contractor, 'text', 'col-span-3')}
+        </div>
+      `)}
+
+      ${this._sectionCard('Bond Request', `
+        <div><div class="field-label">Bond Type</div>
+          ${this._radioGroup('sa-bondtype', ['Performance Only','Maintenance Only','Performance + Maintenance'], d.bondType)}
+        </div>
+        <div class="mt-3"><div class="field-label">Bond Form</div>
+          ${this._radioGroup('sa-bondform', ['Surety Company Form','City / Municipality Form'], d.bondForm)}
+        </div>
+        <div class="divider"></div>
+        ${this._table([
+          ['Bond Description','description'],
+          ['Bond Amount','amount','money'],
+          ['Work Being Performed','work'],
+        ], lines, 'bondLines')}
+      `)}
+
+      ${this._sectionCard('If Maintenance Only', `
+        <div class="grid grid-cols-2 gap-3">
+          ${this._fld('sa-maintamt',   'Maintenance Bond Amount', d.maintAmount, 'money')}
+          ${this._fld('sa-maintpd',    'Maintenance Period (years)', d.maintPeriodYears, 'number')}
+        </div>
+        <div class="grid grid-cols-2 gap-3 mt-3">
+          <div><div class="field-label">Has the project been completed and accepted?</div>${this._yesNo('sa-completed', d.completedAccepted)}</div>
+          <div><div class="field-label">Did the project require a Performance Bond?</div>${this._yesNo('sa-reqperf', d.requiredPerfBond)}</div>
+        </div>
+      `)}
+
+      ${this._sectionCard('Attachments (acknowledge included)', `
+        <div class="grid grid-cols-2 gap-1">
+          ${[
+            ['eng',  "Engineer's estimate of cost to complete"],
+            ['form', 'Required bond forms (if applicable)'],
+            ['fin',  'Company financials (latest fiscal year-end)'],
+            ['pfs',  'Personal financial statement on each owner'],
+            ['op',   'Operating agreement (if LLC)'],
+          ].map(([k,label]) => `
+            <label class="flex items-center gap-2 p-1.5 rounded hover:bg-cream-50 text-sm">
+              <input id="sa-att-${k}" type="checkbox" class="chk" ${att[k]?'checked':''}>
+              ${label}
+            </label>`).join('')}
+        </div>
+        ${this._fld('sa-comments', 'Additional Information / Comments', d.comments, 'text', 'col-span-2 mt-3')}
+      `)}
+
+      <div class="flex items-center justify-between mt-6 px-2">
+        <button class="btn-secondary" onclick="Views.intake._saveDraft('${form.id || ''}', 'subdivisionApp')">Save Draft</button>
+        <button class="btn-primary" onclick="Views.intake._submit('${form.id || ''}', '${tok}', 'subdivisionApp')">Submit Application</button>
+      </div>
+    `;
+  },
+
+  // ===========================================================
+  // BOND EXPRESS APPLICATION
+  // ===========================================================
+  _formBondExpress(form) {
+    const d = form.data || {};
+    const tok = form.token || 'demo';
+    const owners = d.owners && d.owners.length ? d.owners : [{}, {}];
+    const dq = d.disclosures || {};
+    return `
+      <div class="card p-6 mb-6">
+        <div class="text-xs uppercase tracking-[0.18em] text-ink-300 mb-1 font-display">Bond Request</div>
+        <h1 class="text-2xl font-display font-semibold mb-1">Bond Express Application</h1>
+        <p class="text-sm text-ink-400">Fast-track for single bonds under $1,000,000 (aggregate to $1,000,000).</p>
+      </div>
+
+      ${this._sectionCard('Company / Contractor Information', `
+        <div><div class="field-label">Type of Business</div>
+          ${this._radioGroup('be-biztype', ['Partnership','S-Corp.','C-Corp.','Sole Proprietorship','LLC','LLP'], d.businessType)}
+        </div>
+        <div class="grid grid-cols-3 gap-3 mt-3">
+          ${this._fld('be-company',    'Company Name', d.companyName, 'text', 'col-span-3')}
+          ${this._fld('be-ein',        'EIN',          d.ein)}
+          ${this._fld('be-phone',      'Phone',        d.phone)}
+          ${this._fld('be-email',      'Contact Email',d.email, 'email')}
+          ${this._fld('be-addr',       'Address',      d.address, 'text', 'col-span-3')}
+          ${this._fld('be-city',       'City',         d.city)}
+          ${this._fld('be-state',      'State',        d.state)}
+          ${this._fld('be-zip',        'Zip',          d.zip)}
+          ${this._fld('be-datestarted','Date Business Started', d.dateStarted, 'date')}
+          ${this._fld('be-trade',      'Primary Trade', d.primaryTrade)}
+          ${this._fld('be-territory',  'Operating Territory', d.territory)}
+          ${this._fld('be-networth',   'Business Net Worth', d.netWorth, 'money')}
+          ${this._fld('be-bankline',   'Current Bank Line Amount', d.bankLineAmount, 'money')}
+          ${this._fld('be-bankavail',  'Bank Line Currently Available', d.bankLineAvailable, 'money')}
+          ${this._fld('be-largestjob', 'Largest Job Completed (last 3 yrs)', d.largestJob, 'text', 'col-span-2')}
+          ${this._fld('be-largestjobgp','Gross Profit of Largest Job', d.largestJobGP, 'money')}
+        </div>
+      `)}
+
+      ${this._sectionCard('Disclosure Questions', `
+        <div class="space-y-2 text-sm">
+          ${[
+            ['interests',  'Owned, currently own, or had interests in other construction companies?'],
+            ['taxes',      'Been delinquent with any taxes or payroll?'],
+            ['lawsuits',   'Currently have open lawsuits or judgments?'],
+            ['liens',      'Had state or federal liens within the last 3 years?'],
+            ['bankruptcy', 'Failed in business or been in bankruptcy?'],
+            ['suretyclaim','Failed to complete a contract or had a claim paid by a surety?'],
+          ].map(([id, label]) => `
+            <div class="flex items-center justify-between p-2 rounded hover:bg-cream-50">
+              <div>${U.esc(label)}</div>
+              ${this._yesNo('be-dq-'+id, dq[id])}
+            </div>`).join('')}
+        </div>
+        <div class="divider"></div>
+        <div class="text-sm flex items-center justify-between">
+          <div>I authorize The Keating Agency to run my credit report.</div>
+          ${this._yesNo('be-creditauth', d.creditAuth)}
+        </div>
+      `)}
+
+      ${this._sectionCard('Owner / Indemnitor Information', `
+        <div class="space-y-3" id="be-owners">
+          ${owners.map((o, i) => `
+            <div class="border border-cream-200 rounded-lg p-3" data-owner="${i}">
+              <div class="text-xs font-semibold text-ink-400 mb-2">Owner ${i+1}</div>
+              <div class="grid grid-cols-12 gap-2">
+                <div class="col-span-4"><div class="field-label">Name</div><input class="field-input" data-k="name" value="${U.esc(o.name||'')}"></div>
+                <div class="col-span-3"><div class="field-label">Title</div><input class="field-input" data-k="title" value="${U.esc(o.title||'')}"></div>
+                <div class="col-span-5"><div class="field-label">Email</div><input class="field-input" data-k="email" value="${U.esc(o.email||'')}"></div>
+                <div class="col-span-7"><div class="field-label">Address</div><input class="field-input" data-k="address" value="${U.esc(o.address||'')}"></div>
+                <div class="col-span-5"><div class="field-label">City, State, Zip</div><input class="field-input" data-k="cityStateZip" value="${U.esc(o.cityStateZip||'')}"></div>
+                <div class="col-span-3"><div class="field-label">SSN</div><input class="field-input font-mono" data-k="ssn" value="${U.esc(o.ssn||'')}"></div>
+                <div class="col-span-2"><div class="field-label">DOB</div><input class="field-input" type="date" data-k="dob" value="${U.esc(o.dob||'')}"></div>
+                <div class="col-span-2"><div class="field-label">% Owned</div><input class="field-input" type="number" data-k="pctOwned" value="${o.pctOwned||''}"></div>
+                <div class="col-span-2"><div class="field-label">Married?</div>
+                  <select class="field-select" data-k="married"><option></option><option ${o.married==='Yes'?'selected':''}>Yes</option><option ${o.married==='No'?'selected':''}>No</option></select></div>
+                <div class="col-span-3"><div class="field-label">Total Income</div><input class="field-input" type="number" data-k="totalIncome" value="${o.totalIncome||''}"></div>
+                <div class="col-span-3"><div class="field-label">Years Construction Mgmt</div><input class="field-input" type="number" data-k="yearsExp" value="${o.yearsExp||''}"></div>
+                <div class="col-span-3"><div class="field-label">Spouse Name</div><input class="field-input" data-k="spouseName" value="${U.esc(o.spouseName||'')}"></div>
+                <div class="col-span-3"><div class="field-label">Spouse SSN</div><input class="field-input font-mono" data-k="spouseSsn" value="${U.esc(o.spouseSsn||'')}"></div>
+                <div class="col-span-3"><div class="field-label">Spouse DOB</div><input class="field-input" type="date" data-k="spouseDob" value="${U.esc(o.spouseDob||'')}"></div>
+                <div class="col-span-3"><div class="field-label">US Citizen?</div>
+                  <select class="field-select" data-k="usCitizen"><option></option><option ${o.usCitizen==='Yes'?'selected':''}>Yes</option><option ${o.usCitizen==='No'?'selected':''}>No</option></select></div>
+              </div>
+            </div>`).join('')}
+        </div>
+      `)}
+
+      ${this._sectionCard('Contract Information', `
+        <div class="grid grid-cols-3 gap-3">
+          ${this._fld('be-start',     'Anticipated Start Date', d.startDate, 'date')}
+          ${this._fld('be-completion','Time for Completion',    d.completionTime)}
+          ${this._fld('be-maintenance','Maintenance Period',    d.maintenancePeriod)}
+          ${this._fld('be-obligee',   'Obligee (Entity Requesting Bond)', d.obligee, 'text', 'col-span-3')}
+          ${this._fld('be-obl-addr',  'Obligee Address', d.obligeeAddress, 'text', 'col-span-3')}
+          ${this._fld('be-obl-city',  'City',  d.obligeeCity)}
+          ${this._fld('be-obl-state', 'State', d.obligeeState)}
+          ${this._fld('be-obl-zip',   'Zip',   d.obligeeZip)}
+          ${this._fld('be-estbid',    'Estimated Bid / Contract Price', d.estimatedBid, 'money')}
+          ${this._fld('be-biddate',   'Bid Date',     d.bidDate, 'date')}
+          ${this._fld('be-job-legal', 'Job Legal Description', d.jobLegal, 'text', 'col-span-3')}
+          ${this._fld('be-job-addr',  'Job Physical Address',  d.jobAddress, 'text', 'col-span-3')}
+          ${this._fld('be-job-city',  'City',  d.jobCity)}
+          ${this._fld('be-job-state', 'State', d.jobState)}
+          ${this._fld('be-job-zip',   'Zip',   d.jobZip)}
+        </div>
+      `)}
+
+      ${this._sectionCard('Bond Request', `
+        <div class="grid grid-cols-2 gap-6">
+          <div>
+            <div class="text-xs font-semibold text-ink-400 uppercase tracking-wider mb-2">Bid Bond Information</div>
+            <div class="space-y-2">
+              ${this._fld('be-bb-date',  'Bid Date', d.bb_bidDate, 'date')}
+              ${this._fld('be-bb-est',   'Estimated Total Amount of Bid', d.bb_estBid, 'money')}
+              ${this._fld('be-bb-eng',   "Engineer's Estimate (if applicable)", d.bb_engEst, 'money')}
+              ${this._fld('be-bb-pct',   'Bid Bond % or Flat Amount', d.bb_pct)}
+            </div>
+          </div>
+          <div>
+            <div class="text-xs font-semibold text-ink-400 uppercase tracking-wider mb-2">Select Bond Type(s)</div>
+            <div class="space-y-1 text-sm">
+              ${[
+                ['pp',       'Performance and Payment Bond'],
+                ['subpp',    'Subcontractor Performance and Payment Bond'],
+                ['standalone','Standalone Maintenance Bond'],
+                ['supply',   'Supply Bond'],
+                ['bid',      'Bid Bond'],
+              ].map(([k,label]) => `
+                <label class="flex items-center gap-2 p-1.5 rounded hover:bg-cream-50">
+                  <input id="be-bt-${k}" type="checkbox" class="chk" ${(d.selectedTypes||{})[k]?'checked':''}>
+                  ${label}
+                </label>`).join('')}
+            </div>
+            <div class="grid grid-cols-2 gap-3 mt-3">
+              ${this._fld('be-contract-price','Contract Price', d.contractPrice, 'money')}
+              ${this._fld('be-contract-date', 'Contract Date',  d.contractDate, 'date')}
+              <div class="col-span-2"><div class="field-label">Has job started?</div>${this._yesNo('be-jobstarted', d.jobStarted)}</div>
+            </div>
+          </div>
+        </div>
+      `)}
+
+      <div class="flex items-center justify-between mt-6 px-2">
+        <button class="btn-secondary" onclick="Views.intake._saveDraft('${form.id || ''}', 'bondExpress')">Save Draft</button>
+        <button class="btn-primary" onclick="Views.intake._submit('${form.id || ''}', '${tok}', 'bondExpress')">Submit Application</button>
+      </div>
+    `;
+  },
+
+  // ===========================================================
   // FORM PRIMITIVES
   // ===========================================================
   _sectionCard(title, inner) {
@@ -780,6 +1270,161 @@ Views.intake = {
         completed: collectTable('completed'),
       };
     }
+
+    if (type === 'contractBRF') {
+      return {
+        bondType: radio('cb-type'),
+        neededDate: v('cb-needed-date'), neededTime: v('cb-needed-time'),
+        bondFormAttached: radioYN('cb-form-attached'),
+        contractorFullName: v('cb-contractor'), contractorBusiness: v('cb-business'),
+        stateOfIncorporation: v('cb-state-inc'),
+        contractorAddress: v('cb-contractor-addr'),
+        obligee: v('cb-obligee'), obligeeAddress: v('cb-obligee-addr'),
+        projectName: v('cb-project'), scope: v('cb-scope'),
+        startDate: v('cb-start'), completionTime: v('cb-completion'),
+        warrantyPeriod: v('cb-warranty'), workOnHand: v('cb-work-on-hand'),
+        penalties: v('cb-penalties'), retainage: v('cb-retainage'),
+        bidDate: v('cb-bid-date'), bidTime: v('cb-bid-time'),
+        estimatedBid: n('cb-est-bid'),
+        bidLocation: v('cb-bid-location'), bidPercent: v('cb-bid-pct'),
+        contractDate: v('cb-contract-date'), contractAmount: n('cb-contract-amount'),
+        paymentPct: n('cb-payment-pct'), performancePct: n('cb-performance-pct'),
+        maintenancePct: n('cb-maintenance-pct'), maintenancePeriod: v('cb-maintenance-pd'),
+        deliveryMethod: radio('cb-delivery'),
+        deliveryAddress: v('cb-delivery-addr'), deliveryEmail: v('cb-delivery-email'),
+      };
+    }
+
+    if (type === 'commercialBRF') {
+      return {
+        requestedBy: v('mb-requested'), date: v('mb-date'),
+        businessAddress: v('mb-biz-addr'), phone: v('mb-phone'), fax: v('mb-fax'),
+        contactEmail: v('mb-email'),
+        principalName: v('mb-prin-name'), principalAddress: v('mb-prin-addr'),
+        principalCity: v('mb-prin-city'), principalState: v('mb-prin-state'),
+        principalZip: v('mb-prin-zip'), principalPhone: v('mb-prin-phone'),
+        obligeeName: v('mb-obl-name'), obligeeAddress: v('mb-obl-addr'),
+        obligeeCity: v('mb-obl-city'), obligeeState: v('mb-obl-state'),
+        obligeeZip: v('mb-obl-zip'), obligeePhone: v('mb-obl-phone'),
+        bondCategory: radio('mb-bondform'),
+        bondAmount: n('mb-amount'),
+        effectiveDate: v('mb-effective'), term: v('mb-term'),
+        terminationDate: v('mb-termination'),
+        description: v('mb-description'), specialInstructions: v('mb-special'),
+      };
+    }
+
+    if (type === 'subdivisionApp') {
+      // Collect owners
+      const owners = Array.from(document.querySelectorAll('#sa-owners [data-owner]')).map(el => {
+        const o = {};
+        el.querySelectorAll('[data-k]').forEach(inp => o[inp.dataset.k] = inp.value);
+        return o;
+      }).filter(o => Object.values(o).some(x => x));
+
+      return {
+        businessType: radio('sa-biztype'),
+        companyName: v('sa-name'), ein: v('sa-ein'), phone: v('sa-phone'),
+        email: v('sa-email'),
+        address: v('sa-addr'), city: v('sa-city'), state: v('sa-state'), zip: v('sa-zip'),
+        yearStarted: v('sa-yearstarted'), yearsCurrentMgmt: v('sa-yearsmgmt'),
+        licenseNo: v('sa-licenseno'), primaryTrade: v('sa-trade'),
+        largestComplete: v('sa-largestcomplete'),
+        largestCompletePrice: n('sa-largestcompleteprice'),
+        largestCompleteYear: v('sa-largestcompleteyr'),
+        largestUnderway: v('sa-largestunderway'),
+        largestUnderwayPrice: n('sa-largestunderwayprice'),
+        largestUnderwayPercent: n('sa-largestunderwaypct'),
+        disclosures: {
+          bankruptcy: radioYN('dq-bankruptcy'),
+          litigation: radioYN('dq-litigation'),
+          liens: radioYN('dq-liens'),
+          taxDelinquent: radioYN('dq-taxes'),
+          suretyLoss: radioYN('dq-loss'),
+          openWithOther: radioYN('dq-openother'),
+          lessThanThreeYears: radioYN('dq-lt3'),
+          bondedBefore: radioYN('dq-bondedbefore'),
+        },
+        creditAuth: radioYN('sa-creditauth'),
+        owners,
+        obligeeName: v('sa-obl-name'), obligeeAddress: v('sa-obl-addr'),
+        obligeeCity: v('sa-obl-city'), obligeeState: v('sa-obl-state'), obligeeZip: v('sa-obl-zip'),
+        projectType: radio('sa-projtype'),
+        projectName: v('sa-projname'),
+        projectAddress: v('sa-projaddr'),
+        projectCity: v('sa-projcity'), projectState: v('sa-projstate'), projectZip: v('sa-projzip'),
+        titleHolder: v('sa-title'), fundingLender: v('sa-lender'),
+        financingType: radio('sa-financing'),
+        totalCost: n('sa-totalcost'), fundsAvailable: n('sa-funds'),
+        startDateProject: v('sa-startp'), completionDateProject: v('sa-endp'),
+        maintenanceYears: n('sa-maintyears'),
+        contractor: v('sa-contractor'),
+        bondType: radio('sa-bondtype'), bondForm: radio('sa-bondform'),
+        bondLines: collectTable('bondLines'),
+        maintAmount: n('sa-maintamt'), maintPeriodYears: n('sa-maintpd'),
+        completedAccepted: radioYN('sa-completed'),
+        requiredPerfBond: radioYN('sa-reqperf'),
+        attachments: {
+          engineerEstimate: c('sa-att-eng'),
+          bondForms: c('sa-att-form'),
+          financials: c('sa-att-fin'),
+          pfs: c('sa-att-pfs'),
+          operatingAgreement: c('sa-att-op'),
+        },
+        comments: v('sa-comments'),
+      };
+    }
+
+    if (type === 'bondExpress') {
+      // Collect owners
+      const owners = Array.from(document.querySelectorAll('#be-owners [data-owner]')).map(el => {
+        const o = {};
+        el.querySelectorAll('[data-k]').forEach(inp => o[inp.dataset.k] = inp.value);
+        return o;
+      }).filter(o => Object.values(o).some(x => x));
+
+      return {
+        businessType: radio('be-biztype'),
+        companyName: v('be-company'), ein: v('be-ein'), phone: v('be-phone'),
+        email: v('be-email'),
+        address: v('be-addr'), city: v('be-city'), state: v('be-state'), zip: v('be-zip'),
+        dateStarted: v('be-datestarted'), primaryTrade: v('be-trade'), territory: v('be-territory'),
+        netWorth: n('be-networth'),
+        bankLineAmount: n('be-bankline'), bankLineAvailable: n('be-bankavail'),
+        largestJob: v('be-largestjob'), largestJobGP: n('be-largestjobgp'),
+        disclosures: {
+          interests:  radioYN('be-dq-interests'),
+          taxes:      radioYN('be-dq-taxes'),
+          lawsuits:   radioYN('be-dq-lawsuits'),
+          liens:      radioYN('be-dq-liens'),
+          bankruptcy: radioYN('be-dq-bankruptcy'),
+          suretyclaim:radioYN('be-dq-suretyclaim'),
+        },
+        creditAuth: radioYN('be-creditauth'),
+        owners,
+        startDate: v('be-start'), completionTime: v('be-completion'),
+        maintenancePeriod: v('be-maintenance'),
+        obligee: v('be-obligee'), obligeeAddress: v('be-obl-addr'),
+        obligeeCity: v('be-obl-city'), obligeeState: v('be-obl-state'), obligeeZip: v('be-obl-zip'),
+        estimatedBid: n('be-estbid'),
+        bidDate: v('be-biddate'),
+        jobLegal: v('be-job-legal'),
+        jobAddress: v('be-job-addr'), jobCity: v('be-job-city'),
+        jobState: v('be-job-state'), jobZip: v('be-job-zip'),
+        bb_bidDate: v('be-bb-date'), bb_estBid: n('be-bb-est'),
+        bb_engEst: n('be-bb-eng'),  bb_pct: v('be-bb-pct'),
+        selectedTypes: {
+          pp:         c('be-bt-pp'),
+          subpp:      c('be-bt-subpp'),
+          standalone: c('be-bt-standalone'),
+          supply:     c('be-bt-supply'),
+          bid:        c('be-bt-bid'),
+        },
+        contractPrice: n('be-contract-price'), contractDate: v('be-contract-date'),
+        jobStarted: radioYN('be-jobstarted'),
+      };
+    }
+
     return {};
   },
 
@@ -861,7 +1506,7 @@ window.Intake = (() => {
       <div class="flex items-center gap-2 flex-wrap">
         <button class="btn-secondary" onclick="navigator.clipboard.writeText('${link}').then(()=>U.toast('Link copied'))">Copy Link</button>
         <button class="btn-secondary" onclick="window.open('${link}', '_blank')">Open in New Tab</button>
-        <button class="btn-primary" onclick="U.closeModals(); Compose.open({ ${ctx.leadId?`leadId: '${ctx.leadId}', `:''}${ctx.accountId?`accountId: '${ctx.accountId}', `:''}templateId: '${ {cq:'T-intake-cq', pfs:'T-intake-pfs', wip:'T-intake-wip'}[form.type] }', body: 'A pre-filled email template will be loaded — the link is below:\\n\\n${link}\\n\\nThanks,' })">Email this Link</button>
+        <button class="btn-primary" onclick="U.closeModals(); Compose.open({ ${ctx.leadId?`leadId: '${ctx.leadId}', `:''}${ctx.accountId?`accountId: '${ctx.accountId}', `:''}templateId: '${ {cq:'T-intake-cq', pfs:'T-intake-pfs', wip:'T-intake-wip', contractBRF:'T-bond-request', commercialBRF:'T-bond-request', subdivisionApp:'T-bond-request', bondExpress:'T-bond-request'}[form.type] || ''}', body: 'A pre-filled email template will be loaded — the link is below:\\n\\n${link}\\n\\nThanks,' })">Email this Link</button>
       </div>
       <div class="text-xs text-ink-300 italic mt-3">In a real deployment, this link would also be accessible from outside your network. For the demo, anyone with access to this browser session can open it.</div>
     `;
@@ -874,9 +1519,13 @@ window.Intake = (() => {
   function importNow(formId, opts = {}) {
     const f = DB.findIntake(formId);
     if (!f) return;
-    if (f.type === 'cq')  _importCQ(f);
-    if (f.type === 'pfs') _importPFS(f);
-    if (f.type === 'wip') _importWIP(f);
+    if (f.type === 'cq')              _importCQ(f);
+    else if (f.type === 'pfs')        _importPFS(f);
+    else if (f.type === 'wip')        _importWIP(f);
+    else if (f.type === 'contractBRF')    _importContractBRF(f);
+    else if (f.type === 'commercialBRF')  _importCommercialBRF(f);
+    else if (f.type === 'subdivisionApp') _importSubdivisionApp(f);
+    else if (f.type === 'bondExpress')    _importBondExpress(f);
     f.status = 'imported';
     f.importedDate = new Date().toISOString().slice(0,10);
     DB.save();
@@ -905,9 +1554,24 @@ window.Intake = (() => {
     if (f.accountId) return DB.findAccount(f.accountId);
 
     const d = f.data || {};
-    const fields = (kind === 'cq')  ? { businessName: d.businessName, contactName: d.contactName, contactEmail: d.contactEmail, taxId: d.taxId, phone: d.phone, address: d.address }
-                  : (kind === 'pfs') ? { businessName: d.businessName, contactName: d.fullName,    contactEmail: d.email,        taxId: '',       phone: d.phone, address: d.street  }
-                  :                    { businessName: d.contractorName, contactName: '',           contactEmail: '',             taxId: '',       phone: '',      address: ''        };
+    let fields;
+    if (kind === 'cq') {
+      fields = { businessName: d.businessName, contactName: d.contactName, contactEmail: d.contactEmail, taxId: d.taxId, phone: d.phone, address: d.address };
+    } else if (kind === 'pfs') {
+      fields = { businessName: d.businessName, contactName: d.fullName, contactEmail: d.email, taxId: '', phone: d.phone, address: d.street };
+    } else if (kind === 'wip') {
+      fields = { businessName: d.contractorName, contactName: '', contactEmail: '', taxId: '', phone: '', address: '' };
+    } else if (kind === 'contractBRF') {
+      fields = { businessName: d.contractorBusiness || d.contractorFullName, contactName: d.contractorFullName, contactEmail: d.deliveryEmail, taxId: '', phone: '', address: d.contractorAddress };
+    } else if (kind === 'commercialBRF') {
+      fields = { businessName: d.principalName, contactName: d.requestedBy, contactEmail: d.contactEmail, taxId: '', phone: d.phone || d.principalPhone, address: d.businessAddress || d.principalAddress };
+    } else if (kind === 'subdivisionApp') {
+      fields = { businessName: d.companyName, contactName: (d.owners?.[0]?.name) || '', contactEmail: d.email || d.owners?.[0]?.email, taxId: d.ein, phone: d.phone, address: d.address };
+    } else if (kind === 'bondExpress') {
+      fields = { businessName: d.companyName, contactName: (d.owners?.[0]?.name) || '', contactEmail: d.email || d.owners?.[0]?.email, taxId: d.ein, phone: d.phone, address: d.address };
+    } else {
+      fields = { businessName: '', contactName: '', contactEmail: '', taxId: '', phone: '', address: '' };
+    }
 
     const normEmail = (e) => (e || '').toLowerCase().trim();
     const submittedEmail = normEmail(fields.contactEmail);
@@ -1104,6 +1768,276 @@ window.Intake = (() => {
     if (!a.renewals.wipInterval) a.renewals.wipInterval = 90;
   }
 
+  // -------- Bond Request → Pipeline Opportunity helpers --------
+
+  // Returns the first stage in the pipeline ("Request Received" by default).
+  function _firstStage() {
+    return (DB.pipelineStages()[0]) || 'Request Received';
+  }
+
+  // Create a pipeline opportunity from a submitted bond request form.
+  function _createOpportunity(f, account, payload) {
+    const opp = {
+      id: U.uid('PL'),
+      stage: _firstStage(),
+      accountId: account.id,
+      bondType: payload.bondType,
+      amount: payload.amount || 0,
+      obligee: payload.obligee || '',
+      dueDate: payload.dueDate || null,
+      notes: payload.notes || '',
+      producer: 'CV',
+      probability: payload.probability != null ? payload.probability : 25,
+      bidResult: 'pending',
+      typeSpecific: payload.typeSpecific || {},
+      activity: [{
+        id: U.uid('AC'),
+        date: new Date().toISOString(),
+        author: 'Intake System',
+        type: 'note',
+        subject: `Created from ${typeLabel(f.type)}`,
+        text: payload.activityNote || `Auto-created from online intake submitted on ${U.date(f.submittedDate)}.`,
+      }],
+      sourceIntakeId: f.id,
+    };
+    DB.pipeline().push(opp);
+    f.opportunityId = opp.id;
+
+    // If form was tied to a lead, log on lead too
+    if (f.leadId) {
+      const lead = DB.findLead(f.leadId);
+      if (lead) {
+        lead.activity = lead.activity || [];
+        lead.activity.push({
+          id: U.uid('LA'),
+          date: new Date().toISOString(),
+          author: 'Intake System',
+          type: 'note',
+          text: `${typeLabel(f.type)} submitted — opportunity ${opp.id} (${payload.bondType}, ${U.usd(opp.amount)}) created in pipeline.`,
+        });
+      }
+    }
+    return opp;
+  }
+
+  // ----- Contract BRF → Opportunity -----
+  function _importContractBRF(f) {
+    const d = f.data || {};
+    const a = _ensureAccountFor(f, 'contractBRF');
+    if (!a) return;
+    f.accountId = a.id;
+
+    // Map form bond type → our 5-bond catalog
+    const bt = (d.bondType || '').toLowerCase();
+    const bondType = bt.includes('bid') ? 'Bid' : 'Payment & Performance';
+    const isBid = bondType === 'Bid';
+
+    const amount = isBid
+      ? (d.estimatedBid || 0)
+      : (d.contractAmount || d.estimatedBid || 0);
+    const dueDate = isBid ? d.bidDate : (d.contractDate || d.startDate);
+
+    const typeSpecific = isBid
+      ? {
+          bidOpenDate: d.bidDate || null,
+          bidPercent:  d.bidPercent || null,
+          estimatedContractValue: d.estimatedBid || null,
+          fundingSource: null,
+          plansLocation: d.bidLocation || '',
+        }
+      : {
+          contractDate: d.contractDate || null,
+          contractType: null,
+          projectStart: d.startDate || null,
+          performancePct: d.performancePct || null,
+          paymentPct: d.paymentPct || null,
+          liquidatedDamages: null,
+          warrantyPeriodMonths: null,
+        };
+
+    const notes = [d.projectName, d.scope].filter(Boolean).join(' — ');
+    _createOpportunity(f, a, {
+      bondType, amount, obligee: d.obligee, dueDate, notes,
+      typeSpecific,
+      probability: isBid ? 30 : 40,
+      activityNote: `Contract Bond Request (${d.bondType}) submitted online. Needed ${U.date(d.neededDate)}.`,
+    });
+  }
+
+  // ----- Commercial BRF → Opportunity -----
+  function _importCommercialBRF(f) {
+    const d = f.data || {};
+    const a = _ensureAccountFor(f, 'commercialBRF');
+    if (!a) return;
+    f.accountId = a.id;
+
+    // Map bond category → our 5-bond catalog
+    const cat = d.bondCategory || 'License & Permit';
+    const bondType = cat === 'Court' ? 'Probate' : 'License/Permit';
+
+    const typeSpecific = bondType === 'License/Permit'
+      ? {
+          licenseType: cat,
+          issuingAuthority: d.obligeeName || '',
+          statutoryAmount: d.bondAmount || null,
+          renewalTerm: d.terminationDate?.toLowerCase().includes('continuous') ? 'Continuous' : (d.term || ''),
+          continuousObligation: !!(d.terminationDate||'').toLowerCase().includes('continuous'),
+        }
+      : {
+          courtName: d.obligeeName || '',
+          estateValue: null,
+          fiduciaryType: null,
+          courtOrderDate: d.effectiveDate || null,
+        };
+
+    _createOpportunity(f, a, {
+      bondType,
+      amount: d.bondAmount || 0,
+      obligee: d.obligeeName,
+      dueDate: d.effectiveDate || null,
+      notes: [d.description, d.specialInstructions].filter(Boolean).join(' — '),
+      typeSpecific,
+      probability: 35,
+      activityNote: `Commercial Bond Request (${cat}) submitted online.`,
+    });
+  }
+
+  // ----- Subdivision App → Opportunity (Subdivision/Site Improvement) -----
+  function _importSubdivisionApp(f) {
+    const d = f.data || {};
+    const a = _ensureAccountFor(f, 'subdivisionApp');
+    if (!a) return;
+    f.accountId = a.id;
+
+    // Backfill account.company from app
+    a.company = a.company || {};
+    if (d.ein) a.taxId = a.taxId || d.ein;
+    if (d.companyName) a.company.legalName = a.company.legalName || d.companyName;
+    if (d.businessType) a.company.entityType = a.company.entityType || d.businessType;
+    if (d.yearStarted) a.company.founded = a.company.founded || d.yearStarted;
+    if (d.licenseNo) a.company.licenseNo = d.licenseNo;
+    if (d.address) a.address = a.address || d.address;
+    if (d.city) a.city = a.city || d.city;
+    if (d.state) a.state = a.state || d.state;
+    if (d.zip) a.zip = a.zip || d.zip;
+
+    // Add owners as indemnitors if not already there
+    a.indemnitors = a.indemnitors || [];
+    (d.owners || []).forEach(o => {
+      if (!o.name) return;
+      if (a.indemnitors.some(x => x.name && x.name.toLowerCase() === o.name.toLowerCase())) return;
+      a.indemnitors.push({
+        id: U.uid('I'), name: o.name, type: 'Personal',
+        ssnEin: o.ssn || '', spouse: o.spouseName || '',
+        position: o.title || '', ownership: o.pctOwned || 0,
+        netWorth: 0, liquid: 0, pfsDate: null,
+      });
+    });
+
+    // Total amount = sum of bond line amounts (or fallback to project totalCost)
+    const totalAmount = (d.bondLines || []).reduce((s, l) => s + (+l.amount || 0), 0) || d.totalCost || 0;
+
+    const typeSpecific = {
+      subdivisionName: d.projectName || '',
+      jurisdiction: [d.obligeeCity, d.obligeeState].filter(Boolean).join(', '),
+      engineersEstimate: d.totalCost || null,
+      improvements: (d.bondLines || []).map(l => l.work).filter(Boolean),
+      maintenancePeriodMonths: d.maintenanceYears ? d.maintenanceYears * 12 : null,
+      completionDeadline: d.completionDateProject || null,
+      phaseNumber: '',
+      releaseConditions: d.completedAccepted ? 'Project completed and accepted.' : '',
+    };
+
+    _createOpportunity(f, a, {
+      bondType: 'Subdivision/Site Improvement',
+      amount: totalAmount,
+      obligee: d.obligeeName,
+      dueDate: d.startDateProject || null,
+      notes: `${d.projectName || ''} — ${d.projectType || ''} subdivision; ${(d.bondLines || []).length} bond line${(d.bondLines || []).length === 1 ? '' : 's'}.`,
+      typeSpecific,
+      probability: 45,
+      activityNote: `Subdivision Bond Application submitted online — ${d.bondType || 'Performance + Maintenance'}.`,
+    });
+  }
+
+  // ----- Bond Express → Opportunity -----
+  function _importBondExpress(f) {
+    const d = f.data || {};
+    const a = _ensureAccountFor(f, 'bondExpress');
+    if (!a) return;
+    f.accountId = a.id;
+
+    // Backfill account.company
+    a.company = a.company || {};
+    if (d.ein) a.taxId = a.taxId || d.ein;
+    if (d.companyName) a.company.legalName = a.company.legalName || d.companyName;
+    if (d.businessType) a.company.entityType = a.company.entityType || d.businessType;
+    if (d.dateStarted) a.company.founded = a.company.founded || (d.dateStarted.slice(0,4));
+    if (d.netWorth) a.company.netWorth = d.netWorth;
+    if (d.bankLineAmount) a.company.bankLine = d.bankLineAmount;
+
+    // Owners → indemnitors
+    a.indemnitors = a.indemnitors || [];
+    (d.owners || []).forEach(o => {
+      if (!o.name) return;
+      if (a.indemnitors.some(x => x.name && x.name.toLowerCase() === o.name.toLowerCase())) return;
+      a.indemnitors.push({
+        id: U.uid('I'), name: o.name, type: 'Personal',
+        ssnEin: o.ssn || '', spouse: o.spouseName || '',
+        position: o.title || '', ownership: o.pctOwned || 0,
+        netWorth: 0, liquid: 0, pfsDate: null,
+      });
+    });
+
+    // Determine primary bond type from the selectedTypes checklist
+    const st = d.selectedTypes || {};
+    let bondType;
+    if (st.bid)                            bondType = 'Bid';
+    else if (st.pp || st.subpp || st.standalone) bondType = 'Payment & Performance';
+    else if (st.supply)                    bondType = 'License/Permit';
+    else                                   bondType = 'Bid';
+
+    const amount = (bondType === 'Bid')
+      ? (d.bb_estBid || d.estimatedBid || 0)
+      : (d.contractPrice || d.estimatedBid || 0);
+    const dueDate = (bondType === 'Bid')
+      ? (d.bb_bidDate || d.bidDate)
+      : (d.contractDate || d.startDate);
+
+    const typeSpecific = (bondType === 'Bid')
+      ? {
+          bidOpenDate: d.bb_bidDate || d.bidDate || null,
+          bidPercent:  d.bb_pct || '',
+          estimatedContractValue: d.bb_estBid || d.estimatedBid || null,
+          engineerEstimate: d.bb_engEst || null,
+        }
+      : (bondType === 'Payment & Performance')
+      ? {
+          contractDate: d.contractDate || null,
+          contractType: null,
+          projectStart: d.startDate || null,
+          warrantyPeriodMonths: null,
+          performancePct: 100,
+          paymentPct: 100,
+        }
+      : {
+          licenseType: 'Supply Bond',
+          issuingAuthority: d.obligee || '',
+        };
+
+    const notes = [d.jobLegal, d.jobAddress].filter(Boolean).join(' — ');
+    _createOpportunity(f, a, {
+      bondType,
+      amount,
+      obligee: d.obligee,
+      dueDate,
+      notes,
+      typeSpecific,
+      probability: 35,
+      activityNote: `Bond Express Application submitted online. Selected types: ${Object.entries(st).filter(([k,v]) => v).map(([k]) => k).join(', ') || 'none'}.`,
+    });
+  }
+
   // -------- Agency-side panel for lead/account modals --------
   function panel(entityKind, entity) {
     const all = DB.intakes();
@@ -1117,9 +2051,16 @@ window.Intake = (() => {
       ? { leadId: id, contactName: entity.contactName, contactEmail: entity.email }
       : { accountId: id, contactName: entity.contact || entity.contacts?.[0]?.name || '', contactEmail: entity.email || entity.contacts?.[0]?.email || '' };
 
-    const buttons = ['cq','pfs','wip'].map(t =>
-      `<button class="btn-secondary" onclick='Intake.send("${t}", ${JSON.stringify(ctx).replace(/'/g,"&apos;")})'>+ Send ${typeLabel(t)}</button>`
-    ).join(' ');
+    const ctxJson = JSON.stringify(ctx).replace(/'/g,"&apos;");
+    const btn = (t) => `<button class="btn-secondary" onclick='Intake.send("${t}", ${ctxJson})'>+ ${typeLabel(t)}</button>`;
+    const uwGroup     = ['cq','pfs','wip'].map(btn).join(' ');
+    const bondReqGroup= ['contractBRF','commercialBRF','subdivisionApp','bondExpress'].map(btn).join(' ');
+    const buttons = `
+      <div class="text-[11px] uppercase tracking-wider text-ink-300 font-display mb-1">Underwriting (populates account)</div>
+      <div class="flex flex-wrap items-center gap-2 mb-3">${uwGroup}</div>
+      <div class="text-[11px] uppercase tracking-wider text-ink-300 font-display mb-1">Bond Request (creates opportunity)</div>
+      <div class="flex flex-wrap items-center gap-2">${bondReqGroup}</div>
+    `;
 
     return `
       <div class="card mb-4">
@@ -1128,9 +2069,7 @@ window.Intake = (() => {
           <span class="text-xs text-ink-300">${linked.length} sent · ${linked.filter(f=>f.status==='submitted').length} pending import · ${linked.filter(f=>f.status==='imported').length} imported</span>
         </div>
         <div class="p-3">
-          <div class="flex flex-wrap items-center gap-2 mb-3">
-            ${buttons}
-          </div>
+          <div class="mb-3">${buttons}</div>
           ${linked.length ? `
             <table class="tbl">
               <thead><tr><th>Form</th><th>To</th><th>Status</th><th>Sent</th><th>Submitted</th><th></th></tr></thead>

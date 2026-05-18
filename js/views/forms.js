@@ -348,7 +348,8 @@ Views.forms = {
   openSendNew() {
     const body = `
       <p class="text-sm text-ink-400 mb-3">Pick a form, choose who it's going to, and BondVault will generate a tokenized link the recipient can fill in online.</p>
-      <div class="grid grid-cols-3 gap-3 mb-4">
+      <div class="text-[11px] uppercase tracking-wider text-ink-300 font-display mb-1">Underwriting Forms (populates account)</div>
+      <div class="grid grid-cols-3 gap-3 mb-3">
         ${[
           ['cq',  'Contractor Questionnaire'],
           ['pfs', 'Personal Financial Statement'],
@@ -357,6 +358,20 @@ Views.forms = {
           <label class="border border-cream-300 rounded-lg p-3 cursor-pointer hover:bg-cream-50">
             <input type="radio" name="sf-type" value="${t}" class="chk" ${t==='cq'?'checked':''}>
             <span class="ml-2 font-medium">${U.esc(label)}</span>
+          </label>`).join('')}
+      </div>
+      <div class="text-[11px] uppercase tracking-wider text-ink-300 font-display mb-1">Bond Request Forms (creates opportunity)</div>
+      <div class="grid grid-cols-2 gap-3 mb-4">
+        ${[
+          ['contractBRF',    'Contract Bond Request',           'Bid / Performance / Payment / Maintenance'],
+          ['commercialBRF',  'Commercial Bond Request',         'License & Permit / Court / Public Official / Misc.'],
+          ['subdivisionApp', 'Subdivision Bond Application',    'Developer / site improvement (up to $2M)'],
+          ['bondExpress',    'Bond Express Application',        'Fast-track single bond < $1M'],
+        ].map(([t,label,sub]) => `
+          <label class="border border-cream-300 rounded-lg p-3 cursor-pointer hover:bg-cream-50 block">
+            <input type="radio" name="sf-type" value="${t}" class="chk">
+            <span class="ml-2 font-medium">${U.esc(label)}</span>
+            <div class="text-xs text-ink-300 ml-6">${U.esc(sub)}</div>
           </label>`).join('')}
       </div>
 
