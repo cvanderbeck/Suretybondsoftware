@@ -1475,7 +1475,15 @@ window.Intake = (() => {
   }
 
   function typeLabel(t) {
-    return { cq: 'Contractor Questionnaire', pfs: 'Personal Financial Statement', wip: 'WIP Schedule' }[t] || t;
+    return {
+      cq:             'Contractor Questionnaire',
+      pfs:            'Personal Financial Statement',
+      wip:            'WIP Schedule',
+      contractBRF:    'Contract Bond Request Form',
+      commercialBRF:  'Commercial Bond Request Form',
+      subdivisionApp: 'Subdivision Bond Application',
+      bondExpress:    'Bond Express Application',
+    }[t] || t;
   }
 
   function send(type, ctx = {}) {
@@ -1936,7 +1944,7 @@ window.Intake = (() => {
       bondType, amount, obligee: d.obligee, dueDate, notes,
       typeSpecific, issuance,
       probability: isBid ? 30 : 40,
-      activityNote: `Contract Bond Request (${d.bondType}) submitted online. Needed ${U.date(d.neededDate)}.`,
+      activityNote: `Contract Bond Request Form (${d.bondType}) submitted online. Needed ${U.date(d.neededDate)}.`,
     });
   }
 
