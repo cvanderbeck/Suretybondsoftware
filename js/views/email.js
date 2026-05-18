@@ -20,7 +20,7 @@ Views.email = {
 
       <div class="border-b border-slate-200 mb-5 flex gap-1">
         ${this._tabBtn('mail',      'Mail')}
-        ${this._tabBtn('templates', 'Templates (' + DB.templates().length + ')')}
+        <button onclick="App.go('templates')" class="px-3 py-2 text-sm text-ink-400 hover:text-ink-700 border-b-2 border-transparent">Templates (${DB.templates().length}) →</button>
         ${this._tabBtn('rules',     'Mapping Rules')}
       </div>
 
