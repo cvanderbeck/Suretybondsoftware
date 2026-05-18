@@ -2,6 +2,17 @@ window.App = (() => {
   const DEFAULT_VIEW = 'dashboard';
 
   function go(view) {
+    // Public intake routing — accepts paths like "intake/cq/<token>"
+    if (typeof view === 'string' && view.startsWith('intake')) {
+      const parts = view.split('/').filter(Boolean);
+      const type  = parts[1];
+      const token = parts[2] ? decodeURIComponent(parts[2]) : null;
+      document.body.classList.add('intake-mode');
+      Views.intake.render({ type, token });
+      location.hash = '#/' + view;
+      return;
+    }
+    document.body.classList.remove('intake-mode');
     if (!Views[view]) view = DEFAULT_VIEW;
     document.querySelectorAll('.nav-link').forEach(el => el.classList.toggle('active', el.dataset.view === view));
     Views[view].render();

@@ -1,6 +1,6 @@
 // ---------- Sample / seed data, persistence layer ----------
 window.DB = (() => {
-  const KEY = 'bondvault.db.v10';
+  const KEY = 'bondvault.db.v11';
 
   const sampleData = () => ({
     accounts: [
@@ -459,6 +459,59 @@ Thanks,
 {{agency_name}} · {{agency_phone}}`,
       },
       {
+        id: 'T-intake-cq',
+        name: 'Intake — Contractor Questionnaire link',
+        category: 'Lead',
+        subject: 'Online Contractor Questionnaire for {{lead_company}}',
+        body: `Hi {{contact_first}},
+
+To get the underwriting process moving, please fill out our online Contractor Questionnaire — it's the standard package the sureties expect:
+
+  {{intake_link}}
+
+It takes about 15–20 minutes. You can save and come back. When you submit, it automatically populates your file on our end so we can turn around a capacity letter quickly.
+
+If you have your latest financial statements, WIP schedule, and Personal Financial Statements handy, this is a good time to email those over too.
+
+Thanks,
+{{producer_name}}
+{{agency_name}} · {{agency_phone}}`,
+      },
+      {
+        id: 'T-intake-pfs',
+        name: 'Intake — Personal Financial Statement link',
+        category: 'Underwriting',
+        subject: 'Personal Financial Statement — {{contact_name}}',
+        body: `Hi {{contact_first}},
+
+The surety needs an updated Personal Financial Statement from each indemnitor. You can fill out yours securely online here:
+
+  {{intake_link}}
+
+It auto-fills your file on our side as soon as you submit. Schedules A (banks), B (investments), and C (real estate) are the typical detail the underwriter wants.
+
+Thanks,
+{{producer_name}}
+{{agency_name}}`,
+      },
+      {
+        id: 'T-intake-wip',
+        name: 'Intake — WIP Schedule link',
+        category: 'Underwriting',
+        subject: 'Updated WIP Schedule needed — {{account_name}}',
+        body: `Hi {{contact_first}},
+
+Time for an updated Work-in-Progress schedule. You can enter it online here:
+
+  {{intake_link}}
+
+Best to do it as of your most recent month-end so the numbers tie to your interim financials.
+
+Thanks,
+{{producer_name}}
+{{agency_name}}`,
+      },
+      {
         id: 'T-lead-application',
         name: 'Lead — Application & Indemnity Package Sent',
         category: 'Lead',
@@ -618,6 +671,78 @@ Thanks,
       { id: 'R-006', bondId: 'B-2409', status: 'decided',      decision: 'release', newAmount: null,    contactedDate: '2026-05-06', nextFollowUp: null,         assignedTo: 'Casey V.', notes: [
         { date: '2026-05-06', author: 'Casey V.', text: 'Northridge confirmed library renovation completed and accepted. Obligee letter of release received — bond will be cancelled flat.' },
       ] },
+    ],
+    intakeForms: [
+      // A CQ that's been sent to Tony at Cascade Stone (lead L-001), not yet returned.
+      { id: 'IF-1001', type: 'cq', token: 'cq-demo-tony', status: 'sent',
+        leadId: 'L-001', accountId: null,
+        contactName: 'Tony Miura', contactEmail: 'tony@cascadestone.example',
+        sentDate: '2026-05-12', submittedDate: null, importedDate: null,
+        data: {} },
+
+      // A PFS already submitted by Brent Cho (lead L-003) — ready for import / imported.
+      { id: 'IF-1002', type: 'pfs', token: 'pfs-demo-brent', status: 'submitted',
+        leadId: 'L-003', accountId: null,
+        contactName: 'Brent Cho', contactEmail: 'brent@whitewaterearth.example',
+        sentDate: '2026-05-02', submittedDate: '2026-05-09', importedDate: null,
+        data: {
+          asOf: '2026-05-08',
+          fullName: 'Brent Cho', dob: '1976-04-12', ssn: 'xxx-xx-4421',
+          spouseName: 'Lila Cho', spouseDob: '1978-08-30', spouseSsn: 'xxx-xx-9988',
+          businessName: 'Whitewater Earthworks LLC', phone: '(503) 555-0277', email: 'brent@whitewaterearth.example',
+          street: '900 Wasco Loop', cityStateZip: 'Hood River, OR 97031',
+          hasWill: true, bankruptcy: false,
+          accountantName: 'Vargas CPA, PC', accountantPhone: '(503) 555-0301',
+          attorneyName: 'Holm & Co., LLP', attorneyPhone: '(503) 555-0455',
+          assets: {
+            cashPrimary: 320000, cashOther: 180000, stocks: 540000,
+            receivables: 90000, realEstate: 2400000, surrenderValue: 175000,
+            businessVentures: 4200000, personalProperty: 95000, autos: 220000, other: 65000,
+          },
+          liabilities: {
+            unsecured: 0, currentBills: 18000, payable: 12000,
+            mortgages: 920000, secured: 110000, taxes: 0, other: 0,
+          },
+          schedules: {
+            banks: [
+              { name: 'Columbia Bank',   location: 'Hood River, OR', type: 'Checking', amount: 220000 },
+              { name: 'Columbia Bank',   location: 'Hood River, OR', type: 'Savings',  amount: 100000 },
+              { name: 'Fidelity',        location: 'Brokerage',      type: 'Cash',     amount: 180000 },
+            ],
+            stocks: [
+              { name: 'VTSAX',  shares: 1800, par: '',    market: 320000, dividends: 6200, pledged: '' },
+              { name: 'AAPL',   shares: 400,  par: '',    market: 95000,  dividends: 380,  pledged: '' },
+              { name: 'BRK.B',  shares: 350,  par: '',    market: 125000, dividends: 0,    pledged: '' },
+            ],
+            realEstate: [
+              { address: '900 Wasco Loop, Hood River, OR', titleHolder: 'Brent & Lila Cho', monthlyRent: 0, marketValue: 1450000, mortgageBalance: 580000 },
+              { address: 'Investment — 14 Riverside Dr, Hood River, OR', titleHolder: 'Cho Family Trust', monthlyRent: 3400, marketValue: 950000, mortgageBalance: 340000 },
+            ],
+          },
+          contingent: { contingentLiabilities: 0, lawsuits: 0, taxLiens: 0, other: '' },
+          references: [
+            { name: 'Columbia Bank — Mara Yu', relationship: 'Banking', phone: '(503) 555-0901', address: 'Hood River, OR' },
+          ],
+          signed: true, signedDate: '2026-05-09',
+        },
+      },
+
+      // A WIP form already filled in by Cascade Mechanical Co. (account A-1002).
+      { id: 'IF-1003', type: 'wip', token: 'wip-demo-cascade', status: 'submitted',
+        leadId: null, accountId: 'A-1002',
+        contactName: 'Mike Trillo', contactEmail: 'mike@cascademech.com',
+        sentDate: '2026-04-30', submittedDate: '2026-05-04', importedDate: null,
+        data: {
+          contractorName: 'Cascade Mechanical Co.', reportDate: '2026-04-30', fiscalYearEnd: '2025-12-31',
+          inProgress: [
+            { jobName: 'McKay HS HVAC Replacement', contract: 480000, changeOrders: 0, revisedContract: 480000, estTotalCost: 425000, costsToDate: 38000, percentComplete: 9, earnedRevenue: 43000, billedToDate: 28000, underBilling: 15000, overBilling: 0, estGrossProfit: 55000, gpPercent: 11.5 },
+            { jobName: 'Marion County Roof Top Units', contract: 285000, changeOrders: 12000, revisedContract: 297000, estTotalCost: 252000, costsToDate: 168000, percentComplete: 67, earnedRevenue: 199000, billedToDate: 215000, underBilling: 0, overBilling: 16000, estGrossProfit: 45000, gpPercent: 15.2 },
+          ],
+          completed: [
+            { jobName: 'Cherriots HVAC Maint.', finalContract: 92000, finalCost: 78000, grossProfit: 14000 },
+          ],
+        },
+      },
     ],
     automationTemplates: [
       {
@@ -948,6 +1073,9 @@ Thanks,
     leads:      () => (state.leads = state.leads || []),
     automations: () => (state.automationTemplates = state.automationTemplates || []),
     todoTemplates: () => (state.todoTemplates = state.todoTemplates || []),
+    intakes:     () => (state.intakeForms = state.intakeForms || []),
+    findIntake:  (id) => (state.intakeForms || []).find(f => f.id === id),
+    intakeByToken: (token) => (state.intakeForms || []).find(f => f.token === token),
     leadStages: () => (state.leadStages = state.leadStages || [
       'New Lead','Contacted','Qualified','Application Sent',
       'Submitted to Surety','Approved','Onboarded','Lost / No Fit',

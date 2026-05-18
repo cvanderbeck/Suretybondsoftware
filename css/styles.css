@@ -38,3 +38,8 @@ body {
 @media print {
   aside, header, #toast-root { display: none !important; }
 }
+
+/* Intake mode — public form pages have no app chrome */
+body.intake-mode aside,
+body.intake-mode header { display: none !important; }
+body.intake-mode main { background: #faf3e3; }

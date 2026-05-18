@@ -248,6 +248,8 @@ Views.leads = {
 
       ${Views.templates.renderTasksCard('lead', l.id, l)}
 
+      ${Intake.panel('lead', l)}
+
       <div class="card">
         <div class="card-header">
           <div class="card-title">Activity Log</div>

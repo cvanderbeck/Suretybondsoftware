@@ -283,6 +283,8 @@ Views.accounts = {
 
       ${Views.templates.renderTasksCard('account', a.id, a)}
 
+      ${Intake.panel('account', a)}
+
       <div class="grid grid-cols-2 gap-4">
         <div class="card">
           <div class="card-header"><div class="card-title">Primary Contact</div>
