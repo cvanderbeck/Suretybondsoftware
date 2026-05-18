@@ -33,6 +33,32 @@ Views.dashboard = {
         </div>
       </div>
 
+      ${(() => {
+        const dupes = (window.Duplicates ? Duplicates.detect() : []);
+        const pending = DB.intakes ? DB.intakes().filter(f => f.status === 'submitted').length : 0;
+        const alerts = [];
+        if (pending) alerts.push({
+          color: 'bg-violet-50 border-violet-200 text-violet-800',
+          icon: '📨',
+          html: `<b>${pending} intake form${pending===1?'':'s'}</b> submitted and waiting to be imported.`,
+          cta: `<button class="btn-secondary text-violet-800" onclick="App.go('forms'); setTimeout(()=>Views.forms._setSection('pending'), 50);">Review →</button>`,
+        });
+        if (dupes.length) alerts.push({
+          color: 'bg-rose-50 border-rose-200 text-rose-800',
+          icon: '⚠',
+          html: `<b>${dupes.length} possible duplicate account group${dupes.length===1?'':'s'}</b> detected — review and merge.`,
+          cta: `<button class="btn-secondary text-rose-800" onclick="App.go('forms'); setTimeout(()=>Views.forms._setSection('duplicates'), 50);">Resolve →</button>`,
+        });
+        if (!alerts.length) return '';
+        return `<div class="space-y-2 mb-5">
+          ${alerts.map(a => `
+            <div class="${a.color} border rounded-lg px-4 py-2 flex items-center justify-between text-sm">
+              <div><span class="mr-2">${a.icon}</span>${a.html}</div>
+              ${a.cta}
+            </div>`).join('')}
+        </div>`;
+      })()}
+
       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         <div class="stat-card">
           <div class="stat-label">Active Bonds</div>

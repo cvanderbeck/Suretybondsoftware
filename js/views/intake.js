@@ -881,37 +881,90 @@ window.Intake = (() => {
     f.importedDate = new Date().toISOString().slice(0,10);
     DB.save();
     if (!opts.silent) U.toast(`Imported ${typeLabel(f.type)} into account data`);
+
+    // After importing, check if the resulting account has likely
+    // duplicates and prompt the user to merge.
+    if (window.Duplicates && f.accountId && !opts.skipDuplicateCheck) {
+      const a = DB.findAccount(f.accountId);
+      const matches = a ? Duplicates.findMatches(a) : [];
+      if (matches.length && !opts.silent) {
+        setTimeout(() => Views.forms && Views.forms.promptMerge(a, matches), 250);
+      }
+    }
   }
 
-  function _ensureAccountFromCQ(f) {
+  // Find or create an account for an intake form.
+  // Matching priority is intentional:
+  //   1. Producer explicitly bound (form.accountId)
+  //   2. Email match  ← strongest identity signal
+  //   3. Lead-link + matching email
+  //   4. EIN match
+  //   5. Exact normalized name
+  //   6. Create new — a NEW email always creates a new account
+  function _ensureAccountFor(f, kind) {
     if (f.accountId) return DB.findAccount(f.accountId);
-    // Try to find by lead's converted account
+
+    const d = f.data || {};
+    const fields = (kind === 'cq')  ? { businessName: d.businessName, contactName: d.contactName, contactEmail: d.contactEmail, taxId: d.taxId, phone: d.phone, address: d.address }
+                  : (kind === 'pfs') ? { businessName: d.businessName, contactName: d.fullName,    contactEmail: d.email,        taxId: '',       phone: d.phone, address: d.street  }
+                  :                    { businessName: d.contractorName, contactName: '',           contactEmail: '',             taxId: '',       phone: '',      address: ''        };
+
+    const normEmail = (e) => (e || '').toLowerCase().trim();
+    const submittedEmail = normEmail(fields.contactEmail);
+
+    // 2. Match by submitted email against account.email or any contact.email
+    if (submittedEmail) {
+      const byEmail = DB.accounts().find(a =>
+        normEmail(a.email) === submittedEmail ||
+        (a.contacts || []).some(c => normEmail(c.email) === submittedEmail)
+      );
+      if (byEmail) return byEmail;
+    }
+
+    // 3. Lead-link, but only if the submitted email matches the lead's email
     if (f.leadId) {
       const lead = DB.findLead(f.leadId);
-      if (lead?.convertedAccountId) return DB.findAccount(lead.convertedAccountId);
+      if (lead?.convertedAccountId && submittedEmail && normEmail(lead.email) === submittedEmail) {
+        return DB.findAccount(lead.convertedAccountId);
+      }
     }
-    const d = f.data || {};
-    // Match by business name + EIN
-    let acct = DB.accounts().find(a =>
-      (a.taxId && d.taxId && a.taxId === d.taxId) ||
-      (a.name && d.businessName && a.name.toLowerCase() === d.businessName.toLowerCase())
-    );
-    if (acct) return acct;
-    // Create new account
-    const id = U.uid('A');
-    acct = {
-      id, name: d.businessName || 'New Account', dba: '', type: 'Contractor',
-      contact: d.contactName || '', email: d.contactEmail || '', phone: d.phone || '',
-      address: d.address || '', city: '', state: '', zip: '',
-      taxId: d.taxId || '', credit: 0,
-      notes: `Auto-created from CQ intake on ${new Date().toISOString().slice(0,10)}.`,
+
+    // 4. EIN match
+    if (fields.taxId) {
+      const byEin = DB.accounts().find(a => a.taxId && a.taxId === fields.taxId);
+      if (byEin) return byEin;
+    }
+
+    // 5. Exact normalized name (catches "Northridge Builders" vs "Northridge Builders LLC")
+    if (fields.businessName && window.Duplicates) {
+      const target = Duplicates.normName(fields.businessName);
+      if (target && target.length > 3) {
+        const byName = DB.accounts().find(a => Duplicates.normName(a.name) === target);
+        if (byName) return byName;
+      }
+    }
+
+    // 6. Create new account
+    const acct = {
+      id: U.uid('A'),
+      name: fields.businessName || 'New Account', dba: '', type: 'Contractor',
+      contact: fields.contactName || '',
+      email:   fields.contactEmail || '',
+      phone:   fields.phone || '',
+      address: fields.address || '', city: '', state: '', zip: '',
+      taxId:   fields.taxId || '', credit: 0,
+      notes: `Auto-created from ${kind.toUpperCase()} intake on ${new Date().toISOString().slice(0,10)}.`,
       company: {}, contacts: [], indemnitors: [],
       renewals: { financialsLast: null, financialsInterval: 365, wipLast: null, wipInterval: 90 },
+      createdFromIntake: true,
     };
     DB.accounts().push(acct);
     if (window.Files && Files.provisionAccount) Files.provisionAccount(acct, { silent: true });
     return acct;
   }
+
+  // Back-compat shim
+  function _ensureAccountFromCQ(f) { return _ensureAccountFor(f, 'cq'); }
 
   function _importCQ(f) {
     const d = f.data || {};
@@ -985,27 +1038,8 @@ window.Intake = (() => {
 
   function _importPFS(f) {
     const d = f.data || {};
-    // Determine target account
-    let a = f.accountId ? DB.findAccount(f.accountId) : null;
-    if (!a && f.leadId) {
-      const lead = DB.findLead(f.leadId);
-      if (lead?.convertedAccountId) a = DB.findAccount(lead.convertedAccountId);
-    }
-    if (!a) {
-      // Create a minimal account from the PFS business name if any
-      const id = U.uid('A');
-      a = {
-        id, name: d.businessName || (d.fullName + ' (Personal)') || 'New Account', dba: '', type: 'Contractor',
-        contact: d.fullName || '', email: d.email || '', phone: d.phone || '',
-        address: d.street || '', city: '', state: '', zip: '',
-        taxId: '', credit: 0,
-        notes: `Auto-created from PFS intake on ${new Date().toISOString().slice(0,10)}.`,
-        company: {}, contacts: [], indemnitors: [],
-        renewals: { financialsLast: null, financialsInterval: 365, wipLast: null, wipInterval: 90 },
-      };
-      DB.accounts().push(a);
-      if (window.Files && Files.provisionAccount) Files.provisionAccount(a, { silent: true });
-    }
+    const a = _ensureAccountFor(f, 'pfs');
+    if (!a) return;
     f.accountId = a.id;
 
     // Compute net worth + liquid
@@ -1035,23 +1069,8 @@ window.Intake = (() => {
 
   function _importWIP(f) {
     const d = f.data || {};
-    let a = f.accountId ? DB.findAccount(f.accountId) : null;
-    if (!a) {
-      a = DB.accounts().find(x => (d.contractorName || '').toLowerCase() === (x.name || '').toLowerCase());
-    }
-    if (!a) {
-      // Create new
-      const id = U.uid('A');
-      a = {
-        id, name: d.contractorName || 'New Account', dba: '', type: 'Contractor',
-        contact: '', email: '', phone: '', address: '', city: '', state: '', zip: '',
-        taxId: '', credit: 0, notes: `Auto-created from WIP intake on ${new Date().toISOString().slice(0,10)}.`,
-        company: {}, contacts: [], indemnitors: [],
-        renewals: { financialsLast: null, financialsInterval: 365, wipLast: null, wipInterval: 90 },
-      };
-      DB.accounts().push(a);
-      if (window.Files && Files.provisionAccount) Files.provisionAccount(a, { silent: true });
-    }
+    const a = _ensureAccountFor(f, 'wip');
+    if (!a) return;
     f.accountId = a.id;
 
     // Apply WIP to matching bonds by project / job name (fuzzy)

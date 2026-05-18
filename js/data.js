@@ -1,6 +1,6 @@
 // ---------- Sample / seed data, persistence layer ----------
 window.DB = (() => {
-  const KEY = 'bondvault.db.v11';
+  const KEY = 'bondvault.db.v12';
 
   const sampleData = () => ({
     accounts: [
@@ -149,6 +149,33 @@ window.DB = (() => {
         ],
         renewals: { financialsLast: '2026-01-05', financialsInterval: 365, wipLast: '2026-03-15', wipInterval: 90 },
         notes: 'Emerging electrical contractor. CSLB bond just issued.',
+      },
+      // --- Two duplicate-style records so the Duplicate Accounts tool has something to detect ---
+      {
+        id: 'A-1008', name: 'Redwood Electrical Company', dba: '', type: 'Contractor',
+        contact: 'D. Park', email: 'diane@redwoodelectric.com', phone: '(415) 555-0144',
+        address: '800 Embarcadero', city: 'Oakland', state: 'CA', zip: '94606',
+        taxId: '94-6655122', credit: 720,
+        company: { legalName: 'Redwood Electrical Company', entityType: '', stateOfFormation: 'CA', founded: '', naics: '', website: '', grossRevenue: 0, employees: 0, singleLimit: 0, aggregateLimit: 0 },
+        contacts: [
+          { id: 'C-1008a', name: 'D. Park', title: 'Owner', email: 'diane@redwoodelectric.com', phone: '(415) 555-0144', primary: true },
+        ],
+        indemnitors: [],
+        renewals: {},
+        notes: 'Created accidentally on 2026-04-30 when CQ was submitted under a slightly different business name. Should merge into A-1007.',
+      },
+      {
+        id: 'A-1009', name: 'Northridge Builders', dba: '', type: 'Contractor',
+        contact: 'Janet Pierce', email: 'jpierce@northridgebuilders.com', phone: '(503) 555-0142',
+        address: '742 NE Broadway', city: 'Portland', state: 'OR', zip: '97232',
+        taxId: '', credit: 0,
+        company: {},
+        contacts: [
+          { id: 'C-1009a', name: 'Janet Pierce', title: 'President', email: 'jpierce@northridgebuilders.com', phone: '(503) 555-0142', primary: true },
+        ],
+        indemnitors: [],
+        renewals: {},
+        notes: 'Inquiry imported from generic web form before we knew the LLC suffix. Likely duplicate of A-1001.',
       },
     ],
     bonds: (() => {
