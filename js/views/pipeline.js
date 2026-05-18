@@ -159,6 +159,8 @@ Views.pipeline = {
         </div>
       </div>
 
+      ${this._issuanceCard(it)}
+
       <div class="card mb-4">
         <div class="card-header">
           <div class="card-title">${U.esc(BondTypes.normalize(it.bondType) || 'Bond')} — Type-Specific Details</div>
@@ -258,6 +260,115 @@ Views.pipeline = {
     if (wrap) wrap.innerHTML = BondTypes.renderFields(newType, { typeSpecific: {} });
   },
 
+  // ---------- Bond Forms & Delivery card ----------
+  _issuanceCard(it) {
+    const i = it.issuance || {};
+    const formsType    = i.bondFormsType    || 'aia';      // 'aia' | 'specific'
+    const deliveryMode = i.deliveryMethod   || 'electronic'; // 'electronic' | 'fedex'
+
+    return `
+      <div class="card mb-4">
+        <div class="card-header">
+          <div class="card-title">Bond Forms &amp; Delivery</div>
+          <span class="text-xs text-ink-300 italic">Issuance details — carried into the bond on convert</span>
+        </div>
+        <div class="p-4 grid grid-cols-2 gap-3">
+          <div class="col-span-2"><div class="field-label">Legal Job Description</div>
+            <textarea id="pl-legaljob" class="field-textarea" rows="2" placeholder="Full legal name of the project as it should appear on the bond.">${U.esc(i.legalJobDescription||'')}</textarea>
+          </div>
+          <div class="col-span-2"><div class="field-label">Identifying Numbers</div>
+            <input id="pl-idnums" class="field-input font-mono" value="${U.esc(i.identifyingNumbers||'')}" placeholder="Project # / Contract # / RFP # / Bid # / Solicitation #">
+          </div>
+
+          <div class="col-span-2">
+            <div class="field-label">Bond Forms Required</div>
+            <div class="flex gap-4 mt-1">
+              <label class="flex items-center gap-2 text-sm">
+                <input type="radio" name="pl-bondforms" value="aia" ${formsType==='aia'?'checked':''} onchange="Views.pipeline._onIssuanceChange()">
+                AIA Standard Forms (A310 / A312)
+              </label>
+              <label class="flex items-center gap-2 text-sm">
+                <input type="radio" name="pl-bondforms" value="specific" ${formsType==='specific'?'checked':''} onchange="Views.pipeline._onIssuanceChange()">
+                Specific Bond Forms Required
+              </label>
+            </div>
+          </div>
+          <div class="col-span-2" id="pl-specific-wrap" style="${formsType==='specific'?'':'display:none'}">
+            <div class="field-label">Required Bond Forms</div>
+            <textarea id="pl-bondforms-specific" class="field-textarea" rows="2" placeholder="Describe the specific bond form(s) required and where to find them (e.g. 'City of Portland Performance Bond — Form CB-12, attached to RFP'). Attach forms to the Documents library.">${U.esc(i.bondFormsSpecific||'')}</textarea>
+          </div>
+
+          <div class="col-span-2 mt-2">
+            <div class="field-label">Delivery Method</div>
+            <div class="flex gap-4 mt-1">
+              <label class="flex items-center gap-2 text-sm">
+                <input type="radio" name="pl-delivery" value="electronic" ${deliveryMode==='electronic'?'checked':''} onchange="Views.pipeline._onIssuanceChange()">
+                Electronic (e-signed)
+              </label>
+              <label class="flex items-center gap-2 text-sm">
+                <input type="radio" name="pl-delivery" value="fedex" ${deliveryMode==='fedex'?'checked':''} onchange="Views.pipeline._onIssuanceChange()">
+                FedEx
+              </label>
+            </div>
+          </div>
+
+          <div class="col-span-2" id="pl-fedex-wrap" style="${deliveryMode==='fedex'?'':'display:none'}">
+            <div class="field-label">FedEx Delivery Address</div>
+            <textarea id="pl-deliveryaddr" class="field-textarea" rows="3" placeholder="Full mailing address — recipient name, company, street, suite, city, state, ZIP">${U.esc(i.deliveryAddress||'')}</textarea>
+          </div>
+
+          <div class="col-span-2" id="pl-electronic-wrap" style="${deliveryMode==='electronic'?'':'display:none'}">
+            <div class="text-[11px] font-semibold text-ink-400 uppercase tracking-wider mb-2">Signer (Authorized Principal Representative)</div>
+            <div class="grid grid-cols-3 gap-3">
+              <div><div class="field-label">Full Name</div>
+                <input id="pl-signer-name" class="field-input" value="${U.esc(i.signerName||'')}"></div>
+              <div><div class="field-label">Title</div>
+                <input id="pl-signer-title" class="field-input" value="${U.esc(i.signerTitle||'')}"></div>
+              <div><div class="field-label">Email</div>
+                <input id="pl-signer-email" type="email" class="field-input" value="${U.esc(i.signerEmail||'')}"></div>
+            </div>
+            <div class="text-[11px] font-semibold text-ink-400 uppercase tracking-wider mb-2 mt-3">Witness</div>
+            <div class="grid grid-cols-2 gap-3">
+              <div><div class="field-label">Full Name</div>
+                <input id="pl-witness-name" class="field-input" value="${U.esc(i.witnessName||'')}"></div>
+              <div><div class="field-label">Email</div>
+                <input id="pl-witness-email" type="email" class="field-input" value="${U.esc(i.witnessEmail||'')}"></div>
+            </div>
+          </div>
+        </div>
+      </div>`;
+  },
+
+  _onIssuanceChange() {
+    const forms = document.querySelector('input[name="pl-bondforms"]:checked')?.value || 'aia';
+    const delivery = document.querySelector('input[name="pl-delivery"]:checked')?.value || 'electronic';
+    const specWrap  = document.getElementById('pl-specific-wrap');
+    const fedexWrap = document.getElementById('pl-fedex-wrap');
+    const elecWrap  = document.getElementById('pl-electronic-wrap');
+    if (specWrap)  specWrap.style.display  = forms === 'specific' ? '' : 'none';
+    if (fedexWrap) fedexWrap.style.display = delivery === 'fedex' ? '' : 'none';
+    if (elecWrap)  elecWrap.style.display  = delivery === 'electronic' ? '' : 'none';
+  },
+
+  _readIssuance() {
+    const forms = document.querySelector('input[name="pl-bondforms"]:checked')?.value || 'aia';
+    const delivery = document.querySelector('input[name="pl-delivery"]:checked')?.value || 'electronic';
+    const get = (id) => { const el = document.getElementById(id); return el ? el.value : ''; };
+    return {
+      legalJobDescription: get('pl-legaljob'),
+      identifyingNumbers:  get('pl-idnums'),
+      bondFormsType:       forms,
+      bondFormsSpecific:   forms === 'specific' ? get('pl-bondforms-specific') : '',
+      deliveryMethod:      delivery,
+      deliveryAddress:     delivery === 'fedex' ? get('pl-deliveryaddr') : '',
+      signerName:          delivery === 'electronic' ? get('pl-signer-name')  : '',
+      signerTitle:         delivery === 'electronic' ? get('pl-signer-title') : '',
+      signerEmail:         delivery === 'electronic' ? get('pl-signer-email') : '',
+      witnessName:         delivery === 'electronic' ? get('pl-witness-name')  : '',
+      witnessEmail:        delivery === 'electronic' ? get('pl-witness-email') : '',
+    };
+  },
+
   _onResultChange() {
     const sel = document.getElementById('pl-result');
     if (!sel) return;
@@ -299,6 +410,7 @@ Views.pipeline = {
     it.probability = +document.getElementById('pl-prob').value;
     it.notes     = document.getElementById('pl-notes').value;
     it.typeSpecific = BondTypes.readFields(it.bondType);
+    it.issuance     = this._readIssuance();
 
     // Bid result fields
     const newResult = document.getElementById('pl-result').value;
@@ -444,6 +556,7 @@ Views.pipeline = {
       sentToPrincipal:  document.getElementById('cv-sent').value || null,
       // Carry the opportunity's type-specific details into the new bond
       typeSpecific: it.typeSpecific ? JSON.parse(JSON.stringify(it.typeSpecific)) : {},
+      issuance:     it.issuance     ? JSON.parse(JSON.stringify(it.issuance))     : {},
     };
     DB.bonds().push(newBond);
     it.stage = 'Awarded - Ready to Issue';

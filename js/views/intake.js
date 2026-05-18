@@ -1790,6 +1790,7 @@ window.Intake = (() => {
       probability: payload.probability != null ? payload.probability : 25,
       bidResult: 'pending',
       typeSpecific: payload.typeSpecific || {},
+      issuance:     payload.issuance || {},
       activity: [{
         id: U.uid('AC'),
         date: new Date().toISOString(),
@@ -1856,9 +1857,26 @@ window.Intake = (() => {
         };
 
     const notes = [d.projectName, d.scope].filter(Boolean).join(' — ');
+
+    // Issuance details from the BRF
+    const delivery = (d.deliveryMethod || '').toLowerCase().includes('fedex') ? 'fedex' : 'electronic';
+    const issuance = {
+      legalJobDescription: d.projectName || '',
+      identifyingNumbers:  '',
+      bondFormsType:       d.bondFormAttached === true ? 'specific' : 'aia',
+      bondFormsSpecific:   d.bondFormAttached === true ? 'Specific bond form attached/required per the submission.' : '',
+      deliveryMethod:      delivery,
+      deliveryAddress:     delivery === 'fedex' ? (d.deliveryAddress || '') : '',
+      signerName:          delivery === 'electronic' ? (d.contractorFullName || '') : '',
+      signerTitle:         delivery === 'electronic' ? 'Authorized Officer' : '',
+      signerEmail:         delivery === 'electronic' ? (d.deliveryEmail || '') : '',
+      witnessName:         '',
+      witnessEmail:        '',
+    };
+
     _createOpportunity(f, a, {
       bondType, amount, obligee: d.obligee, dueDate, notes,
-      typeSpecific,
+      typeSpecific, issuance,
       probability: isBid ? 30 : 40,
       activityNote: `Contract Bond Request (${d.bondType}) submitted online. Needed ${U.date(d.neededDate)}.`,
     });
@@ -1890,13 +1908,27 @@ window.Intake = (() => {
           courtOrderDate: d.effectiveDate || null,
         };
 
+    const issuance = {
+      legalJobDescription: d.description || '',
+      identifyingNumbers:  '',
+      bondFormsType:       'aia',
+      bondFormsSpecific:   '',
+      deliveryMethod:      'electronic',
+      deliveryAddress:     '',
+      signerName:          d.principalName || '',
+      signerTitle:         '',
+      signerEmail:         d.contactEmail || '',
+      witnessName:         '',
+      witnessEmail:        '',
+    };
+
     _createOpportunity(f, a, {
       bondType,
       amount: d.bondAmount || 0,
       obligee: d.obligeeName,
       dueDate: d.effectiveDate || null,
       notes: [d.description, d.specialInstructions].filter(Boolean).join(' — '),
-      typeSpecific,
+      typeSpecific, issuance,
       probability: 35,
       activityNote: `Commercial Bond Request (${cat}) submitted online.`,
     });
@@ -1948,13 +1980,29 @@ window.Intake = (() => {
       releaseConditions: d.completedAccepted ? 'Project completed and accepted.' : '',
     };
 
+    const primary = (d.owners || [])[0] || {};
+    const subdivisionForm = d.bondForm === 'City / Municipality Form' ? 'specific' : 'aia';
+    const issuance = {
+      legalJobDescription: d.projectName || '',
+      identifyingNumbers:  '',
+      bondFormsType:       subdivisionForm,
+      bondFormsSpecific:   subdivisionForm === 'specific' ? `Required form: City / Municipality form attached. Obligee: ${d.obligeeName || ''}.` : '',
+      deliveryMethod:      'electronic',
+      deliveryAddress:     '',
+      signerName:          primary.name || '',
+      signerTitle:         primary.title || '',
+      signerEmail:         primary.email || d.email || '',
+      witnessName:         '',
+      witnessEmail:        '',
+    };
+
     _createOpportunity(f, a, {
       bondType: 'Subdivision/Site Improvement',
       amount: totalAmount,
       obligee: d.obligeeName,
       dueDate: d.startDateProject || null,
       notes: `${d.projectName || ''} — ${d.projectType || ''} subdivision; ${(d.bondLines || []).length} bond line${(d.bondLines || []).length === 1 ? '' : 's'}.`,
-      typeSpecific,
+      typeSpecific, issuance,
       probability: 45,
       activityNote: `Subdivision Bond Application submitted online — ${d.bondType || 'Performance + Maintenance'}.`,
     });
@@ -2026,13 +2074,29 @@ window.Intake = (() => {
         };
 
     const notes = [d.jobLegal, d.jobAddress].filter(Boolean).join(' — ');
+
+    const bePrimary = (d.owners || [])[0] || {};
+    const issuance = {
+      legalJobDescription: d.jobLegal || '',
+      identifyingNumbers:  '',
+      bondFormsType:       'aia',
+      bondFormsSpecific:   '',
+      deliveryMethod:      'electronic',
+      deliveryAddress:     '',
+      signerName:          bePrimary.name || '',
+      signerTitle:         bePrimary.title || '',
+      signerEmail:         bePrimary.email || d.email || '',
+      witnessName:         '',
+      witnessEmail:        '',
+    };
+
     _createOpportunity(f, a, {
       bondType,
       amount,
       obligee: d.obligee,
       dueDate,
       notes,
-      typeSpecific,
+      typeSpecific, issuance,
       probability: 35,
       activityNote: `Bond Express Application submitted online. Selected types: ${Object.entries(st).filter(([k,v]) => v).map(([k]) => k).join(', ') || 'none'}.`,
     });
