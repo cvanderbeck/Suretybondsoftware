@@ -363,8 +363,8 @@ Views.forms = {
       <div class="text-[11px] uppercase tracking-wider text-ink-300 font-display mb-1">Bond Request Forms (creates opportunity)</div>
       <div class="grid grid-cols-2 gap-3 mb-4">
         ${[
-          ['contractBRF',    'Contract Bond Request',           'Bid / Performance / Payment / Maintenance'],
-          ['commercialBRF',  'Commercial Bond Request',         'License & Permit / Court / Public Official / Misc.'],
+          ['contractBRF',    'Contract Bond Request Form',      'Bid / Performance / Payment / Maintenance'],
+          ['commercialBRF',  'Commercial Bond Request Form',    'License & Permit / Court / Public Official / Misc.'],
           ['subdivisionApp', 'Subdivision Bond Application',    'Developer / site improvement (up to $2M)'],
           ['bondExpress',    'Bond Express Application',        'Fast-track single bond < $1M'],
         ].map(([t,label,sub]) => `

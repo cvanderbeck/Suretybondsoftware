@@ -117,8 +117,8 @@ Views.intake = {
       cq:             'Contractor Questionnaire',
       pfs:            'Personal Financial Statement',
       wip:            'Work-in-Progress Schedule',
-      contractBRF:    'Contract Bond Request',
-      commercialBRF:  'Commercial Bond Request',
+      contractBRF:    'Contract Bond Request Form',
+      commercialBRF:  'Commercial Bond Request Form',
       subdivisionApp: 'Subdivision Bond Application',
       bondExpress:    'Bond Express Application',
     }[t] || t;
@@ -586,7 +586,7 @@ Views.intake = {
     return `
       <div class="card p-6 mb-6">
         <div class="text-xs uppercase tracking-[0.18em] text-ink-300 mb-1 font-display">Bond Request</div>
-        <h1 class="text-2xl font-display font-semibold mb-1">Contract Bond Request</h1>
+        <h1 class="text-2xl font-display font-semibold mb-1">Contract Bond Request Form</h1>
         <p class="text-sm text-ink-400">Submit your bid bond, performance &amp; payment, or maintenance bond request. We'll create an opportunity in our pipeline and reach out the same day.</p>
       </div>
 
@@ -669,7 +669,7 @@ Views.intake = {
     return `
       <div class="card p-6 mb-6">
         <div class="text-xs uppercase tracking-[0.18em] text-ink-300 mb-1 font-display">Bond Request</div>
-        <h1 class="text-2xl font-display font-semibold mb-1">Commercial Bond Request</h1>
+        <h1 class="text-2xl font-display font-semibold mb-1">Commercial Bond Request Form</h1>
         <p class="text-sm text-ink-400">For license & permit, court, public official, or miscellaneous commercial bonds.</p>
       </div>
 
