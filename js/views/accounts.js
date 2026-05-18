@@ -195,6 +195,7 @@ Views.accounts = {
       <button class="btn-ghost" data-close>Close</button>
       <button class="btn-secondary" onclick="U.closeModals(); Views.accounts.openForm('${id}')">Edit Account</button>
       <button class="btn-secondary" onclick="Compose.open({ accountId: '${id}' })">✉ Email</button>
+      <button class="btn-secondary" onclick="Views.templates.openApplyPicker({ kind:'account', id:'${id}', reopen: () => Views.accounts.open('${id}') })">▶ Apply Template</button>
       <button class="btn-primary"   onclick="U.closeModals(); App.openNewBond('${id}')">New Bond</button>
     `;
     const m = U.modal({ title: 'Account', body, footer, size: 'lg' });
@@ -279,6 +280,8 @@ Views.accounts = {
           ` : `<div class="text-sm text-ink-300">No aggregate limit set on this account. Add it in the Company tab to track utilization.</div>`}
         </div>
       </div>
+
+      ${Views.templates.renderTasksCard('account', a.id, a)}
 
       <div class="grid grid-cols-2 gap-4">
         <div class="card">

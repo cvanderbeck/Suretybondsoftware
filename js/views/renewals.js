@@ -288,6 +288,8 @@ Views.renewals = {
           </div>
         </div>
 
+        <div class="col-span-2">${Views.templates.renderTasksCard('renewal', r.id, r)}</div>
+
         <div class="card col-span-2">
           <div class="card-header"><div class="card-title">Follow-up Activity</div>
             <span class="text-xs text-slate-500">${(r.notes||[]).length} entr${(r.notes||[]).length===1?'y':'ies'}</span></div>
@@ -312,6 +314,7 @@ Views.renewals = {
     const footer = `
       <button class="btn-ghost" data-close>Close</button>
       <button class="btn-secondary text-rose-600" onclick="Views.renewals.deleteRenewal('${r.id}')">Delete</button>
+      <button class="btn-secondary" onclick="Views.templates.openApplyPicker({ kind:'renewal', id:'${r.id}', reopen: () => Views.renewals.open('${r.id}') })">▶ Apply Template</button>
       <button class="btn-secondary" onclick="Compose.open({ renewalId: '${r.id}' })">Email Principal</button>
       <button class="btn-primary"   onclick="Compose.open({ renewalId: '${r.id}', templateId: 'T-renewal' })">Send Renewal Follow-up</button>
     `;

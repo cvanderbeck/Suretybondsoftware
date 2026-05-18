@@ -20,6 +20,15 @@ Views.templates = {
     { key: 'standalone',  label: 'Standalone / General' },
   ],
 
+  // Which automation trigger maps to which entity kind.
+  TRIGGER_FOR: {
+    lead:        'lead.created',
+    account:     'account.created',
+    opportunity: 'opportunity.created',
+    bond:        'bond.created',
+    renewal:     'renewal.window-open',
+  },
+
   STEP_TYPES: [
     { key: 'email', label: 'Send Email (from template)' },
     { key: 'task',  label: 'Create Task' },
@@ -575,5 +584,292 @@ Views.templates = {
     U.closeModals();
     U.toast('Checklist saved');
     this.render();
+  },
+
+  // =========================================================
+  // APPLY TEMPLATES TO A RECORD (lead / opp / account / renewal / bond)
+  // =========================================================
+  _lookupEntity(kind, id) {
+    if (kind === 'lead')        return DB.findLead(id);
+    if (kind === 'account')     return DB.findAccount(id);
+    if (kind === 'bond')        return DB.findBond(id);
+    if (kind === 'opportunity') return DB.pipeline().find(p => p.id === id);
+    if (kind === 'renewal')     return DB.renewals().find(r => r.id === id);
+    return null;
+  },
+
+  openApplyPicker(ctx) {
+    const { kind } = ctx;
+    const entity = this._lookupEntity(kind, ctx.id);
+    if (!entity) return;
+    this._applyCtx = ctx;
+
+    const trigger = this.TRIGGER_FOR[kind];
+    const automations = DB.automations().filter(a => a.trigger === trigger);
+    const checklists  = DB.todoTemplates().filter(t => t.appliesTo === kind || t.appliesTo === 'standalone');
+    const trigMeta = this.triggerMeta(trigger);
+
+    const body = `
+      <p class="text-sm text-ink-400 mb-3">Pick an automation sequence or to-do checklist to apply to <b>${U.esc(this._entityLabel(kind, entity))}</b>. Steps become tasks scheduled by their offset days.</p>
+
+      <div class="grid grid-cols-2 gap-4">
+        <div>
+          <div class="flex items-center justify-between mb-2">
+            <div class="text-xs font-semibold text-ink-400 uppercase tracking-wider">Automations</div>
+            <span class="badge ${trigMeta?trigMeta.badge:'badge-slate'} text-[10px]">${U.esc(trigMeta ? trigMeta.label : trigger)}</span>
+          </div>
+          <div class="space-y-2 max-h-[420px] overflow-y-auto">
+            ${automations.length ? automations.map(a => `
+              <div class="border ${a.enabled?'border-cream-300':'border-cream-200 opacity-70'} rounded-lg p-3 hover:bg-cream-50 cursor-pointer"
+                   onclick="Views.templates._applyAutomation('${a.id}')">
+                <div class="flex items-center justify-between">
+                  <div class="font-semibold text-ink-700 text-sm">${U.esc(a.name)}</div>
+                  ${a.enabled?'<span class="badge badge-green text-[10px]">Enabled</span>':'<span class="badge badge-slate text-[10px]">Disabled</span>'}
+                </div>
+                <div class="text-xs text-ink-300 mt-1">${U.esc(a.description || '')}</div>
+                <div class="text-xs text-ink-400 mt-2">${a.steps.length} step${a.steps.length===1?'':'s'}</div>
+              </div>
+            `).join('') : `<div class="text-sm text-ink-300 p-3 italic">No automations with this trigger. <button class="text-brand-600 underline" onclick="Views.templates._jumpTo('automations')">Create one →</button></div>`}
+          </div>
+        </div>
+
+        <div>
+          <div class="flex items-center justify-between mb-2">
+            <div class="text-xs font-semibold text-ink-400 uppercase tracking-wider">Checklists</div>
+            <span class="badge badge-slate text-[10px]">For ${U.esc(this.appliesMeta(kind)?.label || kind)}</span>
+          </div>
+          <div class="space-y-2 max-h-[420px] overflow-y-auto">
+            ${checklists.length ? checklists.map(t => `
+              <div class="border border-cream-300 rounded-lg p-3 hover:bg-cream-50 cursor-pointer"
+                   onclick="Views.templates._applyChecklist('${t.id}')">
+                <div class="flex items-center justify-between">
+                  <div class="font-semibold text-ink-700 text-sm">${U.esc(t.name)}</div>
+                  <span class="badge badge-slate text-[10px]">${(t.items||[]).length} items</span>
+                </div>
+                <div class="text-xs text-ink-300 mt-1">${U.esc(t.description || '')}</div>
+              </div>
+            `).join('') : `<div class="text-sm text-ink-300 p-3 italic">No checklists for this entity. <button class="text-brand-600 underline" onclick="Views.templates._jumpTo('todos')">Create one →</button></div>`}
+          </div>
+        </div>
+      </div>
+    `;
+    const footer = `<button class="btn-ghost" data-close>Cancel</button>`;
+    const m = U.modal({ title: 'Apply Template', body, footer, size: 'lg' });
+    m.el.querySelector('[data-close]').addEventListener('click', m.close);
+  },
+
+  _entityLabel(kind, e) {
+    if (!e) return kind;
+    if (kind === 'lead')        return e.companyName;
+    if (kind === 'account')     return e.name;
+    if (kind === 'bond')        return e.number;
+    if (kind === 'opportunity') return (DB.findAccount(e.accountId)?.name || '') + ' — ' + (e.obligee || e.bondType);
+    if (kind === 'renewal')     return (DB.findBond(e.bondId)?.number || '') + ' renewal';
+    return '';
+  },
+
+  _addDays(n) {
+    const d = new Date(); d.setDate(d.getDate() + (n || 0));
+    return d.toISOString().slice(0,10);
+  },
+
+  _applyAutomation(autoId) {
+    const ctx = this._applyCtx;
+    if (!ctx) return;
+    const entity = this._lookupEntity(ctx.kind, ctx.id);
+    const a = DB.automations().find(x => x.id === autoId);
+    if (!entity || !a) return;
+
+    if (entity.activity) {
+      entity.activity.push({
+        id: U.uid('AC'),
+        date: new Date().toISOString(),
+        author: 'Casey V.',
+        type: 'automation',
+        subject: `Applied automation: ${a.name}`,
+        text: `${a.steps.length} step(s) scheduled below.`,
+      });
+    }
+
+    entity.tasks = entity.tasks || [];
+    a.steps.forEach(s => {
+      let text;
+      if (s.type === 'email') {
+        const tpl = DB.templates().find(t => t.id === s.templateId);
+        text = `Send email — ${tpl ? tpl.name : '(template missing)'}`;
+      } else if (s.type === 'note') {
+        text = `Log note: ${s.text || ''}`;
+      } else if (s.type === 'stage-change') {
+        text = `Change stage to: ${s.text || ''}`;
+      } else {
+        text = s.text || '(task)';
+      }
+      entity.tasks.push({
+        id: U.uid('TK'),
+        text,
+        dueDate: this._addDays(s.offsetDays || 0),
+        completed: false,
+        type: s.type,
+        source: `automation:${a.id}`,
+      });
+    });
+
+    DB.save();
+    U.closeModals();
+    U.toast(`Applied automation: ${a.name}`);
+    this._applyCtx = null;
+    if (ctx.reopen) ctx.reopen();
+  },
+
+  _applyChecklist(todoId) {
+    const ctx = this._applyCtx;
+    if (!ctx) return;
+    const entity = this._lookupEntity(ctx.kind, ctx.id);
+    const t = DB.todoTemplates().find(x => x.id === todoId);
+    if (!entity || !t) return;
+
+    entity.tasks = entity.tasks || [];
+    (t.items || []).forEach(it => {
+      entity.tasks.push({
+        id: U.uid('TK'),
+        text: it.text,
+        dueDate: it.offsetDays != null ? this._addDays(it.offsetDays) : null,
+        completed: false,
+        type: 'task',
+        source: `checklist:${t.id}`,
+      });
+    });
+
+    if (entity.activity) {
+      entity.activity.push({
+        id: U.uid('AC'),
+        date: new Date().toISOString(),
+        author: 'Casey V.',
+        type: 'note',
+        text: `Applied checklist: ${t.name} (${(t.items||[]).length} items added to tasks).`,
+      });
+    }
+
+    DB.save();
+    U.closeModals();
+    U.toast(`Applied checklist: ${t.name}`);
+    this._applyCtx = null;
+    if (ctx.reopen) ctx.reopen();
+  },
+
+  // Renders a Tasks card any detail modal can embed.
+  renderTasksCard(kind, id, entity) {
+    const tasks = entity.tasks || [];
+    const headerExtra = `<button class="btn-secondary" onclick="Views.templates.openApplyPicker({ kind:'${kind}', id:'${id}', reopen: () => Views.templates._reopenEntity('${kind}', '${id}') })">▶ Apply Template</button>`;
+
+    if (!tasks.length) {
+      return `
+        <div class="card mb-4">
+          <div class="card-header">
+            <div class="card-title">Tasks</div>
+            ${headerExtra}
+          </div>
+          <div class="p-4 text-sm text-ink-300">No tasks yet. Apply an automation sequence or checklist to populate this list.</div>
+        </div>`;
+    }
+
+    const today = new Date(); today.setHours(0,0,0,0);
+    const sorted = tasks.slice().sort((x,y) => {
+      if (x.completed !== y.completed) return x.completed ? 1 : -1;
+      if (!x.dueDate && !y.dueDate) return 0;
+      if (!x.dueDate) return 1;
+      if (!y.dueDate) return -1;
+      return new Date(x.dueDate) - new Date(y.dueDate);
+    });
+
+    const open = sorted.filter(t => !t.completed);
+    const done = sorted.filter(t =>  t.completed);
+    const overdue = open.filter(t => t.dueDate && new Date(t.dueDate) < today).length;
+
+    const ICON = { email: '✉', task: '✓', note: '📝', 'stage-change': '↪' };
+
+    const row = (t) => {
+      const due = t.dueDate ? new Date(t.dueDate) : null;
+      const overdueRow = !t.completed && due && due < today;
+      const dueLabel = due
+        ? `<span class="text-xs ${overdueRow ? 'text-rose-700 font-medium' : 'text-ink-300'}">${overdueRow ? 'Overdue · ' : 'Due '}${U.date(t.dueDate)}</span>`
+        : '<span class="text-xs text-ink-300">No due date</span>';
+      const sourceLabel = t.source ? this._sourceLabel(t.source) : '';
+      return `
+        <li class="flex items-start gap-2 p-2 rounded hover:bg-cream-50">
+          <input type="checkbox" class="chk mt-0.5" ${t.completed?'checked':''}
+                 onchange="Views.templates._toggleTask('${kind}','${id}','${t.id}')">
+          <div class="flex-1 min-w-0">
+            <div class="text-sm ${t.completed?'line-through text-ink-300':'text-ink-700'}">
+              <span class="mr-1 text-ink-300">${ICON[t.type]||'•'}</span>${U.esc(t.text)}
+            </div>
+            <div class="flex items-center gap-2 mt-0.5">${dueLabel}${sourceLabel ? '<span class="text-xs text-ink-300">·</span>' + sourceLabel : ''}</div>
+          </div>
+          <button class="btn-ghost text-xs text-rose-600" onclick="Views.templates._deleteTask('${kind}','${id}','${t.id}')">✕</button>
+        </li>`;
+    };
+
+    return `
+      <div class="card mb-4">
+        <div class="card-header">
+          <div class="card-title">Tasks <span class="text-xs text-ink-300 ml-2">${open.length} open · ${done.length} done${overdue?` · <span class="text-rose-700">${overdue} overdue</span>`:''}</span></div>
+          ${headerExtra}
+        </div>
+        <div class="p-3">
+          <ul>${open.length ? open.map(row).join('') : '<li class="text-sm text-ink-300 p-2">All tasks complete 🎉</li>'}</ul>
+          ${done.length ? `
+            <details class="mt-3">
+              <summary class="text-xs text-ink-400 cursor-pointer hover:text-ink-700">Completed (${done.length})</summary>
+              <ul class="mt-2">${done.map(row).join('')}</ul>
+            </details>` : ''}
+        </div>
+      </div>`;
+  },
+
+  _sourceLabel(src) {
+    if (src.startsWith('automation:')) {
+      const id = src.slice('automation:'.length);
+      const a = DB.automations().find(x => x.id === id);
+      return `<span class="text-xs text-ink-300">from ${a ? U.esc(a.name) : 'automation'}</span>`;
+    }
+    if (src.startsWith('checklist:')) {
+      const id = src.slice('checklist:'.length);
+      const t = DB.todoTemplates().find(x => x.id === id);
+      return `<span class="text-xs text-ink-300">from ${t ? U.esc(t.name) : 'checklist'}</span>`;
+    }
+    return '';
+  },
+
+  _toggleTask(kind, id, taskId) {
+    const e = this._lookupEntity(kind, id);
+    const t = (e?.tasks || []).find(x => x.id === taskId);
+    if (!t) return;
+    t.completed = !t.completed;
+    t.completedDate = t.completed ? new Date().toISOString().slice(0,10) : null;
+    DB.save();
+    this._reopenEntity(kind, id);
+  },
+
+  _deleteTask(kind, id, taskId) {
+    const e = this._lookupEntity(kind, id);
+    if (!e || !e.tasks) return;
+    e.tasks = e.tasks.filter(t => t.id !== taskId);
+    DB.save();
+    this._reopenEntity(kind, id);
+  },
+
+  _reopenEntity(kind, id) {
+    U.closeModals();
+    if (kind === 'lead')             Views.leads.open(id);
+    else if (kind === 'opportunity') Views.pipeline.open(id);
+    else if (kind === 'account')     Views.accounts.open(id);
+    else if (kind === 'renewal')     Views.renewals.open(id);
+    else if (kind === 'bond')        Views.bonds.open(id);
+  },
+
+  _jumpTo(section) {
+    U.closeModals();
+    App.go('templates');
+    setTimeout(() => this._setSection(section), 50);
   },
 };

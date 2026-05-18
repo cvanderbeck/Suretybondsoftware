@@ -193,6 +193,8 @@ Views.pipeline = {
         </div>
       </div>
 
+      ${Views.templates.renderTasksCard('opportunity', it.id, it)}
+
       <div class="card">
         <div class="card-header">
           <div class="card-title">Activity Log</div>
@@ -224,6 +226,7 @@ Views.pipeline = {
       <button class="btn-ghost" data-close>Cancel</button>
       <button class="btn-secondary text-rose-600" onclick="Views.pipeline.deleteOpp('${id}')">Delete</button>
       <button class="btn-secondary" onclick="Compose.open({ pipelineId: '${id}', templateId: 'T-bid-followup' })">✉ Email</button>
+      <button class="btn-secondary" onclick="Views.templates.openApplyPicker({ kind:'opportunity', id:'${id}', reopen: () => Views.pipeline.open('${id}') })">▶ Apply Template</button>
       <button class="btn-secondary" onclick="Views.pipeline.convertToBond('${id}')">Convert to Bond</button>
       <button class="btn-primary" onclick="Views.pipeline.save('${id}')">Save</button>
     `;

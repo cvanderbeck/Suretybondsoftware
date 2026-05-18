@@ -246,6 +246,8 @@ Views.leads = {
         </div>
       </div>
 
+      ${Views.templates.renderTasksCard('lead', l.id, l)}
+
       <div class="card">
         <div class="card-header">
           <div class="card-title">Activity Log</div>
@@ -284,6 +286,7 @@ Views.leads = {
       <button class="btn-ghost" data-close>Cancel</button>
       <button class="btn-secondary text-rose-600" onclick="Views.leads.deleteLead('${id}')">Delete</button>
       <button class="btn-secondary" onclick="Compose.open({ leadId: '${id}' })">✉ Email Lead</button>
+      <button class="btn-secondary" onclick="Views.templates.openApplyPicker({ kind:'lead', id:'${id}', reopen: () => Views.leads.open('${id}') })">▶ Apply Template</button>
       ${lostBtn}
       ${convertBtn}
       <button class="btn-primary" onclick="Views.leads.save('${id}')">Save</button>
