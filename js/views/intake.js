@@ -1775,6 +1775,52 @@ window.Intake = (() => {
     return (DB.pipelineStages()[0]) || 'Request Received';
   }
 
+  // Parse a number out of free text ("$500/day" → 500, "5%" → 5, "1,200" → 1200)
+  function _parseNumber(s) {
+    if (s == null || s === '') return null;
+    if (typeof s === 'number') return s;
+    const m = String(s).match(/[-+]?[\d,]+\.?\d*/);
+    if (!m) return null;
+    const n = +m[0].replace(/,/g, '');
+    return isNaN(n) ? null : n;
+  }
+
+  // Parse a duration to months ("1 year" → 12, "12 months" → 12, "90 days" → 3)
+  function _parseMonths(s) {
+    const n = _parseNumber(s);
+    if (n == null) return null;
+    const t = String(s).toLowerCase();
+    if (t.includes('year') || t.includes('yr')) return Math.round(n * 12);
+    if (t.includes('day'))                       return Math.round(n / 30);
+    return Math.round(n);
+  }
+
+  // Add `days` days to an ISO date string. Returns null if `dateStr` is empty.
+  function _addDays(dateStr, days) {
+    if (!dateStr || !days) return null;
+    const d = new Date(dateStr);
+    if (isNaN(d)) return null;
+    d.setDate(d.getDate() + days);
+    return d.toISOString().slice(0, 10);
+  }
+
+  // Map free-text completion period ("90 days" / "6 months" / "1 year") added
+  // to a start date to produce an estimated end date.
+  function _completionEndDate(startDate, completionText) {
+    if (!startDate || !completionText) return null;
+    const n = _parseNumber(completionText);
+    if (n == null) return null;
+    const t = String(completionText).toLowerCase();
+    if (t.includes('year') || t.includes('yr')) return _addDays(startDate, n * 365);
+    if (t.includes('month') || t.includes('mo')) return _addDays(startDate, n * 30);
+    return _addDays(startDate, n); // assume days
+  }
+
+  function _firstSelected(selected) {
+    if (!selected) return null;
+    return Object.entries(selected).find(([k,v]) => v)?.[0] || null;
+  }
+
   // Create a pipeline opportunity from a submitted bond request form.
   function _createOpportunity(f, account, payload) {
     const opp = {
@@ -1845,18 +1891,30 @@ window.Intake = (() => {
           estimatedContractValue: d.estimatedBid || null,
           fundingSource: null,
           plansLocation: d.bidLocation || '',
+          preBidConference: null,
+          prequalRequired: false,
+          engineerEstimate: null,
         }
       : {
-          contractDate: d.contractDate || null,
-          contractType: null,
-          projectStart: d.startDate || null,
-          performancePct: d.performancePct || null,
-          paymentPct: d.paymentPct || null,
-          liquidatedDamages: null,
-          warrantyPeriodMonths: null,
+          contractDate:        d.contractDate || null,
+          contractType:        null,
+          noticeToProceed:     null,
+          projectStart:        d.startDate || null,
+          projectEnd:          _completionEndDate(d.startDate, d.completionTime),
+          liquidatedDamages:   _parseNumber(d.penalties),
+          retainagePercent:    _parseNumber(d.retainage),
+          performancePct:      d.performancePct || null,
+          paymentPct:          d.paymentPct || null,
+          warrantyPeriodMonths:_parseMonths(d.warrantyPeriod),
+          taxIncluded:         null,
         };
 
-    const notes = [d.projectName, d.scope].filter(Boolean).join(' — ');
+    const notes = [
+      d.projectName,
+      d.scope,
+      d.workOnHand ? `Current work on hand: ${d.workOnHand}` : '',
+      d.maintenancePct ? `Maintenance bond ${d.maintenancePct}% · ${d.maintenancePeriod || 'period TBD'}` : '',
+    ].filter(Boolean).join(' — ');
 
     // Issuance details from the BRF
     const delivery = (d.deliveryMethod || '').toLowerCase().includes('fedex') ? 'fedex' : 'electronic';
@@ -1893,19 +1951,26 @@ window.Intake = (() => {
     const cat = d.bondCategory || 'License & Permit';
     const bondType = cat === 'Court' ? 'Probate' : 'License/Permit';
 
+    const isContinuous = !!(d.terminationDate || '').toLowerCase().includes('continuous');
     const typeSpecific = bondType === 'License/Permit'
       ? {
-          licenseType: cat,
-          issuingAuthority: d.obligeeName || '',
-          statutoryAmount: d.bondAmount || null,
-          renewalTerm: d.terminationDate?.toLowerCase().includes('continuous') ? 'Continuous' : (d.term || ''),
-          continuousObligation: !!(d.terminationDate||'').toLowerCase().includes('continuous'),
+          licenseType:          cat === 'License & Permit' ? '' : cat,
+          licenseNumber:        '',
+          issuingAuthority:     d.obligeeName || '',
+          statutoryAmount:      d.bondAmount || null,
+          renewalTerm:          isContinuous ? 'Continuous' : (d.term || ''),
+          continuousObligation: isContinuous,
+          classification:       cat === 'Public Official' ? 'Public Official' : cat === 'Miscellaneous' ? 'Miscellaneous' : '',
         }
       : {
-          courtName: d.obligeeName || '',
-          estateValue: null,
-          fiduciaryType: null,
-          courtOrderDate: d.effectiveDate || null,
+          courtName:          d.obligeeName || '',
+          caseNumber:         '',
+          estateName:         d.principalName || '',
+          fiduciaryType:      null,
+          judge:              '',
+          courtOrderDate:     d.effectiveDate || null,
+          probateCodeSection: '',
+          estateValue:        d.bondAmount || null,
         };
 
     const issuance = {
@@ -1927,10 +1992,15 @@ window.Intake = (() => {
       amount: d.bondAmount || 0,
       obligee: d.obligeeName,
       dueDate: d.effectiveDate || null,
-      notes: [d.description, d.specialInstructions].filter(Boolean).join(' — '),
+      notes: [
+        d.description,
+        d.specialInstructions,
+        d.term ? `Term: ${d.term}` : '',
+        d.terminationDate ? `Termination: ${d.terminationDate}` : '',
+      ].filter(Boolean).join(' — '),
       typeSpecific, issuance,
       probability: 35,
-      activityNote: `Commercial Bond Request (${cat}) submitted online.`,
+      activityNote: `Commercial Bond Request Form (${cat}) submitted online.`,
     });
   }
 
@@ -1969,15 +2039,20 @@ window.Intake = (() => {
     // Total amount = sum of bond line amounts (or fallback to project totalCost)
     const totalAmount = (d.bondLines || []).reduce((s, l) => s + (+l.amount || 0), 0) || d.totalCost || 0;
 
+    // Phase number: try to detect "Phase N" anywhere in projectName.
+    const phaseMatch = (d.projectName || '').match(/phase\s+([\w\d-]+)/i);
+    const phaseNumber = phaseMatch ? phaseMatch[1] : '';
+
     const typeSpecific = {
-      subdivisionName: d.projectName || '',
-      jurisdiction: [d.obligeeCity, d.obligeeState].filter(Boolean).join(', '),
-      engineersEstimate: d.totalCost || null,
-      improvements: (d.bondLines || []).map(l => l.work).filter(Boolean),
-      maintenancePeriodMonths: d.maintenanceYears ? d.maintenanceYears * 12 : null,
-      completionDeadline: d.completionDateProject || null,
-      phaseNumber: '',
-      releaseConditions: d.completedAccepted ? 'Project completed and accepted.' : '',
+      subdivisionName:         d.projectName || '',
+      jurisdiction:            [d.obligeeCity, d.obligeeState].filter(Boolean).join(', ') || d.obligeeName || '',
+      lotCount:                null,
+      engineersEstimate:       d.totalCost || null,
+      improvements:            (d.bondLines || []).map(l => l.work).filter(Boolean),
+      maintenancePeriodMonths: d.maintenanceYears ? d.maintenanceYears * 12 : (d.maintPeriodYears ? d.maintPeriodYears * 12 : null),
+      completionDeadline:      d.completionDateProject || null,
+      phaseNumber,
+      releaseConditions:       d.completedAccepted ? 'Project has been completed and accepted by obligee.' : (d.requiredPerfBond ? 'Released upon obligee acceptance + maintenance period.' : ''),
     };
 
     const primary = (d.owners || [])[0] || {};
@@ -2054,26 +2129,46 @@ window.Intake = (() => {
 
     const typeSpecific = (bondType === 'Bid')
       ? {
-          bidOpenDate: d.bb_bidDate || d.bidDate || null,
-          bidPercent:  d.bb_pct || '',
+          bidOpenDate:            d.bb_bidDate || d.bidDate || null,
+          bidPercent:             d.bb_pct || '',
           estimatedContractValue: d.bb_estBid || d.estimatedBid || null,
-          engineerEstimate: d.bb_engEst || null,
+          engineerEstimate:       d.bb_engEst || null,
+          plansLocation:          [d.jobAddress, d.jobCity, d.jobState, d.jobZip].filter(Boolean).join(', '),
+          preBidConference:       null,
+          prequalRequired:        false,
+          fundingSource:          null,
         }
       : (bondType === 'Payment & Performance')
       ? {
-          contractDate: d.contractDate || null,
-          contractType: null,
-          projectStart: d.startDate || null,
-          warrantyPeriodMonths: null,
-          performancePct: 100,
-          paymentPct: 100,
+          contractDate:         d.contractDate || null,
+          contractType:         null,
+          noticeToProceed:      null,
+          projectStart:         d.startDate || null,
+          projectEnd:           _completionEndDate(d.startDate, d.completionTime),
+          liquidatedDamages:    null,
+          retainagePercent:     null,
+          performancePct:       100,
+          paymentPct:           100,
+          warrantyPeriodMonths: _parseMonths(d.maintenancePeriod),
+          taxIncluded:          null,
         }
       : {
-          licenseType: 'Supply Bond',
-          issuingAuthority: d.obligee || '',
+          licenseType:          'Supply Bond',
+          licenseNumber:        '',
+          issuingAuthority:     d.obligee || '',
+          statutoryAmount:      d.contractPrice || d.estimatedBid || null,
+          renewalTerm:          '',
+          continuousObligation: false,
+          classification:       'Supply',
         };
 
-    const notes = [d.jobLegal, d.jobAddress].filter(Boolean).join(' — ');
+    const sel = Object.entries(d.selectedTypes || {}).filter(([k,v]) => v).map(([k]) => k).join(', ');
+    const notes = [
+      d.jobLegal,
+      d.jobAddress ? `Job site: ${[d.jobAddress, d.jobCity, d.jobState, d.jobZip].filter(Boolean).join(', ')}` : '',
+      sel ? `Selected bond types: ${sel}` : '',
+      d.jobStarted === true ? 'Job already started.' : '',
+    ].filter(Boolean).join(' — ');
 
     const bePrimary = (d.owners || [])[0] || {};
     const issuance = {

@@ -156,10 +156,10 @@ Views.pipeline = {
           </div>
           <div class="col-span-2"><div class="field-label">Notes</div>
             <textarea class="field-textarea" id="pl-notes" rows="2">${U.esc(it.notes||'')}</textarea></div>
+
+          ${this._oppDetailsExtras(it)}
         </div>
       </div>
-
-      ${this._issuanceCard(it)}
 
       <div class="card mb-4">
         <div class="card-header">
@@ -170,6 +170,8 @@ Views.pipeline = {
           <div id="pl-typefields">${BondTypes.renderFields(BondTypes.normalize(it.bondType), it)}</div>
         </div>
       </div>
+
+      ${this._deliveryCard(it)}
 
       <div class="card mb-4">
         <div class="card-header"><div class="card-title">Bid Results</div>
@@ -260,46 +262,49 @@ Views.pipeline = {
     if (wrap) wrap.innerHTML = BondTypes.renderFields(newType, { typeSpecific: {} });
   },
 
-  // ---------- Bond Forms & Delivery card ----------
-  _issuanceCard(it) {
+  // ---------- Opportunity Details — issuance fields embedded inline ----------
+  _oppDetailsExtras(it) {
     const i = it.issuance || {};
-    const formsType    = i.bondFormsType    || 'aia';      // 'aia' | 'specific'
-    const deliveryMode = i.deliveryMethod   || 'electronic'; // 'electronic' | 'fedex'
+    const formsType = i.bondFormsType || 'aia';
+    return `
+      <div class="col-span-2"><div class="field-label">Legal Job Description</div>
+        <textarea id="pl-legaljob" class="field-textarea" rows="2" placeholder="Full legal name of the project as it should appear on the bond.">${U.esc(i.legalJobDescription||'')}</textarea>
+      </div>
+      <div class="col-span-2"><div class="field-label">Identifying Numbers</div>
+        <input id="pl-idnums" class="field-input font-mono" value="${U.esc(i.identifyingNumbers||'')}" placeholder="Project # / Contract # / RFP # / Bid # / Solicitation #">
+      </div>
+      <div class="col-span-2">
+        <div class="field-label">Bond Forms Required</div>
+        <div class="flex gap-4 mt-1">
+          <label class="flex items-center gap-2 text-sm">
+            <input type="radio" name="pl-bondforms" value="aia" ${formsType==='aia'?'checked':''} onchange="Views.pipeline._onIssuanceChange()">
+            AIA Standard Forms (A310 / A312)
+          </label>
+          <label class="flex items-center gap-2 text-sm">
+            <input type="radio" name="pl-bondforms" value="specific" ${formsType==='specific'?'checked':''} onchange="Views.pipeline._onIssuanceChange()">
+            Specific Bond Forms Required
+          </label>
+        </div>
+      </div>
+      <div class="col-span-2" id="pl-specific-wrap" style="${formsType==='specific'?'':'display:none'}">
+        <div class="field-label">Required Bond Forms</div>
+        <textarea id="pl-bondforms-specific" class="field-textarea" rows="2" placeholder="Describe the specific bond form(s) required and where to find them (e.g. 'City of Portland Performance Bond — Form CB-12, attached to RFP'). Attach forms to the Documents library.">${U.esc(i.bondFormsSpecific||'')}</textarea>
+      </div>
+    `;
+  },
 
+  // ---------- Delivery Method card (its own section after type-specific) ----------
+  _deliveryCard(it) {
+    const i = it.issuance || {};
+    const deliveryMode = i.deliveryMethod || 'electronic';
     return `
       <div class="card mb-4">
         <div class="card-header">
-          <div class="card-title">Bond Forms &amp; Delivery</div>
-          <span class="text-xs text-ink-300 italic">Issuance details — carried into the bond on convert</span>
+          <div class="card-title">Delivery Method</div>
+          <span class="text-xs text-ink-300 italic">How the issued bond reaches the principal</span>
         </div>
         <div class="p-4 grid grid-cols-2 gap-3">
-          <div class="col-span-2"><div class="field-label">Legal Job Description</div>
-            <textarea id="pl-legaljob" class="field-textarea" rows="2" placeholder="Full legal name of the project as it should appear on the bond.">${U.esc(i.legalJobDescription||'')}</textarea>
-          </div>
-          <div class="col-span-2"><div class="field-label">Identifying Numbers</div>
-            <input id="pl-idnums" class="field-input font-mono" value="${U.esc(i.identifyingNumbers||'')}" placeholder="Project # / Contract # / RFP # / Bid # / Solicitation #">
-          </div>
-
           <div class="col-span-2">
-            <div class="field-label">Bond Forms Required</div>
-            <div class="flex gap-4 mt-1">
-              <label class="flex items-center gap-2 text-sm">
-                <input type="radio" name="pl-bondforms" value="aia" ${formsType==='aia'?'checked':''} onchange="Views.pipeline._onIssuanceChange()">
-                AIA Standard Forms (A310 / A312)
-              </label>
-              <label class="flex items-center gap-2 text-sm">
-                <input type="radio" name="pl-bondforms" value="specific" ${formsType==='specific'?'checked':''} onchange="Views.pipeline._onIssuanceChange()">
-                Specific Bond Forms Required
-              </label>
-            </div>
-          </div>
-          <div class="col-span-2" id="pl-specific-wrap" style="${formsType==='specific'?'':'display:none'}">
-            <div class="field-label">Required Bond Forms</div>
-            <textarea id="pl-bondforms-specific" class="field-textarea" rows="2" placeholder="Describe the specific bond form(s) required and where to find them (e.g. 'City of Portland Performance Bond — Form CB-12, attached to RFP'). Attach forms to the Documents library.">${U.esc(i.bondFormsSpecific||'')}</textarea>
-          </div>
-
-          <div class="col-span-2 mt-2">
-            <div class="field-label">Delivery Method</div>
             <div class="flex gap-4 mt-1">
               <label class="flex items-center gap-2 text-sm">
                 <input type="radio" name="pl-delivery" value="electronic" ${deliveryMode==='electronic'?'checked':''} onchange="Views.pipeline._onIssuanceChange()">
