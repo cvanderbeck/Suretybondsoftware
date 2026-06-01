@@ -209,15 +209,69 @@ Views.email = {
       </div>
       <div class="text-sm text-slate-700 whitespace-pre-line">${U.esc(em.body || em.preview)}${em.body?'':'\n\n…(message body)…'}</div>
     `;
+    // Decide where an "Add Task" attaches to: bond if mapped, else account, else admin.
+    const taskKind   = b ? 'bond' : (a ? 'account' : 'admin');
+    const taskParent = b ? b.id : (a ? a.id : '');
+    const taskLabel  = b ? `Bond ${b.number}` : (a ? a.name : 'Admin');
+    const taskBtn    = `<button class="btn-secondary" onclick="Tasks.openQuickAdd({ kind: '${taskKind}', parentId: '${taskParent}', defaultText: ${JSON.stringify('Follow up on: ' + (em.subject||'')).replace(/"/g,'&quot;')}, defaultAssignee: 'U-1', allowKindPicker: false })" title="Add a task on ${U.esc(taskLabel)}">+ Add Task</button>`;
+    const leadBtn    = `<button class="btn-secondary" onclick="Views.email._convertToLead('${id}')">+ New Lead</button>`;
+    const oppBtn     = `<button class="btn-secondary" onclick="Views.email._convertToOpportunity('${id}')">+ New Opportunity</button>`;
+
     const footer = `<button class="btn-ghost" data-close>Close</button>
       ${folder==='inbox' ? `
+        ${taskBtn}
+        ${a ? oppBtn : leadBtn}
         <button class="btn-secondary" onclick="Views.email.openMapping('${id}')">Edit Mapping</button>
         <button class="btn-primary" onclick="Views.email.replyTo('${id}')">Reply</button>` :
         folder==='drafts' ? `<button class="btn-primary" onclick="Views.email.openDraft('${id}')">Edit Draft</button>` :
-        ''}`;
+        taskBtn}`;
     const m = U.modal({ title: 'Message', body, footer, size: 'lg' });
     m.el.querySelector('[data-close]').addEventListener('click', m.close);
     this.render();
+  },
+
+  // ---- Convert an inbound email into a new Lead, pre-filling
+  //      company / contact / email / source / notes from the message
+  _convertToLead(id) {
+    const em = DB.emails().find(e => e.id === id);
+    if (!em) return;
+    const fromEmail = em.from || '';
+    const domain    = (fromEmail.split('@')[1] || '').toLowerCase();
+    const companyGuess = domain
+      ? domain.replace(/\.(com|net|org|io|co|us|biz|info|example)$/i, '').replace(/[-_.]/g,' ').replace(/\b\w/g, c => c.toUpperCase())
+      : '';
+    U.closeModals();
+    App.go('leads');
+    setTimeout(() => {
+      Views.leads.newLead();
+      setTimeout(() => {
+        const set = (id, v) => { const el = document.getElementById(id); if (el && v) el.value = v; };
+        set('nl-company', companyGuess);
+        set('nl-email',   fromEmail);
+        set('nl-source',  'Cold Outreach');
+        const notes = `Inbound email — "${em.subject || ''}"\n\n${(em.preview || '').slice(0, 400)}`;
+        const notesEl = document.getElementById('nl-notes');
+        if (notesEl) notesEl.value = notes;
+      }, 50);
+    }, 100);
+  },
+
+  // ---- Convert an inbound email into a new pipeline Opportunity
+  _convertToOpportunity(id) {
+    const em = DB.emails().find(e => e.id === id);
+    if (!em) return;
+    U.closeModals();
+    App.go('pipeline');
+    setTimeout(() => {
+      Views.pipeline.addModal();
+      setTimeout(() => {
+        // Pre-select the mapped account if any
+        const acctSel = document.getElementById('op-acct');
+        if (acctSel && em.accountId) acctSel.value = em.accountId;
+        const notesEl = document.getElementById('op-notes');
+        if (notesEl) notesEl.value = `From email "${em.subject || ''}" (${em.from})\n\n${(em.preview || '').slice(0, 400)}`;
+      }, 50);
+    }, 100);
   },
 
   replyTo(id) {

@@ -1,6 +1,6 @@
 // ---------- Sample / seed data, persistence layer ----------
 window.DB = (() => {
-  const KEY = 'bondvault.db.v15';
+  const KEY = 'bondvault.db.v16';
 
   const sampleData = () => ({
     accounts: [
@@ -1079,6 +1079,15 @@ Thanks,
         ],
       },
     ],
+    // Free-floating administrative tasks not tied to a lead / account /
+    // bond / opportunity / renewal. Standalone office work goes here.
+    adminTasks: [
+      { id: 'AT-001', text: 'Renew E&O policy (expires 6/30)',                  dueDate: '2026-06-15', assignee: 'U-1', completed: false, type: 'task', source: '', createdDate: '2026-05-01' },
+      { id: 'AT-002', text: 'Submit quarterly NASBP membership report',         dueDate: '2026-07-01', assignee: 'U-4', completed: false, type: 'task', source: '', createdDate: '2026-05-09' },
+      { id: 'AT-003', text: 'Reconcile trust account — month of May',           dueDate: '2026-06-05', assignee: 'U-4', completed: false, type: 'task', source: '', createdDate: '2026-05-10' },
+      { id: 'AT-004', text: 'Schedule quarterly producer meeting w/ Hartford',  dueDate: '2026-06-12', assignee: 'U-1', completed: false, type: 'task', source: '', createdDate: '2026-05-12' },
+      { id: 'AT-005', text: 'Order new business cards for new producer',        dueDate: null,         assignee: 'U-4', completed: true,  completedDate: '2026-05-11', type: 'task', source: '', createdDate: '2026-05-08' },
+    ],
     settings: {
       agency: {
         name: 'Vanderbeck Surety Agency',
@@ -1088,6 +1097,12 @@ Thanks,
         email: 'producers@vanderbeck-surety.example',
         defaultCommissionRate: 25,
       },
+      users: [
+        { id: 'U-1', name: 'Casey Vanderbeck', initials: 'CV', email: 'casey@vanderbeck-surety.example',   role: 'Producer / Admin', color: 'bg-brand-500' },
+        { id: 'U-2', name: 'Michael Stevens',  initials: 'MS', email: 'michael@vanderbeck-surety.example', role: 'Producer',         color: 'bg-emerald-600' },
+        { id: 'U-3', name: 'Tom Calderon',     initials: 'TC', email: 'tom@vanderbeck-surety.example',     role: 'Producer',         color: 'bg-violet-600' },
+        { id: 'U-4', name: 'Erica Park',       initials: 'EP', email: 'erica@vanderbeck-surety.example',   role: 'Office Manager',   color: 'bg-amber-600' },
+      ],
       qbo: { connected: true, realmId: '9341022938293', companyName: 'Vanderbeck Surety Agency', lastSync: '2026-05-13T22:15' },
       email: { connected: true, provider: 'Microsoft 365', address: 'producers@vanderbeck-surety.example', lastSync: '2026-05-13T22:30' },
       storage: {
@@ -1204,6 +1219,9 @@ Thanks,
       'Submitted to Surety','Approved','Onboarded','Lost / No Fit',
     ]),
     findLead:   (id) => (state.leads || []).find(l => l.id === id),
+    adminTasks: () => (state.adminTasks = state.adminTasks || []),
+    users:      () => (state.settings.users = state.settings.users || []),
+    findUser:   (id) => (state.settings.users || []).find(u => u.id === id),
     settings:       () => state.settings,
 
     findAccount: (id) => state.accounts.find(a => a.id === id),

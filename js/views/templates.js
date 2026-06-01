@@ -760,7 +760,11 @@ Views.templates = {
   // Renders a Tasks card any detail modal can embed.
   renderTasksCard(kind, id, entity) {
     const tasks = entity.tasks || [];
-    const headerExtra = `<button class="btn-secondary" onclick="Views.templates.openApplyPicker({ kind:'${kind}', id:'${id}', reopen: () => Views.templates._reopenEntity('${kind}', '${id}') })">▶ Apply Template</button>`;
+    const headerExtra = `
+      <div class="flex items-center gap-2">
+        <button class="btn-secondary" onclick="Tasks.openQuickAdd({ kind: '${kind}', parentId: '${id}', allowKindPicker: false, reopen: () => Views.templates._reopenEntity('${kind}', '${id}') })">+ Add Task</button>
+        <button class="btn-secondary" onclick="Views.templates.openApplyPicker({ kind:'${kind}', id:'${id}', reopen: () => Views.templates._reopenEntity('${kind}', '${id}') })">▶ Apply Template</button>
+      </div>`;
 
     if (!tasks.length) {
       return `
@@ -769,7 +773,7 @@ Views.templates = {
             <div class="card-title">Tasks</div>
             ${headerExtra}
           </div>
-          <div class="p-4 text-sm text-ink-300">No tasks yet. Apply an automation sequence or checklist to populate this list.</div>
+          <div class="p-4 text-sm text-ink-300">No tasks yet. Click <b>+ Add Task</b> or apply an automation / checklist to populate this list.</div>
         </div>`;
     }
 
@@ -795,6 +799,7 @@ Views.templates = {
         ? `<span class="text-xs ${overdueRow ? 'text-rose-700 font-medium' : 'text-ink-300'}">${overdueRow ? 'Overdue · ' : 'Due '}${U.date(t.dueDate)}</span>`
         : '<span class="text-xs text-ink-300">No due date</span>';
       const sourceLabel = t.source ? this._sourceLabel(t.source) : '';
+      const assigneeChip = window.Tasks ? Tasks.assigneeChip(t.assignee) : '';
       return `
         <li class="flex items-start gap-2 p-2 rounded hover:bg-cream-50">
           <input type="checkbox" class="chk mt-0.5" ${t.completed?'checked':''}
@@ -803,9 +808,14 @@ Views.templates = {
             <div class="text-sm ${t.completed?'line-through text-ink-300':'text-ink-700'}">
               <span class="mr-1 text-ink-300">${ICON[t.type]||'•'}</span>${U.esc(t.text)}
             </div>
-            <div class="flex items-center gap-2 mt-0.5">${dueLabel}${sourceLabel ? '<span class="text-xs text-ink-300">·</span>' + sourceLabel : ''}</div>
+            <div class="flex items-center gap-2 mt-0.5 flex-wrap">
+              ${dueLabel}
+              ${sourceLabel ? '<span class="text-xs text-ink-300">·</span>' + sourceLabel : ''}
+              ${assigneeChip ? '<span class="text-xs text-ink-300">·</span>' + assigneeChip : ''}
+            </div>
           </div>
-          <button class="btn-ghost text-xs text-rose-600" onclick="Views.templates._deleteTask('${kind}','${id}','${t.id}')">✕</button>
+          <button class="btn-ghost text-xs" title="Edit"   onclick="Views.tasks && Views.tasks._edit('${kind}','${id}','${t.id}')">✎</button>
+          <button class="btn-ghost text-xs text-rose-600" title="Delete" onclick="Views.templates._deleteTask('${kind}','${id}','${t.id}')">✕</button>
         </li>`;
     };
 
