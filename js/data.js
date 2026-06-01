@@ -1,6 +1,6 @@
 // ---------- Sample / seed data, persistence layer ----------
 window.DB = (() => {
-  const KEY = 'bondvault.db.v17';
+  const KEY = 'bondvault.db.v18';
 
   const sampleData = () => ({
     accounts: [
@@ -1141,7 +1141,7 @@ Thanks,
       },
       fileTemplate: {
         toplevel: [
-          '01_Accounts', '02_Sureties', '03_Pipeline', '04_Templates', '05_Agency Admin',
+          '01_Accounts', '02_Sureties', '03_Templates', '04_Agency Admin',
         ],
         // Per-account folder tree (numbered to control sort order)
         account: [
@@ -1153,7 +1153,9 @@ Thanks,
           '05_Indemnity Agreements',
           '06_Bank & References',
           '07_Bonds',                                   // bonds live under here
-          '08_Correspondence',
+          '08_Opportunities',                           // pipeline opportunities for this account
+          '09_Renewals',                                // bond renewal files for this account
+          '10_Correspondence',
         ],
         // Per-bond folder tree
         bond: [
@@ -1166,9 +1168,23 @@ Thanks,
           '07_Correspondence',
           '08_Release & Closeout',
         ],
+        // Per-opportunity folder tree
+        opportunity: [
+          '01_Bid Documents',
+          '02_Submission Package',
+          '03_Underwriting Correspondence',
+          '04_Bid Results',
+        ],
+        // Per-renewal folder tree
+        renewal: [
+          '01_Renewal Outreach',
+          '02_Updated Financials',
+          '03_Continuation Certificate',
+          '04_Release / Cancellation',
+        ],
         // Map a document category → folder path (relative to the
         // resolved parent folder). Keys come from doc.category.
-        // Use {bondFolder} as a marker for "inside the bond folder".
+        // Use {bondFolder} / {oppFolder} / {renewalFolder} as markers.
         categoryRouting: {
           // Account-level (no bond)
           'Company Info':        '01_Company Info',
@@ -1176,7 +1192,7 @@ Thanks,
           'PFS':                 '04_Personal Financials (PFS)',
           'Indemnity':           '05_Indemnity Agreements',
           'Bank Reference':      '06_Bank & References',
-          'Correspondence':      '08_Correspondence',
+          'Correspondence':      '10_Correspondence',
           // WIP w/o bond goes to account WIP schedules
           'WIP Schedule':        '03_WIP Schedules',
           // Bond-level (require bondId)
@@ -1188,12 +1204,22 @@ Thanks,
           'Invoice':             '{bondFolder}/06_Invoices',
           'Bond Correspondence': '{bondFolder}/07_Correspondence',
           'Release':             '{bondFolder}/08_Release & Closeout',
+          // Opportunity-level (require opportunityId)
+          'Opportunity Bid':         '{oppFolder}/01_Bid Documents',
+          'Opportunity Submission':  '{oppFolder}/02_Submission Package',
+          'Opportunity Correspondence': '{oppFolder}/03_Underwriting Correspondence',
+          'Opportunity Result':      '{oppFolder}/04_Bid Results',
+          // Renewal-level (require renewalId)
+          'Renewal Outreach':           '{renewalFolder}/01_Renewal Outreach',
+          'Renewal Financials':         '{renewalFolder}/02_Updated Financials',
+          'Renewal Continuation':       '{renewalFolder}/03_Continuation Certificate',
+          'Renewal Release':            '{renewalFolder}/04_Release / Cancellation',
           // Surety-level
           'Producer Agreement':  '02_Sureties/{partnerName}/Producer Agreement',
           'Rate Sheet':          '02_Sureties/{partnerName}/Rate Sheets & Appetite',
           // Top-level
-          'Template':            '04_Templates',
-          'Agency Admin':        '05_Agency Admin',
+          'Template':            '03_Templates',
+          'Agency Admin':        '04_Agency Admin',
         },
       },
     }

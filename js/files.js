@@ -27,6 +27,17 @@ window.Files = (() => {
     const tag = b.project || b.obligee || b.type;
     return safe(`${b.number} — ${tag}`);
   }
+  function opportunityFolder(o) {
+    if (!o) return '(Unknown Opportunity)';
+    const year = (o.dueDate || '').slice(0,4) || String(new Date().getFullYear());
+    const tag = o.obligee || o.bondType || o.id;
+    return safe(`${year} — ${tag}`);
+  }
+  function renewalFolder(r) {
+    if (!r) return '(Unknown Renewal)';
+    const b = DB.findBond(r.bondId) || {};
+    return safe(`${b.number || r.id} — ${(b.expires || '').slice(0,4)} renewal`);
+  }
   function partnerFolder(p) {
     if (!p) return '(Unknown Surety)';
     return safe(p.name);
@@ -40,10 +51,14 @@ window.Files = (() => {
 
     const a = doc.accountId ? DB.findAccount(doc.accountId) : null;
     const b = doc.bondId    ? DB.findBond(doc.bondId)    : null;
+    const o = doc.opportunityId ? DB.pipeline().find(p => p.id === doc.opportunityId) : null;
+    const r = doc.renewalId ? DB.renewals().find(x => x.id === doc.renewalId) : null;
     const p = doc.partnerId ? DB.findPartner(doc.partnerId) : null;
 
     const routing = t.categoryRouting[doc.category] || '';
     const isBondLevel    = routing.includes('{bondFolder}');
+    const isOppLevel     = routing.includes('{oppFolder}');
+    const isRenewalLevel = routing.includes('{renewalFolder}');
     const isPartnerLevel = routing.includes('{partnerName}');
     const isToplevel     = ['Template','Agency Admin'].includes(doc.category);
 
@@ -51,7 +66,7 @@ window.Files = (() => {
     const segs = [root];
 
     if (isToplevel) {
-      // 04_Templates or 05_Agency Admin
+      // 03_Templates or 04_Agency Admin
       segs.push(routing);
     } else if (isPartnerLevel && p) {
       segs.push(routing.replace('{partnerName}', partnerFolder(p)));
@@ -60,11 +75,17 @@ window.Files = (() => {
       if (b && isBondLevel) {
         segs.push('07_Bonds', bondFolder(b));
         segs.push(routing.replace('{bondFolder}', '').replace(/^\/+/, ''));
+      } else if (o && isOppLevel) {
+        segs.push('08_Opportunities', opportunityFolder(o));
+        segs.push(routing.replace('{oppFolder}', '').replace(/^\/+/, ''));
+      } else if (r && isRenewalLevel) {
+        segs.push('09_Renewals', renewalFolder(r));
+        segs.push(routing.replace('{renewalFolder}', '').replace(/^\/+/, ''));
       } else {
         segs.push(routing || '99_Unsorted');
       }
     } else {
-      segs.push('05_Agency Admin', '_Unfiled');
+      segs.push('04_Agency Admin', '_Unfiled');
     }
 
     return segs.filter(Boolean).join('/');
@@ -87,11 +108,28 @@ window.Files = (() => {
     DB.accounts().forEach(a => {
       const aNode = addChild(acctsNode, accountFolder(a));
       t.account.forEach(sub => addChild(aNode, sub));
+
       // Per-bond folders under 07_Bonds
       const bondsNode = getChild(aNode, '07_Bonds');
       DB.bonds().filter(b => b.accountId === a.id).forEach(b => {
         const bNode = addChild(bondsNode, bondFolder(b));
         t.bond.forEach(sub => addChild(bNode, sub));
+      });
+
+      // Per-opportunity folders under 08_Opportunities
+      const oppsNode = getChild(aNode, '08_Opportunities');
+      DB.pipeline().filter(o => o.accountId === a.id).forEach(o => {
+        const oNode = addChild(oppsNode, opportunityFolder(o));
+        (t.opportunity || []).forEach(sub => addChild(oNode, sub));
+      });
+
+      // Per-renewal folders under 09_Renewals (renewals reach the account
+      // via their bond)
+      const renewalsNode = getChild(aNode, '09_Renewals');
+      const accountBondIds = new Set(DB.bonds().filter(b => b.accountId === a.id).map(b => b.id));
+      DB.renewals().filter(r => accountBondIds.has(r.bondId)).forEach(r => {
+        const rNode = addChild(renewalsNode, renewalFolder(r));
+        (t.renewal || []).forEach(sub => addChild(rNode, sub));
       });
     });
 
@@ -100,15 +138,6 @@ window.Files = (() => {
     DB.partners().forEach(p => {
       const pNode = addChild(suretiesNode, partnerFolder(p));
       ['Producer Agreement','Rate Sheets & Appetite','Forms Library','Correspondence'].forEach(sub => addChild(pNode, sub));
-    });
-
-    // 03_Pipeline/{YYYY}/{Account — Project}/
-    const pipelineNode = getChild(tree, '03_Pipeline');
-    DB.pipeline().forEach(it => {
-      const a = DB.findAccount(it.accountId) || {};
-      const year = (it.dueDate || '').slice(0,4) || String(new Date().getFullYear());
-      const yNode = addChild(pipelineNode, year);
-      addChild(yNode, safe(`${a.name||''} — ${it.obligee||it.bondType}`));
     });
 
     // Distribute existing documents into the tree
@@ -148,10 +177,6 @@ window.Files = (() => {
   }
 
   // --- Auto-provision: simulated cloud folder creation ---
-  // In a real build these would call Microsoft Graph / Dropbox API.
-  // For the demo we just toast + bump lastSync. The folder tree is
-  // virtual and regenerated on every render anyway, so listing is
-  // automatic; this is for side-effect feedback and audit.
   function provisionAccount(a, opts = {}) {
     const s = DB.settings().storage;
     if (!s || !s.connected || !s.autoProvision) return false;
@@ -183,7 +208,7 @@ window.Files = (() => {
 
   return {
     resolvePath, buildTree, fileCount,
-    accountFolder, bondFolder, partnerFolder, safe,
+    accountFolder, bondFolder, opportunityFolder, renewalFolder, partnerFolder, safe,
     provisionAccount, provisionBond,
   };
 })();

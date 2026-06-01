@@ -332,6 +332,20 @@ Views.documents = {
             ${t.bond.map(n => `<div class="pl-4">📁 ${U.esc(n)}</div>`).join('')}
           </div>
         </div>
+        <div class="card">
+          <div class="card-header"><div class="card-title">Per-Opportunity Folder Tree</div></div>
+          <div class="p-4 font-mono text-sm space-y-1">
+            <div class="text-ink-400">└ 08_Opportunities/[Year] — [Obligee]/</div>
+            ${(t.opportunity||[]).map(n => `<div class="pl-4">📁 ${U.esc(n)}</div>`).join('')}
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header"><div class="card-title">Per-Renewal Folder Tree</div></div>
+          <div class="p-4 font-mono text-sm space-y-1">
+            <div class="text-ink-400">└ 09_Renewals/[Bond #] — [Year] renewal/</div>
+            ${(t.renewal||[]).map(n => `<div class="pl-4">📁 ${U.esc(n)}</div>`).join('')}
+          </div>
+        </div>
 
         <div class="card lg:col-span-3">
           <div class="card-header">
@@ -342,9 +356,11 @@ Views.documents = {
             <thead><tr><th>Category</th><th>Routed To</th><th>Scope</th></tr></thead>
             <tbody>
               ${Object.entries(t.categoryRouting).map(([cat, path]) => {
-                const scope = path.includes('{bondFolder}') ? 'Bond' :
-                              path.includes('{partnerName}') ? 'Surety' :
-                              path.startsWith('04_Templates') || path.startsWith('05_Agency Admin') ? 'Top-level' :
+                const scope = path.includes('{bondFolder}')    ? 'Bond' :
+                              path.includes('{oppFolder}')     ? 'Opportunity' :
+                              path.includes('{renewalFolder}') ? 'Renewal' :
+                              path.includes('{partnerName}')   ? 'Surety' :
+                              path.startsWith('03_Templates') || path.startsWith('04_Agency Admin') ? 'Top-level' :
                               'Account';
                 return `<tr>
                   <td class="font-medium">${U.esc(cat)}</td>
