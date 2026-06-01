@@ -769,6 +769,10 @@ Views.pipeline = {
     const accts = DB.accounts();
     const stages = this.STAGES;
     const body = `
+      <div class="mb-4 flex items-center justify-between gap-3 p-3 rounded-lg bg-cream-100 border border-cream-200">
+        <div class="text-xs text-ink-400">Have a bond request form? Upload it to auto-fill the fields below.</div>
+        <button class="btn-secondary" onclick="Views.pipeline._uploadForm()">⤴ Upload Form</button>
+      </div>
       <div class="grid grid-cols-2 gap-4">
         <div><div class="field-label">Account</div>
           <select id="op-acct" class="field-select">${accts.map(a => `<option value="${a.id}">${U.esc(a.name)}</option>`).join('')}</select></div>
@@ -783,8 +787,31 @@ Views.pipeline = {
       <div class="mt-3"><div class="field-label">Notes</div><textarea id="op-notes" class="field-textarea" rows="3"></textarea></div>
     `;
     const footer = `<button class="btn-ghost" data-close>Cancel</button><button class="btn-primary" onclick="Views.pipeline.create()">Create</button>`;
-    const m = U.modal({ title: 'New Request', body, footer });
+    const m = U.modal({ title: 'New Opportunity', body, footer });
     m.el.querySelector('[data-close]').addEventListener('click', m.close);
+  },
+
+  _uploadForm() {
+    if (!window.FormParse) { U.toast('Form parser unavailable', 'warn'); return; }
+    FormParse.uploadAndFill({
+      bondType: 'op-type',
+      amount:   'op-amt',
+      obligee:  'op-ob',
+      dueDate:  'op-due',
+      notes:    'op-notes',
+    }, {
+      onDone: (fields) => {
+        // Try to match an existing account by company name in the dropdown
+        if (fields.companyName) {
+          const sel = document.getElementById('op-acct');
+          if (sel) {
+            const n = fields.companyName.toLowerCase();
+            const opt = Array.from(sel.options).find(o => o.text.toLowerCase().includes(n) || n.includes(o.text.toLowerCase()));
+            if (opt) sel.value = opt.value;
+          }
+        }
+      }
+    });
   },
 
   create() {

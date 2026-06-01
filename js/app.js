@@ -36,9 +36,14 @@ window.App = (() => {
     }
   }
 
-  function openNewRequest() {
+  function openNewOpportunity() {
     go('pipeline');
     setTimeout(() => Views.pipeline.addModal(), 50);
+  }
+
+  function openNewLead() {
+    go('leads');
+    setTimeout(() => Views.leads.newLead(), 50);
   }
 
   function globalSearch(q) {
@@ -70,7 +75,7 @@ window.App = (() => {
     }, 400);
   }
 
-  return { go, init, openNewBond, openNewRequest };
+  return { go, init, openNewBond, openNewOpportunity, openNewLead, openNewRequest: openNewOpportunity };
 })();
 
 document.addEventListener('DOMContentLoaded', App.init);

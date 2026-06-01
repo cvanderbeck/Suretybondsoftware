@@ -569,6 +569,10 @@ Views.leads = {
   // ---------- New lead ----------
   newLead() {
     const body = `
+      <div class="mb-4 flex items-center justify-between gap-3 p-3 rounded-lg bg-cream-100 border border-cream-200">
+        <div class="text-xs text-ink-400">Have an intake form, application, or questionnaire? Upload it to auto-fill the fields below.</div>
+        <button class="btn-secondary" onclick="Views.leads._uploadForm()">⤴ Upload Form</button>
+      </div>
       <div class="grid grid-cols-2 gap-3">
         <div class="col-span-2"><div class="field-label">Company Name</div><input id="nl-company" class="field-input"></div>
         <div><div class="field-label">Primary Contact</div><input id="nl-contact" class="field-input"></div>
@@ -589,6 +593,22 @@ Views.leads = {
       <button class="btn-primary" onclick="Views.leads._createLead()">Create Lead</button>`;
     const m = U.modal({ title: 'New Lead', body, footer });
     m.el.querySelector('[data-close]').addEventListener('click', m.close);
+  },
+
+  _uploadForm() {
+    if (!window.FormParse) { U.toast('Form parser unavailable', 'warn'); return; }
+    FormParse.uploadAndFill({
+      companyName:  'nl-company',
+      contactName:  'nl-contact',
+      contactTitle: 'nl-title',
+      email:        'nl-email',
+      phone:        'nl-phone',
+      city:         'nl-city',
+      state:        'nl-state',
+      industry:     'nl-industry',
+      leadSource:   'nl-source',
+      notes:        'nl-notes',
+    });
   },
 
   _createLead() {

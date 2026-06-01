@@ -280,6 +280,12 @@ Views.bonds = {
     const accts = DB.accounts();
     const parts = DB.partners();
     const body = `
+      ${id ? '' : `
+      <div class="mb-4 flex items-center justify-between gap-3 p-3 rounded-lg bg-cream-100 border border-cream-200">
+        <div class="text-xs text-ink-400">Have a bond request or quote form? Upload it to auto-fill the fields below.</div>
+        <button class="btn-secondary" onclick="Views.bonds._uploadForm()">⤴ Upload Form</button>
+      </div>
+      `}
       <div class="grid grid-cols-2 gap-4">
         <div><div class="field-label">Bond Number</div><input id="bf-num" class="field-input" value="${U.esc(b.number||('SF-'+new Date().getFullYear()+'-'+String(DB.bonds().length+200).padStart(5,'0')))}"></div>
         <div><div class="field-label">Type</div>
@@ -331,6 +337,36 @@ Views.bonds = {
     const newType = document.getElementById('bf-type').value;
     const wrap = document.getElementById('bf-typefields');
     if (wrap) wrap.innerHTML = BondTypes.renderFields(newType, { typeSpecific: {} });
+  },
+
+  _uploadForm() {
+    if (!window.FormParse) { U.toast('Form parser unavailable', 'warn'); return; }
+    FormParse.uploadAndFill({
+      bondType: 'bf-type',
+      obligee:  'bf-ob',
+      amount:   'bf-amt',
+      notes:    'bf-proj',
+      dueDate:  'bf-eff',
+    }, {
+      onDone: (fields) => {
+        if (fields.companyName) {
+          const sel = document.getElementById('bf-acct');
+          if (sel) {
+            const n = fields.companyName.toLowerCase();
+            const opt = Array.from(sel.options).find(o => o.text.toLowerCase().includes(n) || n.includes(o.text.toLowerCase()));
+            if (opt) sel.value = opt.value;
+          }
+        }
+        if (fields.amount) {
+          const amt = document.getElementById('bf-amt');
+          if (amt && typeof Views.bonds.recalc === 'function') Views.bonds.recalc();
+        }
+        if (fields.bondType) {
+          // After changing type, re-render type-specific fields
+          setTimeout(() => Views.bonds._reRenderTypeFields(), 0);
+        }
+      }
+    });
   },
 
   _typeSpecificCard(b) {
