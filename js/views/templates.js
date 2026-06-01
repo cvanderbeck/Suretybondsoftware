@@ -800,10 +800,12 @@ Views.templates = {
         : '<span class="text-xs text-ink-300">No due date</span>';
       const sourceLabel = t.source ? this._sourceLabel(t.source) : '';
       const assigneeChip = window.Tasks ? Tasks.assigneeChip(t.assignee) : '';
+      const priorityFlag = window.Tasks ? Tasks.priorityFlag(t.priority, `Tasks.cyclePriority('${kind}','${id}','${t.id}')`) : '';
       return `
         <li class="flex items-start gap-2 p-2 rounded hover:bg-cream-50">
           <input type="checkbox" class="chk mt-0.5" ${t.completed?'checked':''}
                  onchange="Views.templates._toggleTask('${kind}','${id}','${t.id}')">
+          <span class="mt-0.5">${priorityFlag}</span>
           <div class="flex-1 min-w-0">
             <div class="text-sm ${t.completed?'line-through text-ink-300':'text-ink-700'}">
               <span class="mr-1 text-ink-300">${ICON[t.type]||'•'}</span>${U.esc(t.text)}

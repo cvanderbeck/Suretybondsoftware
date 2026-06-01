@@ -49,6 +49,58 @@ window.Tasks = (() => {
     return `<span class="badge ${m[0]}">${m[1]}</span>`;
   }
 
+  // -------- Priority (Todoist-style P1 / P2 / P3 / P4) --------
+  // 1 = highest (red), 4 = no priority (gray). Missing or 0 → 4.
+  function normalizePriority(p) {
+    const n = +p;
+    if (!n || n < 1 || n > 4) return 4;
+    return n;
+  }
+
+  const PRIORITY_META = {
+    1: { label: 'P1 — Urgent',   text: 'text-rose-600',    fill: 'text-rose-600'    },
+    2: { label: 'P2 — High',     text: 'text-amber-600',   fill: 'text-amber-600'   },
+    3: { label: 'P3 — Medium',   text: 'text-blue-600',    fill: 'text-blue-600'    },
+    4: { label: 'P4 — None',     text: 'text-ink-300',     fill: 'text-ink-200'     },
+  };
+
+  function priorityMeta(p) { return PRIORITY_META[normalizePriority(p)]; }
+
+  // Inline priority flag — clickable to cycle (P1 → P2 → P3 → P4 → P1).
+  // `onClick` is a JS expression string used in the inline onclick handler.
+  function priorityFlag(p, onClickJs) {
+    const lvl = normalizePriority(p);
+    const meta = PRIORITY_META[lvl];
+    const click = onClickJs ? ` onclick="event.stopPropagation(); ${onClickJs}"` : '';
+    return `
+      <button type="button" class="inline-flex items-center gap-1 ${meta.text} hover:opacity-80" title="${meta.label}"${click}>
+        <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="${lvl===4?'none':'currentColor'}" stroke="currentColor" stroke-width="${lvl===4?'1.5':'1'}">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M4 21V4h14l-2 4 2 4H4"/>
+        </svg>
+        ${lvl<4 ? `<span class="text-[10px] font-semibold">P${lvl}</span>` : ''}
+      </button>`;
+  }
+
+  function prioritySelect(id, currentLevel) {
+    const cur = normalizePriority(currentLevel);
+    return `
+      <select id="${id}" class="field-select">
+        ${[1,2,3,4].map(n => `<option value="${n}" ${n===cur?'selected':''}>${PRIORITY_META[n].label}</option>`).join('')}
+      </select>`;
+  }
+
+  function cyclePriority(kind, parentId, taskId) {
+    const t = findTask(kind, parentId, taskId);
+    if (!t) return;
+    const cur = normalizePriority(t.priority);
+    t.priority = cur === 4 ? 1 : cur + 1;
+    DB.save();
+    if (window.Views) {
+      if (Views.tasks?.__rendered) Views.tasks._renderList();
+      Views.templates?._reopenEntity && kind !== 'admin' && Views.templates._reopenEntity(kind, parentId);
+    }
+  }
+
   // -------- Aggregate everything into a flat array --------
   function all() {
     const out = [];
@@ -69,12 +121,13 @@ window.Tasks = (() => {
   }
 
   // -------- Mutators --------
-  function addTask({ kind, parentId, text, dueDate, assignee, type }) {
+  function addTask({ kind, parentId, text, dueDate, assignee, type, priority }) {
     const t = {
       id: U.uid('TK'),
       text:        text || '',
       dueDate:     dueDate || null,
       assignee:    assignee || '',
+      priority:    normalizePriority(priority),
       completed:   false,
       type:        type || 'task',
       source:      '',
@@ -166,9 +219,12 @@ window.Tasks = (() => {
         <div><div class="field-label">Task</div>
           <input id="tk-text" class="field-input" value="${U.esc(opts.defaultText || '')}" placeholder="What needs to happen?">
         </div>
-        <div class="grid grid-cols-2 gap-3">
+        <div class="grid grid-cols-3 gap-3">
           <div><div class="field-label">Due Date</div>
             <input id="tk-due" type="date" class="field-input" value="${U.esc(opts.defaultDue || '')}">
+          </div>
+          <div><div class="field-label">Priority</div>
+            ${prioritySelect('tk-priority', opts.defaultPriority || 4)}
           </div>
           <div><div class="field-label">Assign To</div>
             ${assigneeSelect('tk-assignee', opts.defaultAssignee || '')}
@@ -240,7 +296,8 @@ window.Tasks = (() => {
       if (kind !== 'admin' && !parentId) { U.toast('Pick an entity to attach to', 'warn'); return; }
     }
 
-    addTask({ kind, parentId, text, dueDate, assignee });
+    const priority = +document.getElementById('tk-priority')?.value || 4;
+    addTask({ kind, parentId, text, dueDate, assignee, priority });
     U.closeModals();
     U.toast('Task added');
     if (opts.reopen) opts.reopen();
@@ -250,6 +307,8 @@ window.Tasks = (() => {
   return {
     all, addTask, toggle, update, remove, findTask,
     parentLabel, kindBadge, assigneeChip, assigneeSelect,
+    normalizePriority, priorityMeta, priorityFlag, prioritySelect, cyclePriority,
+    PRIORITY_META,
     openQuickAdd, _refreshParentPicker, _commitAdd,
   };
 })();

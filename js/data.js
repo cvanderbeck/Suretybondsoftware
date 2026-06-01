@@ -1,6 +1,6 @@
 // ---------- Sample / seed data, persistence layer ----------
 window.DB = (() => {
-  const KEY = 'bondvault.db.v18';
+  const KEY = 'bondvault.db.v19';
 
   const sampleData = () => ({
     accounts: [
@@ -27,7 +27,7 @@ window.DB = (() => {
         renewals: { financialsLast: '2025-11-15', financialsInterval: 365, wipLast: '2026-04-01', wipInterval: 90 },
         notes: 'Strong GC. Hartford and Liberty Mutual. Average gross profit fade <3% over last 5 years.',
         tasks: [
-          { id: 'TK-A1A', text: 'Collect interim Q1 financial statement from Tom (CFO)', dueDate: '2026-05-20', assignee: 'U-1', completed: false, type: 'task', source: '', createdDate: '2026-05-10' },
+          { id: 'TK-A1A', text: 'Collect interim Q1 financial statement from Tom (CFO)', dueDate: '2026-05-20', assignee: 'U-1', completed: false, priority: 2, type: 'task', source: '', createdDate: '2026-05-10' },
           { id: 'TK-A1B', text: 'Update aggregate capacity worksheet for Hartford',     dueDate: '2026-05-25', assignee: 'U-1', completed: false, type: 'task', source: '', createdDate: '2026-05-12' },
         ],
       },
@@ -96,7 +96,7 @@ window.DB = (() => {
         renewals: { financialsLast: '2026-02-10', financialsInterval: 365, wipLast: '2026-04-30', wipInterval: 90 },
         notes: 'Marine / dredging. Liberty Mutual lead. Working on Port of Seattle.',
         tasks: [
-          { id: 'TK-A4A', text: 'Confirm Liberty submission package received', dueDate: '2026-05-16', assignee: 'U-2', completed: false, type: 'task', source: '', createdDate: '2026-05-13' },
+          { id: 'TK-A4A', text: 'Confirm Liberty submission package received', dueDate: '2026-05-16', assignee: 'U-2', completed: false, priority: 1, type: 'task', source: '', createdDate: '2026-05-13' },
         ],
       },
       {
@@ -226,9 +226,9 @@ window.DB = (() => {
             { date: days(-2),   percent: 8,  costToDate: 68000, billedToDate: 50000, note: 'Mobilization + survey complete; first dredge cycle next week.' },
           ]),
           tasks: [
-            { id: 'TK-B7A', text: 'Get Obligee Approval signature stamp from Port of Seattle', dueDate: days(3),  assignee: 'U-1', completed: false, type: 'task', source: '', createdDate: days(-1) },
-            { id: 'TK-B7B', text: 'Send executed bond + POA to Greg at BlueWater',              dueDate: days(5),  assignee: 'U-2', completed: false, type: 'task', source: '', createdDate: days(-1) },
-            { id: 'TK-B7C', text: 'Create QBO invoice for $14,000 premium',                     dueDate: days(7),  assignee: 'U-4', completed: false, type: 'task', source: '', createdDate: days(-1) },
+            { id: 'TK-B7A', text: 'Get Obligee Approval signature stamp from Port of Seattle', dueDate: days(3),  assignee: 'U-1', completed: false, priority: 1, type: 'task', source: '', createdDate: days(-1) },
+            { id: 'TK-B7B', text: 'Send executed bond + POA to Greg at BlueWater',              dueDate: days(5),  assignee: 'U-2', completed: false, priority: 1, type: 'task', source: '', createdDate: days(-1) },
+            { id: 'TK-B7C', text: 'Create QBO invoice for $14,000 premium',                     dueDate: days(7),  assignee: 'U-4', completed: false, priority: 3, type: 'task', source: '', createdDate: days(-1) },
           ] },
         { id: 'B-2408', number: 'SF-2024-00171', accountId: 'A-1007', partnerId: 'P-03', type: 'License/Permit', obligee: 'CA CSLB', project: 'Contractor License Bond', amount: 25000, premium: 250, rate: 1.0, commissionRate: 30, effective: days(-42), expires: days(82), status: 'Active', qboInvoiceNumber: '1045', reportedToBondCo: days(-43), obligeeApproved: days(-40), sentToPrincipal: days(-40),
           typeSpecific: { licenseType: 'Contractor License', licenseNumber: 'CSLB-1099442', issuingAuthority: 'California Contractors State License Board', statutoryAmount: 25000, renewalTerm: 'Biennial', classification: 'C-10 Electrical', continuousObligation: false } },
@@ -272,8 +272,8 @@ window.DB = (() => {
           { id: 'AC-002', date: '2026-05-09T09:10', author: 'Casey V.', type: 'note', text: 'Requested updated WIP from Cascade for pre-qual.' },
         ],
         tasks: [
-          { id: 'TK-P2A', text: 'Chase Cascade for updated WIP schedule', dueDate: '2026-05-17', assignee: 'U-1', completed: false, type: 'task', source: '', createdDate: '2026-05-09' },
-          { id: 'TK-P2B', text: 'Pre-quote both Hartford and Liberty',   dueDate: '2026-05-20', assignee: 'U-1', completed: false, type: 'task', source: '', createdDate: '2026-05-09' },
+          { id: 'TK-P2A', text: 'Chase Cascade for updated WIP schedule', dueDate: '2026-05-17', assignee: 'U-1', completed: false, priority: 2, type: 'task', source: '', createdDate: '2026-05-09' },
+          { id: 'TK-P2B', text: 'Pre-quote both Hartford and Liberty',   dueDate: '2026-05-20', assignee: 'U-1', completed: false, priority: 3, type: 'task', source: '', createdDate: '2026-05-09' },
         ] },
       { id: 'PL-003', stage: 'Submission in Progress',        accountId: 'A-1004', bondType: 'Payment & Performance', amount: 875000,  obligee: 'Port of Seattle',       dueDate: '2026-05-20', notes: 'Building Liberty Mutual submission package',        producer: 'CV', probability: 55, bidResult: 'pending',
         typeSpecific: { contractType: 'Lump Sum', performancePct: 100, paymentPct: 100, warrantyPeriodMonths: 24 } },
@@ -338,9 +338,9 @@ window.DB = (() => {
           { id: 'LA-004', date: '2026-05-12T08:45', author: 'Casey V.',     type: 'note',  text: 'Qualified — fits Hartford & Liberty appetite. Sending application package next.' },
         ],
         tasks: [
-          { id: 'TK-L1A', text: 'Send Tony the application package + indemnity forms', dueDate: '2026-05-18', assignee: 'U-1', completed: false, type: 'task', source: '', createdDate: '2026-05-12' },
-          { id: 'TK-L1B', text: 'Pull D&B report on Cascade Stone & Masonry',          dueDate: '2026-05-19', assignee: 'U-4', completed: false, type: 'task', source: '', createdDate: '2026-05-12' },
-          { id: 'TK-L1C', text: 'Initial call with Tony',                              dueDate: '2026-04-23', assignee: 'U-1', completed: true, completedDate: '2026-04-23', type: 'call', source: '', createdDate: '2026-04-21' },
+          { id: 'TK-L1A', text: 'Send Tony the application package + indemnity forms', dueDate: '2026-05-18', assignee: 'U-1', completed: false, priority: 2, type: 'task', source: '', createdDate: '2026-05-12' },
+          { id: 'TK-L1B', text: 'Pull D&B report on Cascade Stone & Masonry',          dueDate: '2026-05-19', assignee: 'U-4', completed: false, priority: 3, type: 'task', source: '', createdDate: '2026-05-12' },
+          { id: 'TK-L1C', text: 'Initial call with Tony',                              dueDate: '2026-04-23', assignee: 'U-1', completed: true, completedDate: '2026-04-23', priority: 2, type: 'call', source: '', createdDate: '2026-04-21' },
         ],
         convertedAccountId: null,
       },
@@ -725,8 +725,8 @@ Thanks,
         { date: '2026-05-12', author: 'Casey V.', text: 'Left voicemail with PM at Salem-Keizer SD confirming bond requirement.' },
       ],
         tasks: [
-          { id: 'TK-R1A', text: 'Phone follow-up with Mike if no response by Friday', dueDate: '2026-05-17', assignee: 'U-1', completed: false, type: 'task', source: '', createdDate: '2026-05-13' },
-          { id: 'TK-R1B', text: 'Confirm bond requirement with Salem-Keizer SD',     dueDate: '2026-05-19', assignee: 'U-1', completed: false, type: 'task', source: '', createdDate: '2026-05-12' },
+          { id: 'TK-R1A', text: 'Phone follow-up with Mike if no response by Friday', dueDate: '2026-05-17', assignee: 'U-1', completed: false, priority: 2, type: 'task', source: '', createdDate: '2026-05-13' },
+          { id: 'TK-R1B', text: 'Confirm bond requirement with Salem-Keizer SD',     dueDate: '2026-05-19', assignee: 'U-1', completed: false, priority: 3, type: 'task', source: '', createdDate: '2026-05-12' },
         ] },
       { id: 'R-002', bondId: 'B-2407', status: 'decided',      decision: 'increase', newAmount: 1100000, contactedDate: '2026-05-08', nextFollowUp: '2026-05-20', assignedTo: 'Casey V.', notes: [
         { date: '2026-05-08', author: 'Casey V.', text: 'Spoke with Greg Adler — Port of Seattle added Phase 2 to the contract, requesting an increase from $875K to $1.1M.' },
@@ -1107,11 +1107,11 @@ Thanks,
     // Free-floating administrative tasks not tied to a lead / account /
     // bond / opportunity / renewal. Standalone office work goes here.
     adminTasks: [
-      { id: 'AT-001', text: 'Renew E&O policy (expires 6/30)',                  dueDate: '2026-06-15', assignee: 'U-1', completed: false, type: 'task', source: '', createdDate: '2026-05-01' },
-      { id: 'AT-002', text: 'Submit quarterly NASBP membership report',         dueDate: '2026-07-01', assignee: 'U-4', completed: false, type: 'task', source: '', createdDate: '2026-05-09' },
-      { id: 'AT-003', text: 'Reconcile trust account — month of May',           dueDate: '2026-06-05', assignee: 'U-4', completed: false, type: 'task', source: '', createdDate: '2026-05-10' },
-      { id: 'AT-004', text: 'Schedule quarterly producer meeting w/ Hartford',  dueDate: '2026-06-12', assignee: 'U-1', completed: false, type: 'task', source: '', createdDate: '2026-05-12' },
-      { id: 'AT-005', text: 'Order new business cards for new producer',        dueDate: null,         assignee: 'U-4', completed: true,  completedDate: '2026-05-11', type: 'task', source: '', createdDate: '2026-05-08' },
+      { id: 'AT-001', text: 'Renew E&O policy (expires 6/30)',                  dueDate: '2026-06-15', assignee: 'U-1', completed: false, priority: 1, type: 'task', source: '', createdDate: '2026-05-01' },
+      { id: 'AT-002', text: 'Submit quarterly NASBP membership report',         dueDate: '2026-07-01', assignee: 'U-4', completed: false, priority: 3, type: 'task', source: '', createdDate: '2026-05-09' },
+      { id: 'AT-003', text: 'Reconcile trust account — month of May',           dueDate: '2026-06-05', assignee: 'U-4', completed: false, priority: 2, type: 'task', source: '', createdDate: '2026-05-10' },
+      { id: 'AT-004', text: 'Schedule quarterly producer meeting w/ Hartford',  dueDate: '2026-06-12', assignee: 'U-1', completed: false, priority: 3, type: 'task', source: '', createdDate: '2026-05-12' },
+      { id: 'AT-005', text: 'Order new business cards for new producer',        dueDate: null,         assignee: 'U-4', completed: true,  completedDate: '2026-05-11', priority: 4, type: 'task', source: '', createdDate: '2026-05-08' },
     ],
     settings: {
       agency: {
