@@ -149,60 +149,135 @@ Views.leads = {
   },
 
   // ---------- Detail modal ----------
+  // ---------- Tabbed Lead detail modal ----------
+  _currentId: null,
+  _tab: 'details',
+
   open(id) {
-    const l = DB.findLead(id);
+    if (!DB.findLead(id)) return;
+    this._currentId = id;
+    this._tab = 'details';
+    this._renderDetail();
+  },
+
+  _setTab(key) {
+    this._captureActiveTab();
+    this._tab = key;
+    U.closeModals();
+    this._renderDetail();
+  },
+
+  _renderDetail() {
+    const id = this._currentId;
+    const l  = DB.findLead(id);
     if (!l) return;
-    const stages = this.STAGES;
-    const activity = (l.activity || []).slice().sort((x,y) => new Date(y.date) - new Date(x.date));
 
     const statusBadge =
       l.status === 'won'  ? '<span class="badge badge-blue">Onboarded</span>' :
       l.status === 'lost' ? '<span class="badge badge-rose">Lost / No Fit</span>' :
                             '<span class="badge badge-green">Open</span>';
-    const convertedHint = l.convertedAccountId ? `<a class="text-brand-600 underline ml-2 text-xs" onclick="U.closeModals(); Views.accounts.open('${l.convertedAccountId}')">→ open account</a>` : '';
+    const convertedHint = l.convertedAccountId
+      ? `<a class="text-brand-600 underline ml-2 text-xs cursor-pointer" onclick="U.closeModals(); Views.accounts.open('${l.convertedAccountId}')">→ open account</a>`
+      : '';
+    const taskCount = (l.tasks || []).filter(t => !t.completed).length;
+    const activityCount = (l.activity || []).length;
+    const intakeCount = (window.DB && DB.intakes) ? DB.intakes().filter(f => f.leadId === l.id).length : 0;
 
-    const body = `
-      <div class="flex items-start justify-between -mt-2 mb-4">
+    const TABS = [
+      ['details',  'Details',             ''],
+      ['sourcing', 'Sourcing & Interest', ''],
+      ['pipeline', 'Pipeline',            ''],
+      ['tasks',    'Tasks',               taskCount || ''],
+      ['intake',   'Intake Forms',        intakeCount || ''],
+      ['activity', 'Activity',            activityCount || ''],
+    ];
+
+    const headerHTML = `
+      <div class="flex items-start justify-between -mt-2 mb-3">
         <div>
           <div class="flex items-center gap-2">
             <div class="text-lg font-semibold">${U.esc(l.companyName)}</div>
             ${statusBadge}
             ${convertedHint}
           </div>
-          <div class="text-sm text-ink-300">${U.esc(l.industry||'')}${l.city?` · ${U.esc(l.city)}, ${U.esc(l.state||'')}`:''}</div>
+          <div class="text-sm text-ink-300 mt-0.5">${U.esc(l.industry||'')}${l.city?` · ${U.esc(l.city)}, ${U.esc(l.state||'')}`:''}${l.contactName?` · ${U.esc(l.contactName)}`:''}</div>
         </div>
         <div class="text-right text-xs text-ink-300">
           <div>Lead Owner</div>
-          <input id="ld-owner" class="field-input w-24 text-right" value="${U.esc(l.owner||'')}">
+          <input id="ld-owner" class="field-input w-28 text-right" value="${U.esc(l.owner||'')}">
         </div>
       </div>
+      <div class="border-b border-cream-200 -mx-6 px-6 flex flex-wrap gap-1">
+        ${TABS.map(([key, label, count]) => `
+          <button class="px-3 py-2 text-sm border-b-2 -mb-px transition
+              ${this._tab===key
+                ? 'border-brand-500 text-brand-700 font-semibold'
+                : 'border-transparent text-ink-400 hover:text-ink-700 hover:border-cream-300'}"
+              onclick="Views.leads._setTab('${key}')">
+            ${U.esc(label)}${count!==''?` <span class="ml-1 text-xs text-ink-300">${count}</span>`:''}
+          </button>`).join('')}
+      </div>
+    `;
 
+    const convertBtn = l.status === 'open' && !l.convertedAccountId
+      ? `<button class="btn-secondary" onclick="Views.leads.convertToAccount('${id}')">Convert to Account</button>`
+      : '';
+    const lostBtn = l.status === 'open'
+      ? `<button class="btn-secondary text-rose-600" onclick="Views.leads.markLost('${id}')">Mark Lost</button>`
+      : '';
+
+    const body = headerHTML + '<div class="pt-4">' + this._renderTab(l) + '</div>';
+    const footer = `
+      <button class="btn-ghost" data-close>Cancel</button>
+      <button class="btn-secondary text-rose-600" onclick="Views.leads.deleteLead('${id}')">Delete</button>
+      <button class="btn-secondary" onclick="Compose.open({ leadId: '${id}' })">✉ Email Lead</button>
+      <button class="btn-secondary" onclick="Views.templates.openApplyPicker({ kind:'lead', id:'${id}', reopen: () => Views.leads.open('${id}') })">▶ Apply Template</button>
+      ${lostBtn}
+      ${convertBtn}
+      <button class="btn-primary" onclick="Views.leads.save('${id}')">Save</button>
+    `;
+    const m = U.modal({ title: 'Lead', body, footer, size: 'lg' });
+    m.el.querySelector('[data-close]').addEventListener('click', m.close);
+  },
+
+  _renderTab(l) {
+    switch (this._tab) {
+      case 'details':  return this._tabDetails(l);
+      case 'sourcing': return this._tabSourcing(l);
+      case 'pipeline': return this._tabPipeline(l);
+      case 'tasks':    return Views.templates.renderTasksCard('lead', l.id, l);
+      case 'intake':   return Intake.panel('lead', l);
+      case 'activity': return this._tabActivity(l);
+      default:         return this._tabDetails(l);
+    }
+  },
+
+  _tabDetails(l) {
+    return `
       <div class="card mb-4">
         <div class="card-header"><div class="card-title">Lead Details</div></div>
         <div class="p-4 grid grid-cols-2 gap-3">
           <div><div class="field-label">Company Name</div><input id="ld-company" class="field-input" value="${U.esc(l.companyName||'')}"></div>
           <div><div class="field-label">DBA</div><input id="ld-dba" class="field-input" value="${U.esc(l.dba||'')}"></div>
-
           <div><div class="field-label">Primary Contact</div><input id="ld-cname" class="field-input" value="${U.esc(l.contactName||'')}"></div>
           <div><div class="field-label">Title</div><input id="ld-ctitle" class="field-input" value="${U.esc(l.contactTitle||'')}"></div>
-
           <div><div class="field-label">Email</div><input id="ld-email" class="field-input" value="${U.esc(l.email||'')}"></div>
           <div><div class="field-label">Phone</div><input id="ld-phone" class="field-input" value="${U.esc(l.phone||'')}"></div>
-
           <div><div class="field-label">City</div><input id="ld-city" class="field-input" value="${U.esc(l.city||'')}"></div>
           <div><div class="field-label">State</div><input id="ld-state" class="field-input" value="${U.esc(l.state||'')}"></div>
-
           <div><div class="field-label">Industry</div><input id="ld-industry" class="field-input" value="${U.esc(l.industry||'')}"></div>
           <div><div class="field-label">NAICS</div><input id="ld-naics" class="field-input" value="${U.esc(l.naics||'')}"></div>
-
           <div><div class="field-label">Est. Annual Premium</div><input id="ld-prem" type="number" class="field-input" value="${l.estimatedAnnualPremium||''}" placeholder="$"></div>
           <div><div class="field-label">Est. Annual Revenue</div><input id="ld-rev" type="number" class="field-input" value="${l.estimatedRevenue||''}" placeholder="$"></div>
-
           <div><div class="field-label">Years in Business</div><input id="ld-yrs" type="number" class="field-input" value="${l.yearsInBusiness||''}"></div>
           <div></div>
         </div>
       </div>
+    `;
+  },
 
+  _tabSourcing(l) {
+    return `
       <div class="card mb-4">
         <div class="card-header"><div class="card-title">Sourcing &amp; Interest</div></div>
         <div class="p-4 grid grid-cols-2 gap-3">
@@ -213,7 +288,6 @@ Views.leads = {
             </select></div>
           <div><div class="field-label">Referred By</div>
             <input id="ld-ref" class="field-input" value="${U.esc(l.referredBy||'')}"></div>
-
           <div class="col-span-2"><div class="field-label">Bond Types of Interest</div>
             <div id="ld-types" class="grid grid-cols-3 gap-1">
               ${BondTypes.TYPES.map(t => `
@@ -224,7 +298,12 @@ Views.leads = {
             </div></div>
         </div>
       </div>
+    `;
+  },
 
+  _tabPipeline(l) {
+    const stages = this.STAGES;
+    return `
       <div class="card mb-4">
         <div class="card-header"><div class="card-title">Pipeline</div></div>
         <div class="p-4 grid grid-cols-2 gap-3">
@@ -245,11 +324,12 @@ Views.leads = {
             <textarea id="ld-notes" class="field-textarea" rows="2">${U.esc(l.notes||'')}</textarea></div>
         </div>
       </div>
+    `;
+  },
 
-      ${Views.templates.renderTasksCard('lead', l.id, l)}
-
-      ${Intake.panel('lead', l)}
-
+  _tabActivity(l) {
+    const activity = (l.activity || []).slice().sort((x,y) => new Date(y.date) - new Date(x.date));
+    return `
       <div class="card">
         <div class="card-header">
           <div class="card-title">Activity Log</div>
@@ -270,31 +350,60 @@ Views.leads = {
               <textarea id="ld-newtext" class="field-textarea" rows="2" placeholder="What happened? e.g. Called Tony to schedule next check-in."></textarea>
             </div>
             <div class="flex justify-end mt-2">
-              <button class="btn-primary" onclick="Views.leads._logActivity('${id}')">Log Entry</button>
+              <button class="btn-primary" onclick="Views.leads._logActivity('${l.id}')">Log Entry</button>
             </div>
           </div>
         </div>
       </div>
     `;
+  },
 
-    const convertBtn = l.status === 'open' && !l.convertedAccountId
-      ? `<button class="btn-secondary" onclick="Views.leads.convertToAccount('${id}')">Convert to Account</button>`
-      : '';
-    const lostBtn = l.status === 'open'
-      ? `<button class="btn-secondary text-rose-600" onclick="Views.leads.markLost('${id}')">Mark Lost</button>`
-      : '';
-
-    const footer = `
-      <button class="btn-ghost" data-close>Cancel</button>
-      <button class="btn-secondary text-rose-600" onclick="Views.leads.deleteLead('${id}')">Delete</button>
-      <button class="btn-secondary" onclick="Compose.open({ leadId: '${id}' })">✉ Email Lead</button>
-      <button class="btn-secondary" onclick="Views.templates.openApplyPicker({ kind:'lead', id:'${id}', reopen: () => Views.leads.open('${id}') })">▶ Apply Template</button>
-      ${lostBtn}
-      ${convertBtn}
-      <button class="btn-primary" onclick="Views.leads.save('${id}')">Save</button>
-    `;
-    const m = U.modal({ title: 'Lead', body, footer, size: 'lg' });
-    m.el.querySelector('[data-close]').addEventListener('click', m.close);
+  _captureActiveTab() {
+    const id = this._currentId;
+    const l  = id ? DB.findLead(id) : null;
+    if (!l) return;
+    const get = (k) => document.getElementById(k);
+    const val = (k) => { const e = get(k); return e ? e.value : null; };
+    const num = (k) => { const v = val(k); return v == null || v === '' ? null : +v; };
+    if (get('ld-owner'))   l.owner        = val('ld-owner');
+    if (get('ld-company')) l.companyName  = val('ld-company');
+    if (get('ld-dba'))     l.dba          = val('ld-dba');
+    if (get('ld-cname'))   l.contactName  = val('ld-cname');
+    if (get('ld-ctitle'))  l.contactTitle = val('ld-ctitle');
+    if (get('ld-email'))   l.email        = val('ld-email');
+    if (get('ld-phone'))   l.phone        = val('ld-phone');
+    if (get('ld-city'))    l.city         = val('ld-city');
+    if (get('ld-state'))   l.state        = val('ld-state');
+    if (get('ld-industry'))l.industry     = val('ld-industry');
+    if (get('ld-naics'))   l.naics        = val('ld-naics');
+    if (get('ld-prem'))    l.estimatedAnnualPremium = num('ld-prem');
+    if (get('ld-rev'))     l.estimatedRevenue       = num('ld-rev');
+    if (get('ld-yrs'))     l.yearsInBusiness        = num('ld-yrs');
+    if (get('ld-source'))  l.leadSource   = val('ld-source') || null;
+    if (get('ld-ref'))     l.referredBy   = val('ld-ref');
+    if (get('ld-types'))   l.bondTypes    = Array.from(document.querySelectorAll('#ld-types input[type=checkbox]:checked')).map(i => i.value);
+    if (get('ld-stage')) {
+      const prevStage = l.stage;
+      l.stage = val('ld-stage');
+      l.probability = num('ld-prob');
+      l.lastTouch    = val('ld-last') || null;
+      l.nextFollowUp = val('ld-next') || null;
+      if (get('ld-notes')) l.notes = val('ld-notes');
+      if (l.stage === this.TERMINAL_WON)       { l.status = 'won'; l.probability = 100; }
+      else if (l.stage === this.TERMINAL_LOST) { l.status = 'lost'; l.probability = 0; }
+      else                                      { l.status = 'open'; }
+      if (prevStage !== l.stage) {
+        l.activity = l.activity || [];
+        l.activity.push({
+          id: U.uid('LA'),
+          date: new Date().toISOString(),
+          author: 'Casey V.',
+          type: 'stage_change',
+          text: `Moved from "${prevStage}" → "${l.stage}".`,
+        });
+      }
+    }
+    DB.save();
   },
 
   _activityRow(n) {
@@ -334,47 +443,8 @@ Views.leads = {
 
   // ---------- Save / status actions ----------
   save(id) {
-    const l = DB.findLead(id);
-    const prevStage = l.stage;
-    l.companyName  = document.getElementById('ld-company').value;
-    l.dba          = document.getElementById('ld-dba').value;
-    l.contactName  = document.getElementById('ld-cname').value;
-    l.contactTitle = document.getElementById('ld-ctitle').value;
-    l.email        = document.getElementById('ld-email').value;
-    l.phone        = document.getElementById('ld-phone').value;
-    l.city         = document.getElementById('ld-city').value;
-    l.state        = document.getElementById('ld-state').value;
-    l.industry     = document.getElementById('ld-industry').value;
-    l.naics        = document.getElementById('ld-naics').value;
-    l.estimatedAnnualPremium = +document.getElementById('ld-prem').value || null;
-    l.estimatedRevenue       = +document.getElementById('ld-rev').value || null;
-    l.yearsInBusiness        = +document.getElementById('ld-yrs').value || null;
-    l.leadSource   = document.getElementById('ld-source').value || null;
-    l.referredBy   = document.getElementById('ld-ref').value;
-    l.owner        = document.getElementById('ld-owner').value;
-    l.stage        = document.getElementById('ld-stage').value;
-    l.probability  = +document.getElementById('ld-prob').value;
-    l.lastTouch    = document.getElementById('ld-last').value || null;
-    l.nextFollowUp = document.getElementById('ld-next').value || null;
-    l.notes        = document.getElementById('ld-notes').value;
-    l.bondTypes = Array.from(document.querySelectorAll('#ld-types input[type=checkbox]:checked')).map(i => i.value);
-
-    if (l.stage === this.TERMINAL_WON)  { l.status = 'won';  l.probability = 100; }
-    else if (l.stage === this.TERMINAL_LOST) { l.status = 'lost'; l.probability = 0; }
-    else                                { l.status = 'open'; }
-
-    if (prevStage !== l.stage) {
-      l.activity = l.activity || [];
-      l.activity.push({
-        id: U.uid('LA'),
-        date: new Date().toISOString(),
-        author: 'Casey V.',
-        type: 'stage_change',
-        text: `Moved from "${prevStage}" → "${l.stage}".`,
-      });
-    }
-
-    DB.save();
+    this._currentId = id;
+    this._captureActiveTab();
     U.closeModals();
     U.toast('Lead updated');
     this.render();

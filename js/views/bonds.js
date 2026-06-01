@@ -90,98 +90,71 @@ Views.bonds = {
     document.getElementById('bonds-tbody').innerHTML = this.rows(list);
   },
 
-  open(id) {
-    const b = DB.findBond(id); if (!b) return;
-    const a = DB.findAccount(b.accountId) || {};
-    const p = DB.findPartner(b.partnerId) || {};
-    const commission = (b.premium||0) * (b.commissionRate||0) / 100;
-    const docs = DB.docs().filter(d => d.bondId === id);
-    const emails = DB.emails().filter(e => e.bondId === id);
-    const invs = DB.invoices().filter(i => i.bondId === id);
+  // ---------- Tabbed Bond Details modal ----------
+  _currentId: null,
+  _tab: 'overview',
 
-    const body = `
-      <div class="grid grid-cols-3 gap-6 mb-4">
-        <div class="col-span-2">
+  open(id) {
+    if (!DB.findBond(id)) return;
+    this._currentId = id;
+    this._tab = 'overview';
+    this._renderDetail();
+  },
+
+  _setTab(key) {
+    this._tab = key;
+    U.closeModals();
+    this._renderDetail();
+  },
+
+  _renderDetail() {
+    const id = this._currentId;
+    const b  = DB.findBond(id); if (!b) return;
+    const a  = DB.findAccount(b.accountId) || {};
+    const docs   = DB.docs().filter(d => d.bondId === id);
+    const emails = DB.emails().filter(e => e.bondId === id);
+    const invs   = DB.invoices().filter(i => i.bondId === id);
+    const taskCount = (b.tasks || []).filter(t => !t.completed).length;
+    const fileCount = docs.length + emails.length + invs.length;
+
+    const TABS = [
+      ['overview', 'Overview',                                              ''],
+      ['specific', `${BondTypes.normalize(b.type) || 'Bond'} Details`,      ''],
+      ['tracking', 'Bond Tracking',                                         ''],
+      ['wip',      'Work in Progress',                                      ''],
+      ['billing',  'QuickBooks &amp; Invoices',                             invs.length || ''],
+      ['tasks',    'Tasks',                                                 taskCount || ''],
+      ['files',    'Files &amp; Emails',                                    fileCount || ''],
+    ];
+
+    const headerHTML = `
+      <div class="flex items-start justify-between -mt-2 mb-3">
+        <div>
           <div class="flex items-center gap-3">
-            <div class="text-lg font-semibold text-slate-900">${b.number}</div>
+            <div class="text-lg font-semibold text-ink-700">${b.number}</div>
             ${U.statusBadge(b.status)}
           </div>
-          <div class="text-sm text-slate-500">${U.esc(b.type)} Bond · Issued ${U.date(b.effective)} · Expires ${U.date(b.expires)}</div>
-          <div class="mt-3 text-sm space-y-1">
-            <div><b>Principal:</b> <a class="text-brand-600" onclick="U.closeModals(); Views.accounts.open('${a.id}')">${U.esc(a.name||'')}</a></div>
-            <div><b>Obligee:</b> ${U.esc(b.obligee||'')}</div>
-            <div><b>Project / Description:</b> ${U.esc(b.project||'')}</div>
-            <div><b>Surety Partner:</b> ${U.esc(p.name||'')} (${p.rating||''})</div>
-          </div>
+          <div class="text-sm text-ink-300 mt-0.5">${U.esc(b.type)} · Issued ${U.date(b.effective)} · Expires ${U.date(b.expires)} · Principal: <a class="text-brand-600 hover:underline cursor-pointer" onclick="U.closeModals(); Views.accounts.open('${a.id}')">${U.esc(a.name||'')}</a></div>
         </div>
-        <div class="space-y-3">
-          <div class="bg-slate-50 p-3 rounded-lg">
-            <div class="text-xs text-slate-500">Bond Amount</div>
-            <div class="text-xl font-semibold">${U.usd(b.amount)}</div>
-          </div>
-          <div class="bg-slate-50 p-3 rounded-lg">
-            <div class="text-xs text-slate-500">Annual Premium</div>
-            <div class="text-xl font-semibold">${U.usd(b.premium)} <span class="text-xs text-slate-500">@ ${b.rate}%</span></div>
-          </div>
-          <div class="bg-emerald-50 p-3 rounded-lg">
-            <div class="text-xs text-emerald-700">Agency Commission (${b.commissionRate}%)</div>
-            <div class="text-xl font-semibold text-emerald-700">${U.usd(commission)}</div>
-          </div>
+        <div class="text-right">
+          <div class="text-xs text-ink-300">Bond Amount</div>
+          <div class="text-base font-semibold text-ink-700">${U.usd(b.amount)}</div>
+          <div class="text-[11px] text-ink-300 mt-0.5">Premium ${U.usd(b.premium)} · Commission ${(b.commissionRate||0)}%</div>
         </div>
       </div>
-
-      ${this._typeSpecificCard(b)}
-
-      <div class="card mb-4">
-        <div class="card-header">
-          <div class="card-title">Bond Tracking</div>
-          <div class="text-xs text-slate-500">Mark milestones as they happen — click "Today" to stamp the current date.</div>
-        </div>
-        <div class="p-4 grid grid-cols-3 gap-4">
-          ${this._trackingTile('Reported to Bond Co.', 'reportedToBondCo', b)}
-          ${this._trackingTile('Approved by Principal/Obligee', 'obligeeApproved', b)}
-          ${this._trackingTile('Sent Out to Principal', 'sentToPrincipal', b)}
-        </div>
-      </div>
-
-      ${this._wipCard(b)}
-
-      <div class="card mb-4">
-        <div class="card-header"><div class="card-title">QuickBooks</div></div>
-        <div class="p-4 flex items-end gap-3">
-          <div class="flex-1 max-w-xs">
-            <div class="field-label">QuickBooks Invoice #</div>
-            <input id="bd-qbo" class="field-input font-mono" value="${U.esc(b.qboInvoiceNumber||'')}" placeholder="e.g. 1047">
-          </div>
-          <button class="btn-secondary" onclick="Views.bonds._saveQbo('${id}')">Save Invoice #</button>
-          <div class="text-xs text-slate-500 ml-auto">Reference for matching to QuickBooks Online.</div>
-        </div>
-      </div>
-
-      ${Views.templates.renderTasksCard('bond', b.id, b)}
-
-      <div class="grid grid-cols-3 gap-4">
-        <div class="card">
-          <div class="card-header"><div class="card-title">Documents (${docs.length})</div>
-            <button class="btn-ghost" onclick="App.go('documents')">All →</button></div>
-          <div class="p-3 max-h-48 overflow-y-auto">
-            ${docs.map(d => `<div class="text-sm p-2 hover:bg-slate-50 rounded"><div class="font-medium truncate">${U.esc(d.name)}</div><div class="text-xs text-slate-500">${d.category} · ${U.fileSize(d.size)}</div></div>`).join('') || '<div class="text-xs text-slate-400 p-3">No documents.</div>'}
-          </div>
-        </div>
-        <div class="card">
-          <div class="card-header"><div class="card-title">Mapped Emails (${emails.length})</div></div>
-          <div class="p-3 max-h-48 overflow-y-auto">
-            ${emails.map(e => `<div class="text-sm p-2 hover:bg-slate-50 rounded"><div class="font-medium truncate">${U.esc(e.subject)}</div><div class="text-xs text-slate-500 truncate">${U.esc(e.from)}</div></div>`).join('') || '<div class="text-xs text-slate-400 p-3">No emails mapped.</div>'}
-          </div>
-        </div>
-        <div class="card">
-          <div class="card-header"><div class="card-title">Invoices (${invs.length})</div></div>
-          <div class="p-3 max-h-48 overflow-y-auto">
-            ${invs.map(i => `<div class="text-sm p-2 hover:bg-slate-50 rounded flex justify-between"><div><div class="font-medium">${i.id}</div><div class="text-xs text-slate-500">${U.date(i.date)}</div></div><div class="text-right">${U.usd(i.amount)}<br/>${U.statusBadge(i.status)}</div></div>`).join('') || '<div class="text-xs text-slate-400 p-3">No invoices.</div>'}
-          </div>
-        </div>
+      <div class="border-b border-cream-200 -mx-6 px-6 flex flex-wrap gap-1">
+        ${TABS.map(([key, label, count]) => `
+          <button class="px-3 py-2 text-sm border-b-2 -mb-px transition
+              ${this._tab===key
+                ? 'border-brand-500 text-brand-700 font-semibold'
+                : 'border-transparent text-ink-400 hover:text-ink-700 hover:border-cream-300'}"
+              onclick="Views.bonds._setTab('${key}')">
+            ${label}${count!==''?` <span class="ml-1 text-xs text-ink-300">${count}</span>`:''}
+          </button>`).join('')}
       </div>
     `;
+
+    const body = headerHTML + '<div class="pt-4">' + this._renderTab(b, { docs, emails, invs, a }) + '</div>';
     const footer = `
       <button class="btn-ghost" data-close>Close</button>
       <button class="btn-secondary" onclick="Views.bonds.openForm('${id}')">Edit</button>
@@ -192,6 +165,114 @@ Views.bonds = {
     `;
     const m = U.modal({ title: 'Bond Details', body, footer, size: 'lg' });
     m.el.querySelector('[data-close]').addEventListener('click', m.close);
+  },
+
+  _renderTab(b, ctx) {
+    switch (this._tab) {
+      case 'overview':  return this._tabOverview(b, ctx);
+      case 'specific':  return this._typeSpecificCard(b);
+      case 'tracking':  return this._tabTracking(b);
+      case 'wip':       return this._wipCard(b);
+      case 'billing':   return this._tabBilling(b, ctx);
+      case 'tasks':     return Views.templates.renderTasksCard('bond', b.id, b);
+      case 'files':     return this._tabFiles(b, ctx);
+      default:          return this._tabOverview(b, ctx);
+    }
+  },
+
+  _tabOverview(b, { a }) {
+    const p = DB.findPartner(b.partnerId) || {};
+    const commission = (b.premium||0) * (b.commissionRate||0) / 100;
+    return `
+      <div class="grid grid-cols-3 gap-6 mb-4">
+        <div class="col-span-2">
+          <div class="mt-3 text-sm space-y-1">
+            <div><b>Principal:</b> <a class="text-brand-600 hover:underline cursor-pointer" onclick="U.closeModals(); Views.accounts.open('${a.id}')">${U.esc(a.name||'')}</a></div>
+            <div><b>Obligee:</b> ${U.esc(b.obligee||'')}</div>
+            <div><b>Project / Description:</b> ${U.esc(b.project||'')}</div>
+            <div><b>Surety Partner:</b> ${U.esc(p.name||'')} ${p.rating ? `(${p.rating})` : ''}</div>
+          </div>
+        </div>
+        <div class="space-y-3">
+          <div class="bg-cream-50 p-3 rounded-lg">
+            <div class="text-xs text-ink-300">Bond Amount</div>
+            <div class="text-xl font-semibold">${U.usd(b.amount)}</div>
+          </div>
+          <div class="bg-cream-50 p-3 rounded-lg">
+            <div class="text-xs text-ink-300">Annual Premium</div>
+            <div class="text-xl font-semibold">${U.usd(b.premium)} <span class="text-xs text-ink-300">@ ${b.rate}%</span></div>
+          </div>
+          <div class="bg-emerald-50 p-3 rounded-lg">
+            <div class="text-xs text-emerald-700">Agency Commission (${b.commissionRate}%)</div>
+            <div class="text-xl font-semibold text-emerald-700">${U.usd(commission)}</div>
+          </div>
+        </div>
+      </div>
+    `;
+  },
+
+  _tabTracking(b) {
+    return `
+      <div class="card mb-4">
+        <div class="card-header">
+          <div class="card-title">Bond Tracking</div>
+          <div class="text-xs text-ink-300">Mark milestones as they happen — click "Today" to stamp the current date.</div>
+        </div>
+        <div class="p-4 grid grid-cols-3 gap-4">
+          ${this._trackingTile('Reported to Bond Co.', 'reportedToBondCo', b)}
+          ${this._trackingTile('Approved by Principal/Obligee', 'obligeeApproved', b)}
+          ${this._trackingTile('Sent Out to Principal', 'sentToPrincipal', b)}
+        </div>
+      </div>
+    `;
+  },
+
+  _tabBilling(b, { invs }) {
+    return `
+      <div class="card mb-4">
+        <div class="card-header"><div class="card-title">QuickBooks</div></div>
+        <div class="p-4 flex items-end gap-3">
+          <div class="flex-1 max-w-xs">
+            <div class="field-label">QuickBooks Invoice #</div>
+            <input id="bd-qbo" class="field-input font-mono" value="${U.esc(b.qboInvoiceNumber||'')}" placeholder="e.g. 1047">
+          </div>
+          <button class="btn-secondary" onclick="Views.bonds._saveQbo('${b.id}')">Save Invoice #</button>
+          <div class="text-xs text-ink-300 ml-auto">Reference for matching to QuickBooks Online.</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header"><div class="card-title">Invoices (${invs.length})</div>
+          <button class="btn-ghost" onclick="App.go('invoicing')">All invoices →</button></div>
+        <div class="p-3 max-h-72 overflow-y-auto">
+          ${invs.map(i => `
+            <div class="text-sm p-2 hover:bg-cream-50 rounded flex justify-between">
+              <div><div class="font-medium">${i.id}</div><div class="text-xs text-ink-300">${U.date(i.date)}</div></div>
+              <div class="text-right">${U.usd(i.amount)}<br/>${U.statusBadge(i.status)}</div>
+            </div>`).join('') || '<div class="text-xs text-ink-300 p-3">No invoices yet.</div>'}
+        </div>
+      </div>
+    `;
+  },
+
+  _tabFiles(b, { docs, emails }) {
+    return `
+      <div class="grid grid-cols-2 gap-4">
+        <div class="card">
+          <div class="card-header"><div class="card-title">Documents (${docs.length})</div>
+            <button class="btn-ghost" onclick="App.go('documents')">All →</button></div>
+          <div class="p-3 max-h-80 overflow-y-auto">
+            ${docs.map(d => `<div class="text-sm p-2 hover:bg-cream-50 rounded"><div class="font-medium truncate">${U.esc(d.name)}</div><div class="text-xs text-ink-300">${d.category} · ${U.fileSize(d.size)}</div></div>`).join('') || '<div class="text-xs text-ink-300 p-3">No documents.</div>'}
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header"><div class="card-title">Mapped Emails (${emails.length})</div></div>
+          <div class="p-3 max-h-80 overflow-y-auto">
+            ${emails.map(e => `<div class="text-sm p-2 hover:bg-cream-50 rounded"><div class="font-medium truncate">${U.esc(e.subject)}</div><div class="text-xs text-ink-300 truncate">${U.esc(e.from)}</div></div>`).join('') || '<div class="text-xs text-ink-300 p-3">No emails mapped.</div>'}
+          </div>
+        </div>
+      </div>
+    `;
   },
 
   openForm(id) {
@@ -390,7 +471,10 @@ Views.bonds = {
     b[key] = value || null;
     DB.save();
     U.toast(value ? 'Updated' : 'Cleared', 'info');
-    this.open(id);
+    // Stay on the current tab when re-rendering
+    this._currentId = id;
+    U.closeModals();
+    this._renderDetail();
   },
 
   _saveQbo(id) {

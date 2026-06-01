@@ -99,33 +99,107 @@ Views.pipeline = {
     this.render();
   },
 
+  // ---------- Tabbed Opportunity detail modal ----------
+  _currentId: null,
+  _tab: 'details',
+
   open(id) {
     const it = DB.pipeline().find(i => i.id === id);
     if (!it) return;
+    this._currentId = id;
+    this._tab = 'details';
+    this._renderDetail();
+  },
+
+  _setTab(key) {
+    // Auto-save fields from the current tab before switching
+    this._captureActiveTab();
+    this._tab = key;
+    U.closeModals();
+    this._renderDetail();
+  },
+
+  _renderDetail() {
+    const id = this._currentId;
+    const it = DB.pipeline().find(i => i.id === id);
+    if (!it) return;
     const a = DB.findAccount(it.accountId) || {};
-    const stages = this.STAGES;
-    const accts = DB.accounts();
     const result = it.bidResult || 'pending';
     const resultMeta = this.resultMeta(result);
+    const activityCount = (it.activity || []).length;
+    const taskCount = (it.tasks || []).filter(t => !t.completed).length;
 
-    const activity = (it.activity || []).slice().sort((x,y) => new Date(y.date) - new Date(x.date));
+    const TABS = [
+      ['details',  'Details',                                       ''],
+      ['specific', `${BondTypes.normalize(it.bondType) || 'Bond'} Specifics`, ''],
+      ['delivery', 'Delivery',                                      ''],
+      ['bid',      'Bid Results',                                   ''],
+      ['tasks',    'Tasks',                                         taskCount || ''],
+      ['activity', 'Activity',                                      activityCount || ''],
+    ];
 
-    const body = `
-      <div class="flex items-start justify-between -mt-2 mb-4">
+    const headerHTML = `
+      <div class="flex items-start justify-between -mt-2 mb-3">
         <div>
           <div class="field-label">Account</div>
           <button class="text-lg font-semibold text-brand-700 hover:underline text-left"
             onclick="U.closeModals(); Views.accounts.open('${a.id}')">
             ${U.esc(a.name||'—')}
           </button>
-          <div class="text-xs text-slate-500">${U.esc(a.type||'')}${a.city?` · ${U.esc(a.city)}, ${U.esc(a.state||'')}`:''}</div>
+          <div class="text-xs text-ink-300">${U.esc(a.type||'')}${a.city?` · ${U.esc(a.city)}, ${U.esc(a.state||'')}`:''}</div>
         </div>
         <div class="text-right">
           <span class="badge ${resultMeta ? resultMeta.badge : 'badge-slate'}">${U.esc(resultMeta ? resultMeta.label : 'Pending')}</span>
-          <div class="text-xs text-slate-500 mt-1">${(it.activity||[]).length} activity entr${(it.activity||[]).length===1?'y':'ies'}</div>
+          <div class="text-xs text-ink-300 mt-1">${U.esc(BondTypes.normalize(it.bondType) || '')} · ${U.usd(it.amount || 0)}</div>
         </div>
       </div>
+      <div class="border-b border-cream-200 -mx-6 px-6 flex flex-wrap gap-1">
+        ${TABS.map(([key, label, count]) => `
+          <button class="px-3 py-2 text-sm border-b-2 -mb-px transition
+              ${this._tab===key
+                ? 'border-brand-500 text-brand-700 font-semibold'
+                : 'border-transparent text-ink-400 hover:text-ink-700 hover:border-cream-300'}"
+              onclick="Views.pipeline._setTab('${key}')">
+            ${U.esc(label)}${count!==''?` <span class="ml-1 text-xs text-ink-300">${count}</span>`:''}
+          </button>`).join('')}
+      </div>
+    `;
 
+    const body = headerHTML + '<div class="pt-4">' + this._renderTab(it, a) + '</div>';
+    const footer = `
+      <button class="btn-ghost" data-close>Cancel</button>
+      <button class="btn-secondary text-rose-600" onclick="Views.pipeline.deleteOpp('${id}')">Delete</button>
+      <button class="btn-secondary" onclick="Compose.open({ pipelineId: '${id}', templateId: 'T-bid-followup' })">✉ Email</button>
+      <button class="btn-secondary" onclick="Views.templates.openApplyPicker({ kind:'opportunity', id:'${id}', reopen: () => Views.pipeline.open('${id}') })">▶ Apply Template</button>
+      <button class="btn-secondary" onclick="Views.pipeline.convertToBond('${id}')">Convert to Bond</button>
+      <button class="btn-primary" onclick="Views.pipeline.save('${id}')">Save</button>
+    `;
+    const m = U.modal({ title: 'Opportunity', body, footer, size: 'lg' });
+    m.el.querySelector('[data-close]').addEventListener('click', m.close);
+    // Initialize show/hide for any conditional fields the tab uses
+    setTimeout(() => {
+      this._onIssuanceChange();
+      this._onResultChange();
+    }, 0);
+  },
+
+  _renderTab(it, a) {
+    switch (this._tab) {
+      case 'details':  return this._tabDetails(it);
+      case 'specific': return this._tabSpecifics(it);
+      case 'delivery': return this._tabDelivery(it);
+      case 'bid':      return this._tabBidResults(it);
+      case 'tasks':    return Views.templates.renderTasksCard('opportunity', it.id, it);
+      case 'activity': return this._tabActivity(it);
+      default:         return this._tabDetails(it);
+    }
+  },
+
+  // ---------- Tab: Details ----------
+  _tabDetails(it) {
+    const stages = this.STAGES;
+    const accts = DB.accounts();
+    return `
       <div class="card mb-4">
         <div class="card-header"><div class="card-title">Opportunity Details</div></div>
         <div class="p-4 grid grid-cols-2 gap-3">
@@ -152,7 +226,7 @@ Views.pipeline = {
           <div><div class="field-label">Probability</div>
             <input id="pl-prob" type="range" min="0" max="100" value="${it.probability}" class="w-full"
               oninput="document.getElementById('pl-prob-val').textContent=this.value+'%'">
-            <div class="text-xs text-slate-500" id="pl-prob-val">${it.probability}%</div>
+            <div class="text-xs text-ink-300" id="pl-prob-val">${it.probability}%</div>
           </div>
           <div class="col-span-2"><div class="field-label">Notes</div>
             <textarea class="field-textarea" id="pl-notes" rows="2">${U.esc(it.notes||'')}</textarea></div>
@@ -160,7 +234,12 @@ Views.pipeline = {
           ${this._oppDetailsExtras(it)}
         </div>
       </div>
+    `;
+  },
 
+  // ---------- Tab: Bond-Type Specifics ----------
+  _tabSpecifics(it) {
+    return `
       <div class="card mb-4">
         <div class="card-header">
           <div class="card-title">${U.esc(BondTypes.normalize(it.bondType) || 'Bond')} — Type-Specific Details</div>
@@ -170,12 +249,21 @@ Views.pipeline = {
           <div id="pl-typefields">${BondTypes.renderFields(BondTypes.normalize(it.bondType), it)}</div>
         </div>
       </div>
+    `;
+  },
 
-      ${this._deliveryCard(it)}
+  // ---------- Tab: Delivery ----------
+  _tabDelivery(it) {
+    return this._deliveryCard(it);
+  },
 
+  // ---------- Tab: Bid Results ----------
+  _tabBidResults(it) {
+    const result = it.bidResult || 'pending';
+    return `
       <div class="card mb-4">
         <div class="card-header"><div class="card-title">Bid Results</div>
-          <span class="text-xs text-slate-500">Track final outcome — "Not Low" and "Principal Did Not Bid" supported.</span>
+          <span class="text-xs text-ink-300">Track final outcome — "Not Low" and "Principal Did Not Bid" supported.</span>
         </div>
         <div class="p-4 grid grid-cols-2 gap-3">
           <div class="col-span-2"><div class="field-label">Result</div>
@@ -196,18 +284,22 @@ Views.pipeline = {
             <textarea id="pl-resnotes" class="field-textarea" rows="2" placeholder="Why didn't we get it? Did principal decide not to bid?">${U.esc(it.bidResultNotes||'')}</textarea></div>
         </div>
       </div>
+    `;
+  },
 
-      ${Views.templates.renderTasksCard('opportunity', it.id, it)}
-
+  // ---------- Tab: Activity ----------
+  _tabActivity(it) {
+    const activity = (it.activity || []).slice().sort((x,y) => new Date(y.date) - new Date(x.date));
+    return `
       <div class="card">
         <div class="card-header">
           <div class="card-title">Activity Log</div>
-          <span class="text-xs text-slate-500">${activity.length} entr${activity.length===1?'y':'ies'}</span>
+          <span class="text-xs text-ink-300">${activity.length} entr${activity.length===1?'y':'ies'}</span>
         </div>
         <div class="p-4 space-y-3">
           ${activity.length ? activity.map(n => Views.pipeline._activityRow(n)).join('')
-            : '<div class="text-sm text-slate-400">No activity yet. Send an email or log a note below.</div>'}
-          <div class="pt-3 border-t border-slate-100">
+            : '<div class="text-sm text-ink-300">No activity yet. Send an email or log a note below.</div>'}
+          <div class="pt-3 border-t border-cream-100">
             <div class="field-label">Log a note, call, or other touchpoint</div>
             <div class="flex gap-2">
               <select id="pl-newtype" class="field-select w-40">
@@ -220,23 +312,62 @@ Views.pipeline = {
               <textarea id="pl-newtext" class="field-textarea" rows="2" placeholder="What happened? e.g. Called PM, no answer — left VM."></textarea>
             </div>
             <div class="flex justify-end mt-2">
-              <button class="btn-primary" onclick="Views.pipeline._logActivity('${id}')">Log Entry</button>
+              <button class="btn-primary" onclick="Views.pipeline._logActivity('${it.id}')">Log Entry</button>
             </div>
           </div>
         </div>
       </div>
     `;
-    const footer = `
-      <button class="btn-ghost" data-close>Cancel</button>
-      <button class="btn-secondary text-rose-600" onclick="Views.pipeline.deleteOpp('${id}')">Delete</button>
-      <button class="btn-secondary" onclick="Compose.open({ pipelineId: '${id}', templateId: 'T-bid-followup' })">✉ Email</button>
-      <button class="btn-secondary" onclick="Views.templates.openApplyPicker({ kind:'opportunity', id:'${id}', reopen: () => Views.pipeline.open('${id}') })">▶ Apply Template</button>
-      <button class="btn-secondary" onclick="Views.pipeline.convertToBond('${id}')">Convert to Bond</button>
-      <button class="btn-primary" onclick="Views.pipeline.save('${id}')">Save</button>
-    `;
-    const m = U.modal({ title: 'Opportunity', body, footer, size: 'lg' });
-    m.el.querySelector('[data-close]').addEventListener('click', m.close);
-    this._onResultChange();
+  },
+
+  // Captures whatever the active tab has rendered (auto-save on tab switch)
+  _captureActiveTab() {
+    const id = this._currentId;
+    const it = id ? DB.pipeline().find(i => i.id === id) : null;
+    if (!it) return;
+
+    const get  = (k) => document.getElementById(k);
+    const val  = (k) => { const e = get(k); return e ? e.value : null; };
+    const num  = (k) => { const v = val(k); return v == null || v === '' ? null : +v; };
+
+    if (get('pl-acct'))  it.accountId   = val('pl-acct');
+    if (get('pl-prod'))  it.producer    = val('pl-prod');
+    if (get('pl-type'))  it.bondType    = val('pl-type');
+    if (get('pl-amt'))   it.amount      = num('pl-amt') || 0;
+    if (get('pl-ob'))    it.obligee     = val('pl-ob');
+    if (get('pl-due'))   it.dueDate     = val('pl-due') || null;
+    if (get('pl-stage')) it.stage       = val('pl-stage');
+    if (get('pl-prob'))  it.probability = num('pl-prob');
+    if (get('pl-notes')) it.notes       = val('pl-notes');
+    if (get('pl-legaljob') || document.querySelector('input[name="pl-bondforms"]:checked')) {
+      it.issuance = { ...(it.issuance || {}), ...this._readIssuance() };
+    }
+    if (get('pl-typefields')) it.typeSpecific = BondTypes.readFields(it.bondType);
+    if (get('pl-result')) {
+      const prevResult = it.bidResult || 'pending';
+      const newResult = val('pl-result');
+      it.bidResult        = newResult;
+      it.bidDate          = val('pl-biddate') || null;
+      it.bidOurAmount     = num('pl-ouramt');
+      it.bidWinningAmount = num('pl-winamt');
+      it.bidPlace         = val('pl-place') || '';
+      it.bidWinner        = val('pl-winner') || '';
+      it.bidResultNotes   = val('pl-resnotes') || '';
+      if (newResult !== prevResult) {
+        const meta = this.resultMeta(newResult);
+        if (meta && meta.prob !== null) it.probability = meta.prob;
+        it.activity = it.activity || [];
+        it.activity.push({
+          id: U.uid('AC'),
+          date: new Date().toISOString(),
+          author: 'Casey V.',
+          type: 'bid_result',
+          subject: `Result: ${meta ? meta.label : newResult}`,
+          text: it.bidResultNotes || '(no additional notes)',
+        });
+      }
+    }
+    DB.save();
   },
 
   _activityRow(n) {
@@ -402,47 +533,8 @@ Views.pipeline = {
   },
 
   save(id) {
-    const it = DB.pipeline().find(i => i.id === id);
-    const prevResult = it.bidResult || 'pending';
-
-    it.accountId = document.getElementById('pl-acct').value;
-    it.bondType  = document.getElementById('pl-type').value;
-    it.amount    = +document.getElementById('pl-amt').value || 0;
-    it.obligee   = document.getElementById('pl-ob').value;
-    it.dueDate   = document.getElementById('pl-due').value || null;
-    it.stage     = document.getElementById('pl-stage').value;
-    it.producer  = document.getElementById('pl-prod').value;
-    it.probability = +document.getElementById('pl-prob').value;
-    it.notes     = document.getElementById('pl-notes').value;
-    it.typeSpecific = BondTypes.readFields(it.bondType);
-    it.issuance     = this._readIssuance();
-
-    // Bid result fields
-    const newResult = document.getElementById('pl-result').value;
-    it.bidResult        = newResult;
-    it.bidDate          = document.getElementById('pl-biddate').value || null;
-    it.bidOurAmount     = +document.getElementById('pl-ouramt').value || null;
-    it.bidWinningAmount = +document.getElementById('pl-winamt').value || null;
-    it.bidPlace         = document.getElementById('pl-place').value || '';
-    it.bidWinner        = document.getElementById('pl-winner').value || '';
-    it.bidResultNotes   = document.getElementById('pl-resnotes').value || '';
-
-    // If the result changed, auto-adjust probability and log to activity.
-    if (newResult !== prevResult) {
-      const meta = this.resultMeta(newResult);
-      if (meta && meta.prob !== null) it.probability = meta.prob;
-      it.activity = it.activity || [];
-      it.activity.push({
-        id: U.uid('AC'),
-        date: new Date().toISOString(),
-        author: 'Casey V.',
-        type: 'bid_result',
-        subject: `Result: ${meta ? meta.label : newResult}`,
-        text: it.bidResultNotes || '(no additional notes)',
-      });
-    }
-
-    DB.save();
+    this._currentId = id;
+    this._captureActiveTab();
     U.closeModals();
     U.toast('Opportunity updated');
     this.render();
