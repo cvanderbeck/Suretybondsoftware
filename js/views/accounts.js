@@ -232,17 +232,25 @@ Views.accounts = {
     const activeBonds = bonds.filter(b => b.status === 'Active');
     const inForce = activeBonds.reduce((s,b)=>s+b.amount,0);
     const wipPipeline = pipe.filter(p => !['Won','Lost'].includes(p.stage)).reduce((s,p)=>s+p.amount,0);
+    const lostBids = pipe.filter(p => Views.pipeline.isLostBid(p));
+    const lostBidsTotal = lostBids.reduce((s,p)=>s+(p.amount||0),0);
     const c = a.company || {};
     const r = a.renewals || {};
     const cap = this.capacityFor(a.id);
     const primary = (a.contacts || []).find(x => x.primary) || {};
     return `
-      <div class="grid grid-cols-4 gap-4 mb-5">
+      <div class="grid grid-cols-5 gap-4 mb-5">
         <div class="stat-card !p-3"><div class="stat-label">Active Bonds</div><div class="stat-value text-lg">${activeBonds.length}</div></div>
         <div class="stat-card !p-3"><div class="stat-label">In-Force</div><div class="stat-value text-lg">${U.usd(inForce)}</div></div>
         <div class="stat-card !p-3"><div class="stat-label">Open Pipeline</div><div class="stat-value text-lg">${U.usd(wipPipeline)}</div></div>
+        <div class="stat-card !p-3"><div class="stat-label">Lost Bids</div>
+          <div class="stat-value text-lg">${lostBids.length}</div>
+          <div class="text-[11px] text-ink-300 mt-0.5">${lostBids.length ? U.usd(lostBidsTotal) + ' total' : '—'}</div>
+        </div>
         <div class="stat-card !p-3"><div class="stat-label">UW Files</div><div class="stat-value text-lg">${uwFiles.length}</div></div>
       </div>
+
+      ${this._lostBidsCard(a, lostBids)}
 
       <div class="card mb-4">
         <div class="card-header">
@@ -1003,9 +1011,13 @@ Views.accounts = {
 
   // ---------- Tab: Pipeline ----------
   _tabPipeline(a, { pipe }) {
-    const isClosed = (p) => p.bidResult && p.bidResult !== 'pending';
-    const open   = pipe.filter(p => !isClosed(p));
-    const closed = pipe.filter(p =>  isClosed(p));
+    const isClosed = (p) => Views.pipeline.isLostBid(p) || Views.pipeline.isWonBid(p) ||
+                            (p.bidResult && p.bidResult !== 'pending');
+    const open = pipe.filter(p => !isClosed(p));
+    const won  = pipe.filter(p =>  Views.pipeline.isWonBid(p));
+    const lost = pipe.filter(p =>  Views.pipeline.isLostBid(p));
+    const other = pipe.filter(p => isClosed(p) && !Views.pipeline.isWonBid(p) && !Views.pipeline.isLostBid(p));
+
     const row = (p) => {
       const meta = Views.pipeline.resultMeta(p.bidResult || 'pending');
       const resultBadge = meta && p.bidResult && p.bidResult !== 'pending'
@@ -1024,6 +1036,21 @@ Views.accounts = {
         <td class="text-right text-xs text-slate-500">${actCount?`📎 ${actCount}`:''}</td>
       </tr>`;
     };
+    const lostRow = (p) => {
+      const meta = Views.pipeline.resultMeta(p.bidResult || 'pending');
+      const badge = meta ? `<span class="badge ${meta.badge}">${U.esc(meta.label)}</span>` : '';
+      const winner = p.bidWinner ? `<div class="text-[11px] text-slate-500">Won by ${U.esc(p.bidWinner)}${p.bidWinningAmount?` · ${U.usd(p.bidWinningAmount)}`:''}</div>` : '';
+      const ourBid = p.bidOurAmount ? `<div class="text-[11px] text-slate-500">Our bid: ${U.usd(p.bidOurAmount)}</div>` : '';
+      return `
+      <tr class="cursor-pointer" onclick="U.closeModals(); App.go('pipeline'); setTimeout(()=>Views.pipeline.open('${p.id}'), 50);">
+        <td>${U.esc(p.bondType)}</td>
+        <td class="max-w-[16rem]"><div class="truncate font-medium">${U.esc(p.obligee||'—')}</div>${ourBid}${winner}</td>
+        <td class="text-right">${U.usd(p.amount)}</td>
+        <td>${U.date(p.bidDate || p.dueDate)}</td>
+        <td>${badge}</td>
+        <td class="max-w-[18rem] text-xs text-slate-500 whitespace-pre-line">${U.esc(p.bidResultNotes || '—')}</td>
+      </tr>`;
+    };
     return `
       <div class="flex items-center justify-between mb-3">
         <div class="text-sm text-slate-500">Bids awaiting results and other open opportunities — click any row to jump to Pipeline.</div>
@@ -1037,11 +1064,64 @@ Views.accounts = {
           <tbody>${open.length?open.map(row).join(''):'<tr><td colspan="8" class="text-center text-slate-400 py-6">No open opportunities.</td></tr>'}</tbody>
         </table>
       </div>
-      <div class="card">
-        <div class="card-header"><div class="card-title">Closed (${closed.length})</div></div>
+      <div class="card mb-3">
+        <div class="card-header"><div class="card-title">Won (${won.length})</div></div>
         <table class="tbl">
           <thead><tr><th>Stage</th><th>Bond Type</th><th>Obligee</th><th class="text-right">Amount</th><th>Due</th><th class="text-right">Prob.</th><th>Bid Result</th><th class="text-right">Activity</th></tr></thead>
-          <tbody>${closed.length?closed.map(row).join(''):'<tr><td colspan="8" class="text-center text-slate-400 py-6">Nothing closed yet.</td></tr>'}</tbody>
+          <tbody>${won.length?won.map(row).join(''):'<tr><td colspan="8" class="text-center text-slate-400 py-6">No wins yet.</td></tr>'}</tbody>
+        </table>
+      </div>
+      <div class="card mb-3">
+        <div class="card-header">
+          <div class="card-title">Lost Bids (${lost.length}${lost.length?` · ${U.usd(lost.reduce((s,p)=>s+(p.amount||0),0))}`:''})</div>
+          <span class="text-xs text-ink-300">Bids that were submitted but not awarded — click any row for full detail.</span>
+        </div>
+        <table class="tbl">
+          <thead><tr><th>Bond Type</th><th>Obligee / Winner</th><th class="text-right">Bid Amount</th><th>Bid Date</th><th>Reason</th><th>Notes</th></tr></thead>
+          <tbody>${lost.length?lost.map(lostRow).join(''):'<tr><td colspan="6" class="text-center text-slate-400 py-6">No lost bids on file for this account.</td></tr>'}</tbody>
+        </table>
+      </div>
+      ${other.length ? `
+        <div class="card">
+          <div class="card-header"><div class="card-title">Other Closed (${other.length})</div></div>
+          <table class="tbl">
+            <thead><tr><th>Stage</th><th>Bond Type</th><th>Obligee</th><th class="text-right">Amount</th><th>Due</th><th class="text-right">Prob.</th><th>Bid Result</th><th class="text-right">Activity</th></tr></thead>
+            <tbody>${other.map(row).join('')}</tbody>
+          </table>
+        </div>
+      ` : ''}
+    `;
+  },
+
+  _lostBidsCard(a, lostBids) {
+    if (!lostBids || !lostBids.length) return '';
+    const recent = lostBids
+      .slice()
+      .sort((x,y) => (y.bidDate||y.dueDate||'').localeCompare(x.bidDate||x.dueDate||''))
+      .slice(0, 5);
+    const row = (p) => {
+      const meta = Views.pipeline.resultMeta(p.bidResult || 'pending');
+      const badge = meta ? `<span class="badge ${meta.badge}">${U.esc(meta.label)}</span>` : '';
+      const winner = p.bidWinner ? ` · Won by ${U.esc(p.bidWinner)}` : '';
+      return `
+        <tr class="cursor-pointer" onclick="U.closeModals(); App.go('pipeline'); setTimeout(()=>Views.pipeline.open('${p.id}'), 50);">
+          <td>${U.esc(p.bondType)}</td>
+          <td class="max-w-[16rem] truncate">${U.esc(p.obligee || '—')}${winner}</td>
+          <td class="text-right">${U.usd(p.amount)}</td>
+          <td>${U.date(p.bidDate || p.dueDate)}</td>
+          <td>${badge}</td>
+        </tr>`;
+    };
+    const total = lostBids.reduce((s,p)=>s+(p.amount||0),0);
+    return `
+      <div class="card mb-4">
+        <div class="card-header">
+          <div class="card-title">Lost Bids (${lostBids.length} · ${U.usd(total)})</div>
+          <button class="btn-ghost" onclick="Views.accounts._setTab('pipeline')">All lost bids →</button>
+        </div>
+        <table class="tbl">
+          <thead><tr><th>Bond Type</th><th>Obligee</th><th class="text-right">Amount</th><th>Bid Date</th><th>Reason</th></tr></thead>
+          <tbody>${recent.map(row).join('')}</tbody>
         </table>
       </div>
     `;

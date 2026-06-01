@@ -16,6 +16,19 @@ Views.pipeline = {
     return this.BID_RESULTS.find(r => r.key === key) || null;
   },
 
+  LOST_RESULT_KEYS: ['not_low','no_bid','withdrawn','cancelled'],
+
+  isLostBid(p) {
+    if (!p) return false;
+    if (this.LOST_RESULT_KEYS.includes(p.bidResult)) return true;
+    if (/^lost\b/i.test(p.stage || '')) return true;
+    return false;
+  },
+
+  isWonBid(p) {
+    return !!p && (p.bidResult === 'awarded' || /^won\b/i.test(p.stage || ''));
+  },
+
   render() {
     const items = DB.pipeline();
     const stages = this.STAGES;
