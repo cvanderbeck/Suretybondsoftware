@@ -574,6 +574,18 @@ Views.leads = {
           position: o.position || '',
         });
       });
+      (d.uwDocs || []).forEach(doc => {
+        DB.docs().push({
+          id: U.uid('D'),
+          name: doc.name,
+          size: doc.size || 0,
+          type: doc.type || 'application/octet-stream',
+          accountId: newId,
+          bondId: null,
+          category: doc.category || 'Underwriting',
+          uploaded: doc.uploaded || new Date().toISOString().slice(0,10),
+        });
+      });
     }
 
     l.convertedAccountId = newId;
@@ -637,6 +649,7 @@ Views.leads = {
         <button class="btn-secondary" onclick="Views.leads._uploadForm()">⤴ Upload Form</button>
       </div>`;
 
+    if (window.Views && Views.intake && Views.intake._resetUwDocs) Views.intake._resetUwDocs([]);
     const cqBody = (window.Views && Views.intake && Views.intake._cqBody) ? Views.intake._cqBody({}) : '';
 
     const body = banner + sourcing + cqBody;

@@ -40,7 +40,10 @@ Views.intake = {
     }
 
     let body;
-    if (type === 'cq')                  body = this._formCQ(state);
+    if (type === 'cq') {
+      this._resetUwDocs((state.data && state.data.uwDocs) || []);
+      body = this._formCQ(state);
+    }
     else if (type === 'pfs')            body = this._formPFS(state);
     else if (type === 'wip')            body = this._formWIP(state);
     else if (type === 'contractBRF')    body = this._formContractBRF(state);
@@ -317,23 +320,80 @@ Views.intake = {
         ['Type of Business','type'], ['Cross/Corp Indemnity','indemnity','yn']
       ], subsidiaries, 'subsidiaries'))}
 
-      ${this._sectionCard('Required Attachments (acknowledge)', this._cqAttachments(d))}
-
-      ${this._sectionCard('Certification & Signature', `
-        <p class="text-xs text-ink-300 italic mb-3">By signing, the applicant authorizes the surety to verify the above information from financial institutions, persons, firms, and corporations.</p>
-        <div class="grid grid-cols-2 gap-3">
-          ${this._fld('sig-firm',    'Firm Name',     d.sigFirm || d.businessName)}
-          ${this._fld('sig-name',    'Completed By',  d.sigName || d.contactName)}
-          ${this._fld('sig-title',   'Title',         d.sigTitle)}
-          ${this._fld('sig-date',    'Date',          d.sigDate || new Date().toISOString().slice(0,10), 'date')}
-        </div>
-        <div class="mt-3"><label class="flex items-center gap-2 text-sm">
-          <input id="sig-confirm" type="checkbox" class="chk" ${d.sigConfirm?'checked':''}>
-          I certify the information above is true, complete, and accurate to the best of my knowledge.
-        </label></div>
-        ${this._fld('sig-remarks', 'Additional Remarks', d.remarks, 'text', 'col-span-2 mt-3')}
-      `)}
+      ${this._sectionCard('Underwriting Documents', this._uwDocsField(d))}
     `;
+  },
+
+  _uwDocsField(d) {
+    const existing = (d && d.uwDocs) || [];
+    const listHTML = existing.length
+      ? existing.map((f, i) => `
+          <li class="flex items-center justify-between text-sm py-1 border-b border-cream-100 last:border-0">
+            <div class="flex items-center gap-2"><span>📎</span><span class="font-medium">${U.esc(f.name)}</span>
+              <span class="text-xs text-ink-300">${U.esc(f.category||'Underwriting')} · ${U.fileSize(f.size)}</span></div>
+            <button type="button" class="btn-ghost text-rose-600 text-xs" onclick="Views.intake._removeUwDoc(${i}); event.preventDefault();">Remove</button>
+          </li>`).join('')
+      : '<li class="text-sm text-ink-300 italic py-2">No files attached yet.</li>';
+    return `
+      <p class="text-xs text-ink-400 mb-3">Attach underwriting documents — financial statements, WIP, PFS, GIA, bank letter, business plan, COI, resumes, brochure, or anything else the surety needs to review.</p>
+      <div class="grid grid-cols-2 gap-3 mb-3">
+        <div>
+          <div class="field-label">Category</div>
+          <select id="cq-uw-cat" class="field-select">
+            ${['Financial','WIP','PFS','Indemnity','Bank Letter','Business Plan','Buy/Sell','Subcontract','COI','Resumes','Brochure','Underwriting','Other']
+              .map(c => `<option>${c}</option>`).join('')}
+          </select>
+        </div>
+        <div>
+          <div class="field-label">Choose Files</div>
+          <input id="cq-uw-file" type="file" multiple class="field-input" onchange="Views.intake._addUwDocs(this)">
+        </div>
+      </div>
+      <ul id="cq-uw-list" data-uw-list class="card p-3">${listHTML}</ul>
+    `;
+  },
+
+  // In-memory staging of underwriting docs for the active CQ form.
+  // The list is re-rendered after each add/remove so collect() can read it.
+  _uwDocsBuffer: [],
+
+  _resetUwDocs(initial) {
+    this._uwDocsBuffer = Array.isArray(initial) ? initial.slice() : [];
+  },
+
+  _addUwDocs(input) {
+    const cat = (document.getElementById('cq-uw-cat') || {}).value || 'Underwriting';
+    Array.from(input.files || []).forEach(f => {
+      this._uwDocsBuffer.push({
+        name: f.name,
+        size: f.size,
+        type: f.type || 'application/octet-stream',
+        category: cat,
+        uploaded: new Date().toISOString().slice(0,10),
+      });
+    });
+    input.value = '';
+    this._renderUwList();
+  },
+
+  _removeUwDoc(idx) {
+    this._uwDocsBuffer.splice(idx, 1);
+    this._renderUwList();
+  },
+
+  _renderUwList() {
+    const el = document.getElementById('cq-uw-list');
+    if (!el) return;
+    if (!this._uwDocsBuffer.length) {
+      el.innerHTML = '<li class="text-sm text-ink-300 italic py-2">No files attached yet.</li>';
+      return;
+    }
+    el.innerHTML = this._uwDocsBuffer.map((f, i) => `
+      <li class="flex items-center justify-between text-sm py-1 border-b border-cream-100 last:border-0">
+        <div class="flex items-center gap-2"><span>📎</span><span class="font-medium">${U.esc(f.name)}</span>
+          <span class="text-xs text-ink-300">${U.esc(f.category||'Underwriting')} · ${U.fileSize(f.size)}</span></div>
+        <button type="button" class="btn-ghost text-rose-600 text-xs" onclick="Views.intake._removeUwDoc(${i}); event.preventDefault();">Remove</button>
+      </li>`).join('');
   },
 
   _ownerRow(i, o) {
@@ -351,31 +411,6 @@ Views.intake = {
           <div class="col-span-7"><div class="field-label">Home Address</div><input class="field-input" data-k="homeAddress" value="${U.esc(o.homeAddress||'')}"></div>
         </div>
       </div>`;
-  },
-
-  _cqAttachments(d) {
-    const items = [
-      ['attFinancials', 'Last three fiscal financial statements w/ WIP & completed contract schedules'],
-      ['attInterim', 'Current interim financial statement and WIP (if FYE statement is over six months old)'],
-      ['attPFS', 'Current Personal Financial Statement for all indemnitors'],
-      ['attLOC', 'Bank Line of Credit Agreement'],
-      ['attBizPlan', 'Business Plan'],
-      ['attBuySell', 'Buy/Sell Agreement'],
-      ['attSubcontract', 'Copy of Subcontract Agreement (standard form)'],
-      ['attCOI', 'Certificate of Insurance'],
-      ['attResumes', 'Resumes of Owners / Key Employees'],
-      ['attBrochure', 'Brochure and/or Letters of Recommendation'],
-    ];
-    return `
-      <div class="grid grid-cols-2 gap-1">
-        ${items.map(([k,label]) => `
-          <label class="flex items-center gap-2 p-1.5 rounded hover:bg-cream-50 text-sm">
-            <input id="${k}" type="checkbox" class="chk" ${d[k]?'checked':''}>
-            ${U.esc(label)}
-          </label>`).join('')}
-      </div>
-      ${this._fld('attOther', 'Other (describe)', d.attOther, 'text', 'col-span-2 mt-3')}
-    `;
   },
 
   // ===========================================================
@@ -1222,14 +1257,7 @@ Views.intake = {
         insBroker: v('ins-broker'), insAgent: v('ins-agent'),
         insEmail: v('ins-email'), insPhone: v('ins-phone'), insFax: v('ins-fax'),
 
-        attFinancials: c('attFinancials'), attInterim: c('attInterim'), attPFS: c('attPFS'),
-        attLOC: c('attLOC'), attBizPlan: c('attBizPlan'), attBuySell: c('attBuySell'),
-        attSubcontract: c('attSubcontract'), attCOI: c('attCOI'),
-        attResumes: c('attResumes'), attBrochure: c('attBrochure'),
-        attOther: v('attOther'),
-
-        sigFirm: v('sig-firm'), sigName: v('sig-name'), sigTitle: v('sig-title'),
-        sigDate: v('sig-date'), sigConfirm: c('sig-confirm'), remarks: v('sig-remarks'),
+        uwDocs: (this._uwDocsBuffer || []).slice(),
       };
     }
 
@@ -1715,6 +1743,20 @@ window.Intake = (() => {
     // Stash the raw CQ on the account for the underwriting tab
     a.cq = d;
     a.notes = (a.notes ? a.notes + '\n\n' : '') + `[CQ submitted ${new Date().toISOString().slice(0,10)}]`;
+
+    // Push any attached underwriting documents into DB.docs() under this account
+    (d.uwDocs || []).forEach(doc => {
+      DB.docs().push({
+        id: U.uid('D'),
+        name: doc.name,
+        size: doc.size || 0,
+        type: doc.type || 'application/octet-stream',
+        accountId: a.id,
+        bondId: null,
+        category: doc.category || 'Underwriting',
+        uploaded: doc.uploaded || new Date().toISOString().slice(0,10),
+      });
+    });
   }
 
   function _importPFS(f) {
