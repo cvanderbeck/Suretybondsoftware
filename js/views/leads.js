@@ -40,7 +40,7 @@ Views.leads = {
     document.getElementById('view').innerHTML = `
       <div class="mb-6 flex items-center justify-between">
         <div>
-          <h1 class="section-title">Leads Pipeline</h1>
+          <h1 class="section-title">Leads</h1>
           <p class="section-sub">Prospective principals — your sales funnel from inquiry to onboarded account.</p>
         </div>
         <div class="flex items-center gap-2">

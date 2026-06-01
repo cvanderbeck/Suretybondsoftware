@@ -171,13 +171,13 @@ Views.dashboard = {
 
       <div class="card mt-4">
         <div class="card-header">
-          <div class="card-title">Leads Pipeline — Top of Funnel</div>
+          <div class="card-title">Leads — Top of Funnel</div>
           <button class="btn-ghost" onclick="App.go('leads')">All leads →</button>
         </div>
         <div class="p-4">
           ${(() => {
             const open = DB.leads().filter(l => l.status === 'open');
-            if (!open.length) return '<div class="text-sm text-ink-300">No open leads. Click <b>New Lead</b> in the Leads Pipeline to add one.</div>';
+            if (!open.length) return '<div class="text-sm text-ink-300">No open leads. Click <b>New Lead</b> in the Leads tab to add one.</div>';
             const counts = {};
             (DB.leadStages ? DB.leadStages() : []).forEach(s => counts[s] = open.filter(l => l.stage === s).length);
             const totalPremium = open.reduce((s,l) => s + (l.estimatedAnnualPremium||0), 0);
