@@ -130,6 +130,26 @@ Views.intake = {
   _formCQ(form) {
     const d = form.data || {};
     const tok = form.token || 'demo';
+    return `
+      <div class="card p-6 mb-6">
+        <div class="text-xs uppercase tracking-[0.18em] text-ink-300 mb-1 font-display">Online Intake</div>
+        <h1 class="text-2xl font-display font-semibold mb-2">Contractor Questionnaire</h1>
+        <p class="text-sm text-ink-400">Complete the sections below. Your producer pre-filled some fields; please review and update. Click Submit when finished — your data will populate your file automatically.</p>
+      </div>
+
+      ${this._cqBody(d)}
+
+      <div class="flex items-center justify-between mt-6 px-2">
+        <button class="btn-secondary" onclick="Views.intake._saveDraft('${form.id || ''}', 'cq')">Save Draft</button>
+        <button class="btn-primary" onclick="Views.intake._submit('${form.id || ''}', '${tok}', 'cq')">Submit Questionnaire</button>
+      </div>
+    `;
+  },
+
+  // Just the section cards from the CQ — reusable inside other modals
+  // (e.g. New Lead) without the public-intake header or submit buttons.
+  _cqBody(d) {
+    d = d || {};
     const owners = d.owners && d.owners.length ? d.owners : Array.from({length:3}, () => ({}));
     const prevSureties = d.previousSureties && d.previousSureties.length ? d.previousSureties : Array.from({length:3},()=>({}));
     const largestJobs = d.largestJobs && d.largestJobs.length ? d.largestJobs : Array.from({length:5},()=>({}));
@@ -140,12 +160,6 @@ Views.intake = {
     const subsidiaries = d.subsidiaries && d.subsidiaries.length ? d.subsidiaries : Array.from({length:3},()=>({}));
 
     return `
-      <div class="card p-6 mb-6">
-        <div class="text-xs uppercase tracking-[0.18em] text-ink-300 mb-1 font-display">Online Intake</div>
-        <h1 class="text-2xl font-display font-semibold mb-2">Contractor Questionnaire</h1>
-        <p class="text-sm text-ink-400">Complete the sections below. Your producer pre-filled some fields; please review and update. Click Submit when finished — your data will populate your file automatically.</p>
-      </div>
-
       ${this._sectionCard('Business Information', `
         <div class="grid grid-cols-2 gap-3">
           ${this._fld('biz-name',  'Business Name',     d.businessName, 'text', 'col-span-2')}
@@ -319,11 +333,6 @@ Views.intake = {
         </label></div>
         ${this._fld('sig-remarks', 'Additional Remarks', d.remarks, 'text', 'col-span-2 mt-3')}
       `)}
-
-      <div class="flex items-center justify-between mt-6 px-2">
-        <button class="btn-secondary" onclick="Views.intake._saveDraft('${form.id || ''}', 'cq')">Save Draft</button>
-        <button class="btn-primary" onclick="Views.intake._submit('${form.id || ''}', '${tok}', 'cq')">Submit Questionnaire</button>
-      </div>
     `;
   },
 

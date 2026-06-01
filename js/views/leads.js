@@ -543,6 +543,39 @@ Views.leads = {
       renewals: { financialsLast: null, financialsInterval: 365, wipLast: null, wipInterval: 90 },
     };
     DB.accounts().push(account);
+
+    // If the lead has a Contractor Questionnaire on file, stamp it onto the
+    // account and merge the useful CQ fields into account.company / contacts /
+    // indemnitors (mirrors the online-intake _importCQ mapping).
+    if (l.cq && Object.keys(l.cq).length) {
+      const d = l.cq;
+      account.cq = d;
+      account.company = Object.assign({}, account.company, {
+        legalName: d.businessName || account.company.legalName,
+        entityType: d.businessType || account.company.entityType,
+        stateOfFormation: (d.stateYear || '').split(/\s|,/)[0] || account.company.stateOfFormation,
+        founded: (d.stateYear || '').match(/\d{4}/)?.[0] || account.company.founded,
+        website: d.website || account.company.website,
+        grossRevenue: d.expectedAnnualVolume || account.company.grossRevenue,
+      });
+      if (d.taxId && !account.taxId) account.taxId = d.taxId;
+      if (d.address && !account.address) account.address = d.address;
+      (d.owners || []).forEach(o => {
+        if (!o.name) return;
+        if (account.indemnitors.some(x => x.name === o.name)) return;
+        account.indemnitors.push({
+          id: U.uid('I'),
+          name: o.name, type: 'Personal',
+          ssnEin: o.ssn || '',
+          spouse: o.spouseName || '',
+          pfsDate: null,
+          netWorth: 0, liquid: 0,
+          ownership: o.pctOwned || 0,
+          position: o.position || '',
+        });
+      });
+    }
+
     l.convertedAccountId = newId;
     l.stage = this.TERMINAL_WON;
     l.status = 'won';
@@ -568,68 +601,116 @@ Views.leads = {
 
   // ---------- New lead ----------
   newLead() {
-    const body = `
+    const sourcing = `
+      <div class="card mb-4">
+        <div class="card-header"><div class="card-title">Lead Sourcing</div></div>
+        <div class="p-4 grid grid-cols-2 gap-3">
+          <div><div class="field-label">Lead Source</div>
+            <select id="nl-source" class="field-select">
+              <option value="">—</option>
+              ${this.LEAD_SOURCES.map(s=>`<option>${s}</option>`).join('')}
+            </select></div>
+          <div><div class="field-label">Referred By</div><input id="nl-ref" class="field-input"></div>
+          <div><div class="field-label">Est. Annual Premium ($)</div><input id="nl-prem" type="number" class="field-input"></div>
+          <div><div class="field-label">Initial Stage</div>
+            <select id="nl-stage" class="field-select">
+              ${this.STAGES.map((s,i)=>`<option ${i===0?'selected':''}>${U.esc(s)}</option>`).join('')}
+            </select></div>
+          <div class="col-span-2">
+            <div class="field-label">Bond Types of Interest</div>
+            <div id="nl-types" class="grid grid-cols-3 gap-1">
+              ${BondTypes.TYPES.map(t => `
+                <label class="text-sm flex items-center gap-2 px-2 py-1 rounded hover:bg-cream-50">
+                  <input type="checkbox" class="chk" value="${U.esc(t)}">
+                  ${U.esc(t)}
+                </label>`).join('')}
+            </div>
+          </div>
+          <div class="col-span-2"><div class="field-label">Producer Notes (internal)</div>
+            <textarea id="nl-notes" class="field-textarea" rows="2" placeholder="Why we're talking, what they need, who introduced us…"></textarea></div>
+        </div>
+      </div>`;
+
+    const banner = `
       <div class="mb-4 flex items-center justify-between gap-3 p-3 rounded-lg bg-cream-100 border border-cream-200">
-        <div class="text-xs text-ink-400">Have an intake form, application, or questionnaire? Upload it to auto-fill the fields below.</div>
+        <div class="text-xs text-ink-400">All fields below mirror the <b>Contractor Questionnaire</b>. Anything entered will save to this lead and carry over when you convert it to an account.</div>
         <button class="btn-secondary" onclick="Views.leads._uploadForm()">⤴ Upload Form</button>
-      </div>
-      <div class="grid grid-cols-2 gap-3">
-        <div class="col-span-2"><div class="field-label">Company Name</div><input id="nl-company" class="field-input"></div>
-        <div><div class="field-label">Primary Contact</div><input id="nl-contact" class="field-input"></div>
-        <div><div class="field-label">Title</div><input id="nl-title" class="field-input"></div>
-        <div><div class="field-label">Email</div><input id="nl-email" type="email" class="field-input"></div>
-        <div><div class="field-label">Phone</div><input id="nl-phone" class="field-input"></div>
-        <div><div class="field-label">City</div><input id="nl-city" class="field-input"></div>
-        <div><div class="field-label">State</div><input id="nl-state" class="field-input"></div>
-        <div><div class="field-label">Lead Source</div>
-          <select id="nl-source" class="field-select">${this.LEAD_SOURCES.map(s=>`<option>${s}</option>`).join('')}</select></div>
-        <div><div class="field-label">Referred By</div><input id="nl-ref" class="field-input"></div>
-        <div><div class="field-label">Est. Annual Premium</div><input id="nl-prem" type="number" class="field-input"></div>
-        <div><div class="field-label">Industry</div><input id="nl-industry" class="field-input"></div>
-        <div class="col-span-2"><div class="field-label">Notes</div><textarea id="nl-notes" class="field-textarea" rows="2"></textarea></div>
-      </div>
-    `;
+      </div>`;
+
+    const cqBody = (window.Views && Views.intake && Views.intake._cqBody) ? Views.intake._cqBody({}) : '';
+
+    const body = banner + sourcing + cqBody;
     const footer = `<button class="btn-ghost" data-close>Cancel</button>
       <button class="btn-primary" onclick="Views.leads._createLead()">Create Lead</button>`;
-    const m = U.modal({ title: 'New Lead', body, footer });
+    const m = U.modal({ title: 'New Lead', body, footer, size: 'lg' });
     m.el.querySelector('[data-close]').addEventListener('click', m.close);
   },
 
   _uploadForm() {
     if (!window.FormParse) { U.toast('Form parser unavailable', 'warn'); return; }
+    // These IDs map directly to the embedded Contractor Questionnaire fields.
     FormParse.uploadAndFill({
-      companyName:  'nl-company',
-      contactName:  'nl-contact',
-      contactTitle: 'nl-title',
-      email:        'nl-email',
-      phone:        'nl-phone',
-      city:         'nl-city',
-      state:        'nl-state',
-      industry:     'nl-industry',
+      companyName:  'biz-name',
+      contactName:  'biz-contact',
+      email:        'biz-email',
+      phone:        'biz-phone',
+      address:      'biz-addr',
+      industry:     'biz-trades',
+      ein:          'biz-tax',
       leadSource:   'nl-source',
       notes:        'nl-notes',
     });
   },
 
   _createLead() {
+    const get = (id) => document.getElementById(id);
+    const val = (id) => { const e = get(id); return e ? e.value : ''; };
+
+    // Harvest the embedded Contractor Questionnaire
+    const cq = (window.Views && Views.intake && Views.intake._collect)
+      ? Views.intake._collect('cq')
+      : {};
+
+    // Parse city/state from the CQ business address ("123 Main, Portland, OR 97201")
+    let city = '', state = '';
+    if (cq.address) {
+      const parts = cq.address.split(',').map(s => s.trim()).filter(Boolean);
+      if (parts.length >= 2) {
+        const tail = parts[parts.length - 1];
+        const m = tail.match(/([A-Za-z]{2})\s*(\d{5})?$/);
+        if (m) state = m[1].toUpperCase();
+        city = parts[parts.length - 2] || '';
+      }
+    }
+    // Year from stateYear ("Oregon 2014")
+    const yearMatch = (cq.stateYear || '').match(/\d{4}/);
+    const yearsInBusiness = yearMatch ? (new Date().getFullYear() - +yearMatch[0]) : null;
+
+    const stage = val('nl-stage') || this.STAGES[0];
+    const bondTypes = Array.from(document.querySelectorAll('#nl-types input[type=checkbox]:checked'))
+      .map(i => i.value);
+
     const l = {
       id: U.uid('L'),
-      companyName: document.getElementById('nl-company').value || 'New Lead',
-      contactName: document.getElementById('nl-contact').value,
-      contactTitle: document.getElementById('nl-title').value,
-      email:       document.getElementById('nl-email').value,
-      phone:       document.getElementById('nl-phone').value,
-      city:        document.getElementById('nl-city').value,
-      state:       document.getElementById('nl-state').value,
-      industry:    document.getElementById('nl-industry').value,
-      leadSource:  document.getElementById('nl-source').value,
-      referredBy:  document.getElementById('nl-ref').value,
-      estimatedAnnualPremium: +document.getElementById('nl-prem').value || null,
-      notes:       document.getElementById('nl-notes').value,
-      bondTypes: [],
-      stage: this.STAGES[0],
+      companyName:  cq.businessName || 'New Lead',
+      contactName:  cq.contactName  || '',
+      contactTitle: '',
+      email:        cq.contactEmail || '',
+      phone:        cq.phone        || '',
+      city,
+      state,
+      industry:     cq.trades       || '',
+      naics:        '',
+      yearsInBusiness,
+      estimatedRevenue: cq.expectedAnnualVolume || null,
+      leadSource:   val('nl-source') || null,
+      referredBy:   val('nl-ref'),
+      estimatedAnnualPremium: +val('nl-prem') || null,
+      notes:        val('nl-notes'),
+      bondTypes,
+      stage,
       probability: 20,
-      status: 'open',
+      status: stage === this.TERMINAL_LOST ? 'lost' : stage === this.TERMINAL_WON ? 'won' : 'open',
       owner: 'CV', producer: 'CV',
       createdDate: new Date().toISOString().slice(0,10),
       lastTouch:   new Date().toISOString().slice(0,10),
@@ -640,11 +721,12 @@ Views.leads = {
         text: 'Lead created.',
       }],
       convertedAccountId: null,
+      cq,
     };
     DB.leads().push(l);
     DB.save();
     U.closeModals();
-    U.toast('Lead created');
+    U.toast('Lead created — questionnaire saved');
     this.render();
   },
 
