@@ -124,7 +124,7 @@ Views.email = {
         <div class="text-xs text-slate-500 truncate max-w-[28rem]">${U.esc(em.preview)}</div>
       </td>
       <td>${a ? `<span class="badge badge-blue cursor-pointer" onclick="App.go('accounts');">${U.esc(a.name)}</span>` : '<span class="text-xs text-slate-400">— unmapped —</span>'}</td>
-      <td>${b ? `<span class="badge badge-violet cursor-pointer" onclick="Views.bonds.open('${b.id}')">${b.number}</span>` : '<span class="text-xs text-slate-400">—</span>'}</td>
+      <td>${b ? `<span class="badge badge-violet cursor-pointer" onclick="Views.bonds.open('${b.id}')">${b.number}</span>` : '<span class="text-xs text-slate-400">—</span>'}${(em.opportunityIds && em.opportunityIds.length) ? `<span class="badge badge-amber ml-1" title="Attached to ${em.opportunityIds.length} opportunit${em.opportunityIds.length===1?'y':'ies'}">📌 ${em.opportunityIds.length}</span>` : ''}</td>
       <td class="whitespace-nowrap">${U.datetime(em.date)}</td>
       <td class="text-right">
         ${folder==='inbox' ? `<button class="btn-ghost" onclick="Views.email.openMapping('${em.id}')">Map</button>
@@ -301,12 +301,26 @@ Views.email = {
 
   openMapping(id) {
     const em = DB.emails().find(e => e.id === id); if (!em) return;
-    const accts = DB.accounts(), bonds = DB.bonds();
+    const accts = DB.accounts(), bonds = DB.bonds(), opps = DB.pipeline();
+    const selectedOpps = new Set(em.opportunityIds || []);
+    const oppRow = (p) => {
+      const acct = DB.findAccount(p.accountId) || {};
+      const meta = Views.pipeline.resultMeta(p.bidResult || 'pending');
+      const isLost = meta && p.bidResult && p.bidResult !== 'pending';
+      return `
+        <label class="flex items-center gap-3 px-3 py-2 border-b border-cream-100 last:border-0 hover:bg-cream-50 cursor-pointer">
+          <input type="checkbox" class="chk" data-map-opp value="${p.id}" data-acct="${p.accountId}" ${selectedOpps.has(p.id)?'checked':''}>
+          <div class="flex-1 min-w-0">
+            <div class="text-sm font-medium truncate">${U.esc(acct.name||'—')} · ${U.esc(p.bondType)} · ${U.usd(p.amount)}</div>
+            <div class="text-xs text-ink-300 truncate">${U.esc(p.obligee||'')}${p.dueDate?` · Due ${U.date(p.dueDate)}`:''} · ${U.esc(p.stage)}${isLost?` · <span class="text-rose-600">${U.esc(meta.label)}</span>`:''}</div>
+          </div>
+        </label>`;
+    };
     const body = `
       <div class="mb-3 text-sm">From <b>${U.esc(em.from)}</b> — <i>${U.esc(em.subject)}</i></div>
-      <div class="grid grid-cols-2 gap-3">
+      <div class="grid grid-cols-2 gap-3 mb-4">
         <div><div class="field-label">Map to Account</div>
-          <select id="map-acct" class="field-select">
+          <select id="map-acct" class="field-select" onchange="Views.email._filterOppList()">
             <option value="">— None —</option>
             ${accts.map(a => `<option value="${a.id}" ${em.accountId===a.id?'selected':''}>${U.esc(a.name)}</option>`).join('')}
           </select></div>
@@ -316,15 +330,50 @@ Views.email = {
             ${bonds.map(b => `<option value="${b.id}" ${em.bondId===b.id?'selected':''}>${b.number}</option>`).join('')}
           </select></div>
       </div>
+
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">Attach to Opportunities</div>
+          <label class="flex items-center gap-2 text-xs text-ink-400">
+            <input id="map-opp-allaccts" type="checkbox" class="chk" onchange="Views.email._filterOppList()">
+            Show opportunities from all accounts
+          </label>
+        </div>
+        <div class="p-2 text-xs text-ink-400 px-3">Use when one email covers multiple bond requests sent to a single carrier.</div>
+        <input id="map-opp-search" class="field-input mx-3 my-2" placeholder="Search obligee, bond type, or stage…"
+          oninput="Views.email._filterOppList()" style="width: calc(100% - 1.5rem);">
+        <div id="map-opp-list" class="max-h-72 overflow-y-auto border-t border-cream-100">
+          ${opps.map(oppRow).join('') || '<div class="p-6 text-center text-sm text-ink-300">No opportunities yet.</div>'}
+        </div>
+      </div>
     `;
     const footer = `<button class="btn-ghost" data-close>Cancel</button><button class="btn-primary" onclick="Views.email.saveMapping('${id}')">Save Mapping</button>`;
-    const m = U.modal({ title: 'Email Mapping', body, footer });
+    const m = U.modal({ title: 'Email Mapping', body, footer, size: 'lg' });
     m.el.querySelector('[data-close]').addEventListener('click', m.close);
+    // Default-filter the list by the email's mapped account, if any.
+    setTimeout(() => this._filterOppList(), 0);
   },
+
+  _filterOppList() {
+    const acctSel = document.getElementById('map-acct');
+    const allAcct = document.getElementById('map-opp-allaccts');
+    const search  = document.getElementById('map-opp-search');
+    if (!acctSel) return;
+    const wantAcct = !allAcct?.checked && acctSel.value ? acctSel.value : null;
+    const q = (search?.value || '').toLowerCase().trim();
+    document.querySelectorAll('#map-opp-list label').forEach(lbl => {
+      const cb = lbl.querySelector('[data-map-opp]');
+      const acctOk = !wantAcct || cb.dataset.acct === wantAcct;
+      const matches = !q || lbl.textContent.toLowerCase().includes(q);
+      lbl.style.display = (acctOk && matches) ? '' : 'none';
+    });
+  },
+
   saveMapping(id) {
     const em = DB.emails().find(e => e.id === id);
     em.accountId = document.getElementById('map-acct').value || null;
     em.bondId    = document.getElementById('map-bond').value || null;
+    em.opportunityIds = Array.from(document.querySelectorAll('[data-map-opp]:checked')).map(cb => cb.value);
     DB.save(); U.closeModals(); U.toast('Mapping saved'); this.render();
   },
 

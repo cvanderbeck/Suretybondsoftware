@@ -142,12 +142,14 @@ Views.pipeline = {
     const activityCount = (it.activity || []).length;
     const taskCount = (it.tasks || []).filter(t => !t.completed).length;
 
+    const emailCount = DB.emails().filter(e => (e.opportunityIds || []).includes(id)).length;
     const TABS = [
       ['details',  'Details',                                       ''],
       ['specific', `${BondTypes.normalize(it.bondType) || 'Bond'} Specifics`, ''],
       ['delivery', 'Delivery',                                      ''],
       ['bid',      'Bid Results',                                   ''],
       ['tasks',    'Tasks',                                         taskCount || ''],
+      ['emails',   'Emails',                                        emailCount || ''],
       ['activity', 'Activity',                                      activityCount || ''],
     ];
 
@@ -203,9 +205,125 @@ Views.pipeline = {
       case 'delivery': return this._tabDelivery(it);
       case 'bid':      return this._tabBidResults(it);
       case 'tasks':    return Views.templates.renderTasksCard('opportunity', it.id, it);
+      case 'emails':   return this._tabEmails(it);
       case 'activity': return this._tabActivity(it);
       default:         return this._tabDetails(it);
     }
+  },
+
+  _tabEmails(it) {
+    const attached = DB.emails().filter(e => (e.opportunityIds || []).includes(it.id));
+    const row = (em) => {
+      const folder = em.folder || 'inbox';
+      const addr = folder === 'sent' || folder === 'drafts' ? (em.to || '') : em.from;
+      return `
+        <tr class="cursor-pointer" onclick="U.closeModals(); App.go('email'); setTimeout(()=>Views.email.openMessage('${em.id}'), 60);">
+          <td><span class="badge ${folder==='sent'?'badge-green':folder==='drafts'?'badge-amber':'badge-slate'}">${folder}</span></td>
+          <td class="max-w-[14rem] truncate">${U.esc(addr)}</td>
+          <td class="font-medium">${U.esc(em.subject)}</td>
+          <td class="whitespace-nowrap">${U.datetime(em.date)}</td>
+          <td class="text-right">
+            <button class="btn-ghost text-rose-600" onclick="event.stopPropagation(); Views.pipeline._detachEmail('${em.id}', '${it.id}')">Detach</button>
+          </td>
+        </tr>`;
+    };
+    return `
+      <div class="flex items-center justify-between mb-3">
+        <div class="text-sm text-ink-400">Emails attached to this opportunity. The same email can be attached to multiple opportunities — useful when one submission package covers several bond requests.</div>
+        <button class="btn-primary" onclick="Views.pipeline._openAttachPicker('${it.id}')">+ Attach Emails</button>
+      </div>
+      <div class="card">
+        <table class="tbl">
+          <thead><tr><th>Folder</th><th>From / To</th><th>Subject</th><th>Date</th><th class="text-right"></th></tr></thead>
+          <tbody>
+            ${attached.length ? attached.map(row).join('')
+              : '<tr><td colspan="5" class="text-center text-ink-300 py-6">No emails attached. Click <b>+ Attach Emails</b> to pick from your inbox.</td></tr>'}
+          </tbody>
+        </table>
+      </div>
+    `;
+  },
+
+  _openAttachPicker(opportunityId) {
+    const it = DB.pipeline().find(p => p.id === opportunityId);
+    if (!it) return;
+    const emails = DB.emails().slice().sort((x,y) => (y.date||'').localeCompare(x.date||''));
+    const selected = new Set(emails.filter(e => (e.opportunityIds || []).includes(opportunityId)).map(e => e.id));
+    const row = (em) => {
+      const folder = em.folder || 'inbox';
+      const addr = folder === 'sent' || folder === 'drafts' ? (em.to || '') : em.from;
+      const acctMatch = em.accountId === it.accountId;
+      return `
+        <label class="flex items-center gap-3 px-3 py-2 border-b border-cream-100 last:border-0 hover:bg-cream-50 cursor-pointer" data-acct-match="${acctMatch ? '1' : '0'}">
+          <input type="checkbox" class="chk" data-attach-em value="${em.id}" ${selected.has(em.id)?'checked':''}>
+          <div class="flex-1 min-w-0">
+            <div class="text-sm font-medium truncate">${U.esc(em.subject)}</div>
+            <div class="text-xs text-ink-300 truncate">${folder} · ${U.esc(addr)} · ${U.datetime(em.date)}${acctMatch?' · <span class="text-emerald-700">same account</span>':''}</div>
+          </div>
+        </label>`;
+    };
+    const body = `
+      <div class="mb-3 flex items-center justify-between">
+        <div class="text-xs text-ink-400">Pick the emails that belong to this opportunity. You can attach the same email to multiple opportunities.</div>
+        <label class="flex items-center gap-2 text-xs text-ink-400">
+          <input id="att-acct-only" type="checkbox" class="chk" checked onchange="Views.pipeline._filterAttachList()">
+          Only show this account
+        </label>
+      </div>
+      <input id="att-search" class="field-input mb-2" placeholder="Search subject, sender, or content…" oninput="Views.pipeline._filterAttachList()">
+      <div id="att-list" class="card max-h-[50vh] overflow-y-auto">
+        ${emails.map(row).join('') || '<div class="p-6 text-center text-sm text-ink-300">No emails to attach.</div>'}
+      </div>
+    `;
+    const footer = `<button class="btn-ghost" data-close>Cancel</button>
+      <button class="btn-primary" onclick="Views.pipeline._saveAttach('${opportunityId}')">Attach Selected</button>`;
+    const m = U.modal({ title: 'Attach Emails to Opportunity', body, footer, size: 'lg' });
+    m.el.querySelector('[data-close]').addEventListener('click', m.close);
+    setTimeout(() => this._filterAttachList(), 0);
+  },
+
+  _filterAttachList() {
+    const acctOnly = document.getElementById('att-acct-only');
+    const q = (document.getElementById('att-search')?.value || '').toLowerCase().trim();
+    document.querySelectorAll('#att-list label').forEach(lbl => {
+      const matchAcct = !acctOnly?.checked || lbl.dataset.acctMatch === '1';
+      const matches   = !q || lbl.textContent.toLowerCase().includes(q);
+      lbl.style.display = (matchAcct && matches) ? '' : 'none';
+    });
+  },
+
+  _saveAttach(opportunityId) {
+    const picked = new Set(Array.from(document.querySelectorAll('[data-attach-em]:checked')).map(cb => cb.value));
+    const visible = new Set(Array.from(document.querySelectorAll('#att-list label')).filter(l => l.style.display !== 'none')
+      .map(l => l.querySelector('[data-attach-em]').value));
+    let added = 0, removed = 0;
+    DB.emails().forEach(em => {
+      const list = em.opportunityIds || [];
+      const hasAttached = list.includes(opportunityId);
+      const shouldAttach = picked.has(em.id);
+      // Only flip emails that are currently visible — don't touch hidden ones
+      if (!visible.has(em.id) && !hasAttached) return;
+      if (shouldAttach && !hasAttached) {
+        em.opportunityIds = list.concat(opportunityId);
+        added++;
+      } else if (!shouldAttach && hasAttached && visible.has(em.id)) {
+        em.opportunityIds = list.filter(x => x !== opportunityId);
+        removed++;
+      }
+    });
+    DB.save();
+    U.closeModals();
+    if (added || removed) U.toast(`${added} attached, ${removed} removed`);
+    this._renderDetail();
+  },
+
+  _detachEmail(emailId, opportunityId) {
+    const em = DB.emails().find(e => e.id === emailId);
+    if (!em) return;
+    em.opportunityIds = (em.opportunityIds || []).filter(x => x !== opportunityId);
+    DB.save();
+    U.toast('Email detached');
+    this._renderDetail();
   },
 
   // ---------- Tab: Details ----------
