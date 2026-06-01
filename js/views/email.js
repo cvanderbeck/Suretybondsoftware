@@ -197,6 +197,25 @@ Views.email = {
     const folder = em.folder || 'inbox';
     const addrLine = folder==='sent'||folder==='drafts'
       ? `To <b>${U.esc(em.to||'')}</b>` : `From <b>${U.esc(em.from)}</b>`;
+    const atts = em.attachments || [];
+    const attachmentsHTML = `
+      <div class="mt-4 pt-3 border-t border-cream-200">
+        <div class="flex items-center justify-between mb-2">
+          <div class="text-xs font-semibold text-ink-400 uppercase tracking-wider">Attachments (${atts.length})</div>
+          <button class="btn-ghost" onclick="Views.email._addAttachment('${id}')">+ Add Attachment</button>
+        </div>
+        ${atts.length ? `
+          <ul class="card p-2 space-y-1">
+            ${atts.map((f, i) => `
+              <li class="flex items-center justify-between text-sm px-2 py-1 hover:bg-cream-50 rounded">
+                <a class="flex items-center gap-2 text-brand-700 hover:underline" href="${f.dataUrl || '#'}" download="${U.esc(f.name)}">
+                  <span>📎</span><span class="font-medium">${U.esc(f.name)}</span>
+                  <span class="text-xs text-ink-300">${U.fileSize(f.size)}</span>
+                </a>
+                <button class="btn-ghost text-rose-600 text-xs" onclick="Views.email._removeAttachment('${id}', ${i})">Remove</button>
+              </li>`).join('')}
+          </ul>` : `<div class="text-xs text-ink-300 italic">No attachments. Add one to auto-fill a new opportunity from it.</div>`}
+      </div>`;
     const body = `
       <div class="border-b border-slate-200 pb-3 mb-3">
         <div class="text-base font-semibold">${U.esc(em.subject)}</div>
@@ -205,9 +224,11 @@ Views.email = {
           ${a ? `<span class="badge badge-blue">Account: ${U.esc(a.name)}</span>`: ''}
           ${b ? `<span class="badge badge-violet">Bond: ${b.number}</span>`: ''}
           <span class="badge ${folder==='sent'?'badge-green':folder==='drafts'?'badge-amber':'badge-slate'}">${folder}</span>
+          ${(em.opportunityIds && em.opportunityIds.length) ? `<span class="badge badge-amber">📌 ${em.opportunityIds.length} opportunit${em.opportunityIds.length===1?'y':'ies'}</span>` : ''}
         </div>
       </div>
       <div class="text-sm text-slate-700 whitespace-pre-line">${U.esc(em.body || em.preview)}${em.body?'':'\n\n…(message body)…'}</div>
+      ${attachmentsHTML}
     `;
     // Decide where an "Add Task" attaches to: bond if mapped, else account, else admin.
     const taskKind   = b ? 'bond' : (a ? 'account' : 'admin');
@@ -256,22 +277,121 @@ Views.email = {
     }, 100);
   },
 
-  // ---- Convert an inbound email into a new pipeline Opportunity
+  // ---- Convert an inbound email into a new pipeline Opportunity.
+  // Tracks the source email so the create handler can attach it back,
+  // and parses any PDF/text attachment via FormParse to pre-fill the form.
+  _pendingEmailLink: null,
+
   _convertToOpportunity(id) {
     const em = DB.emails().find(e => e.id === id);
     if (!em) return;
+    this._pendingEmailLink = id;
     U.closeModals();
     App.go('pipeline');
     setTimeout(() => {
       Views.pipeline.addModal();
+      // Clear the pending link if the user closes the modal without saving
+      const root = document.getElementById('modal-root');
+      const obs = new MutationObserver(() => {
+        if (!root.querySelector('.modal-backdrop')) {
+          this._pendingEmailLink = null;
+          obs.disconnect();
+        }
+      });
+      obs.observe(root, { childList: true });
       setTimeout(() => {
-        // Pre-select the mapped account if any
         const acctSel = document.getElementById('op-acct');
         if (acctSel && em.accountId) acctSel.value = em.accountId;
         const notesEl = document.getElementById('op-notes');
         if (notesEl) notesEl.value = `From email "${em.subject || ''}" (${em.from})\n\n${(em.preview || '').slice(0, 400)}`;
+        this._autoFillFromAttachments(em);
       }, 50);
     }, 100);
+  },
+
+  async _autoFillFromAttachments(em) {
+    const atts = (em.attachments || []).filter(f => {
+      const n = (f.name||'').toLowerCase();
+      return n.endsWith('.pdf') || n.endsWith('.txt') || n.endsWith('.csv') ||
+             (f.type && (f.type === 'application/pdf' || f.type.startsWith('text/')));
+    });
+    if (!atts.length || !window.FormParse) return;
+    for (const f of atts) {
+      try {
+        const blob = await (await fetch(f.dataUrl)).blob();
+        await FormParse.fillFromBlob(blob, f.name, {
+          bondType: 'op-type',
+          amount:   'op-amt',
+          obligee:  'op-ob',
+          dueDate:  'op-due',
+        }, { silent: true });
+      } catch (err) {
+        console.warn('Could not parse attachment', f.name, err);
+      }
+    }
+  },
+
+  _addAttachment(emailId) {
+    const em = DB.emails().find(e => e.id === emailId);
+    if (!em) return;
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.multiple = true;
+    input.style.display = 'none';
+    document.body.appendChild(input);
+    input.addEventListener('change', async () => {
+      const files = Array.from(input.files || []);
+      input.remove();
+      if (!files.length) return;
+      em.attachments = em.attachments || [];
+      for (const f of files) {
+        // Cap each attachment to keep localStorage manageable in this preview
+        if (f.size > 5 * 1024 * 1024) {
+          U.toast(`${f.name} exceeds 5 MB limit — skipped`, 'warn');
+          continue;
+        }
+        const dataUrl = await new Promise((resolve, reject) => {
+          const r = new FileReader();
+          r.onload = () => resolve(r.result);
+          r.onerror = reject;
+          r.readAsDataURL(f);
+        });
+        em.attachments.push({
+          id: U.uid('EA'),
+          name: f.name,
+          size: f.size,
+          type: f.type || 'application/octet-stream',
+          dataUrl,
+          uploaded: new Date().toISOString(),
+        });
+      }
+      DB.save();
+      U.toast(`${files.length} file${files.length===1?'':'s'} attached`);
+      this.openMessage(emailId);
+    });
+    input.click();
+  },
+
+  _removeAttachment(emailId, idx) {
+    const em = DB.emails().find(e => e.id === emailId);
+    if (!em || !em.attachments) return;
+    em.attachments.splice(idx, 1);
+    DB.save();
+    this.openMessage(emailId);
+  },
+
+  // Consumed by Views.pipeline.create() after a new opportunity is pushed.
+  _consumePendingEmailLink(newOpportunityId) {
+    const id = this._pendingEmailLink;
+    if (!id) return false;
+    this._pendingEmailLink = null;
+    const em = DB.emails().find(e => e.id === id);
+    if (!em) return false;
+    em.opportunityIds = em.opportunityIds || [];
+    if (!em.opportunityIds.includes(newOpportunityId)) {
+      em.opportunityIds.push(newOpportunityId);
+    }
+    return true;
   },
 
   replyTo(id) {

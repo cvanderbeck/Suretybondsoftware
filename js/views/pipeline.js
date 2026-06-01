@@ -946,8 +946,9 @@ Views.pipeline = {
   },
 
   create() {
+    const newId = U.uid('PL');
     DB.pipeline().push({
-      id: U.uid('PL'),
+      id: newId,
       accountId: document.getElementById('op-acct').value,
       bondType:  document.getElementById('op-type').value,
       amount:    +document.getElementById('op-amt').value || 0,
@@ -958,9 +959,14 @@ Views.pipeline = {
       producer:  'CV',
       probability: 30,
     });
+    // If this modal was launched from an email's "+ New Opportunity"
+    // button, link that email to the freshly created opportunity.
+    const linked = (window.Views && Views.email && Views.email._consumePendingEmailLink)
+      ? Views.email._consumePendingEmailLink(newId)
+      : false;
     DB.save();
     U.closeModals();
-    U.toast('Opportunity created');
+    U.toast(linked ? 'Opportunity created and email attached' : 'Opportunity created');
     this.render();
   },
 

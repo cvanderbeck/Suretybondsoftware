@@ -214,5 +214,28 @@ window.FormParse = (() => {
     return count;
   }
 
-  return { uploadAndFill, extractFields, readText };
+  // Parse a Blob/File programmatically (no file picker). The blob can come
+  // from an email attachment converted via fetch(dataUrl).
+  async function fillFromBlob(blob, name, applyMap, opts = {}) {
+    try {
+      const file = (blob instanceof File) ? blob : new File([blob], name || 'attachment', { type: blob.type });
+      U.toast(`Reading ${file.name}…`, 'info');
+      const text = await readText(file);
+      const fields = extractFields(text);
+      const applied = applyToForm(fields, applyMap);
+      if (applied === 0) {
+        if (opts.silent !== true) U.toast(`No matching fields in ${file.name}`, 'warn');
+      } else {
+        U.toast(`Auto-filled ${applied} field${applied===1?'':'s'} from ${file.name}`);
+      }
+      if (opts.onDone) opts.onDone(fields);
+      return fields;
+    } catch (err) {
+      console.error(err);
+      if (opts.silent !== true) U.toast(err.message || 'Could not read that attachment', 'warn');
+      return null;
+    }
+  }
+
+  return { uploadAndFill, fillFromBlob, extractFields, readText };
 })();
