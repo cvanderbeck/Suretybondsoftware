@@ -12,7 +12,6 @@ window.Icons = (() => {
     calc:       svg('<rect x="4" y="2" width="16" height="20" rx="2"/><path d="M8 6h8"/><path d="M8 12h.01"/><path d="M12 12h.01"/><path d="M16 12h.01"/><path d="M8 16h.01"/><path d="M12 16h.01"/><path d="M16 16h.01"/>'),
     templates:  svg('<rect x="3" y="3" width="13" height="13" rx="2"/><path d="M8 8h13v13H8z"/>'),
     forms:      svg('<rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 7h6M9 11h6M9 15h4"/><circle cx="17.5" cy="17.5" r="2.5"/><path d="M17.5 17v-1m0 2v-1"/>'),
-    opshub:     svg('<rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 3v18M3 15h18"/>'),
     docs:       svg('<path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6"/>'),
     commissions:svg('<circle cx="12" cy="12" r="10"/><path d="M15 9.5a3 3 0 10-3 2.5 3 3 0 11-3 2.5"/><path d="M12 6v2M12 16v2"/>'),
     invoice:    svg('<rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 7h8M8 11h8M8 15h5"/>'),

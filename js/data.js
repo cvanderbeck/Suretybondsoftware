@@ -1,6 +1,6 @@
 // ---------- Sample / seed data, persistence layer ----------
 window.DB = (() => {
-  const KEY = 'bondvault.db.v14';
+  const KEY = 'bondvault.db.v15';
 
   const sampleData = () => ({
     accounts: [
@@ -1079,64 +1079,6 @@ Thanks,
         ],
       },
     ],
-    // Carriers list from the Operations Hub workbook (Setup.Q column).
-    opsHubCarriers: [
-      { id: 'OC-1',  name: 'AmTrust',      active: true,  defaultClass: 'Contract',   notes: 'Active appointment. New business promo 35% flat (02/04/2026 — 02/04/2027).' },
-      { id: 'OC-2',  name: 'Berkley',      active: true,  defaultClass: 'Commercial', notes: '' },
-      { id: 'OC-3',  name: 'Boss Bonds',   active: true,  defaultClass: 'Express',    notes: '' },
-      { id: 'OC-4',  name: 'CapSpecialty', active: true,  defaultClass: 'Development',notes: 'Subdivision/site & contract.' },
-      { id: 'OC-5',  name: 'Nationwide',   active: true,  defaultClass: 'Commercial', notes: '' },
-      { id: 'OC-6',  name: 'Intact',       active: true,  defaultClass: 'Contract',   notes: '' },
-      { id: 'OC-7',  name: 'Lexington',    active: true,  defaultClass: 'Commercial', notes: '' },
-      { id: 'OC-8',  name: 'Liberty',      active: true,  defaultClass: 'Contract',   notes: '' },
-      { id: 'OC-9',  name: 'Merchants',    active: true,  defaultClass: 'Contract',   notes: 'Rapid Express + sliding contract tiers.' },
-      { id: 'OC-10', name: 'Old Republic', active: true,  defaultClass: 'Commercial', notes: 'L&P / Public Official / Fidelity / Notary.' },
-      { id: 'OC-11', name: 'Skyward',      active: true,  defaultClass: 'Contract',   notes: '' },
-      { id: 'OC-12', name: 'Westfield',    active: true,  defaultClass: 'Contract',   notes: '' },
-    ],
-    // Rate tables (carrier × class × bracket). Loaded from the Operations
-    // Hub workbook (Rate_Tables sheet).
-    rateTables: [
-      // AmTrust — Contract (sliding commission, premium underwriter-quoted)
-      { id: 'RT-001', carrier: 'AmTrust',      bondClass: 'Contract',                threshold: 0,       premiumPerThousand: null, commissionPct: 0.325, notes: 'Performance/Payment. DSI prefix PPD, Core prefix PPC. Premium quoted by underwriter.', ratingMethod: 'Sliding (from table)', pricingBase: 'Contract Amount' },
-      { id: 'RT-002', carrier: 'AmTrust',      bondClass: 'Contract',                threshold: 2500000, premiumPerThousand: null, commissionPct: 0.15,  notes: 'Mid-tier contract', ratingMethod: 'Sliding (from table)', pricingBase: 'Contract Amount' },
-      { id: 'RT-003', carrier: 'AmTrust',      bondClass: 'Contract',                threshold: 5000000, premiumPerThousand: null, commissionPct: 0.125, notes: '', ratingMethod: 'Sliding (from table)', pricingBase: 'Contract Amount' },
-      { id: 'RT-004', carrier: 'AmTrust',      bondClass: 'Contract',                threshold: 7500000, premiumPerThousand: null, commissionPct: 0.10,  notes: 'Large contract — minimum comm tier', ratingMethod: 'Sliding (from table)', pricingBase: 'Contract Amount' },
-      { id: 'RT-005', carrier: 'AmTrust',      bondClass: 'Development',             threshold: 0,       premiumPerThousand: null, commissionPct: 0.30,  notes: 'Subdivision/Site improvement. DSI prefix DVD, Core prefix DVC.', ratingMethod: 'Sliding (from table)', pricingBase: 'Penal Sum' },
-      { id: 'RT-006', carrier: 'AmTrust',      bondClass: 'Development',             threshold: 2500000, premiumPerThousand: null, commissionPct: 0.15,  notes: '', ratingMethod: 'Sliding (from table)', pricingBase: 'Penal Sum' },
-      { id: 'RT-007', carrier: 'AmTrust',      bondClass: 'Development',             threshold: 5000000, premiumPerThousand: null, commissionPct: 0.10,  notes: '', ratingMethod: 'Sliding (from table)', pricingBase: 'Penal Sum' },
-      { id: 'RT-008', carrier: 'AmTrust',      bondClass: 'Development',             threshold: 7500000, premiumPerThousand: null, commissionPct: 0.05,  notes: 'Large subdivision — minimum comm tier', ratingMethod: 'Sliding (from table)', pricingBase: 'Penal Sum' },
-      { id: 'RT-009', carrier: 'AmTrust',      bondClass: 'Commercial',              threshold: 0,       premiumPerThousand: null, commissionPct: 0.35,  notes: 'License/Permit/ERISA/Misc. Flat 35% commission.', ratingMethod: 'Flat %', pricingBase: 'Penal Sum' },
-      { id: 'RT-010', carrier: 'AmTrust',      bondClass: 'Express',                 threshold: 0,       premiumPerThousand: null, commissionPct: 0.325, notes: 'Express/streamlined commercial.', ratingMethod: 'Flat %', pricingBase: 'Penal Sum' },
-      { id: 'RT-011', carrier: 'AmTrust',      bondClass: 'NEW BUSINESS PROMO',      threshold: 0,       premiumPerThousand: null, commissionPct: 0.35,  notes: '★ ACTIVE 02/04/2026 — 02/04/2027. 35% FLAT on all new business.', ratingMethod: 'Flat %', pricingBase: 'Penal Sum' },
-
-      // CapSpecialty
-      { id: 'RT-012', carrier: 'CapSpecialty', bondClass: 'Development',             threshold: 0,       premiumPerThousand: null, commissionPct: 0.30,  notes: 'Developer/Subdivision/Site. Rate quoted per bond.', ratingMethod: 'Per-bond template', pricingBase: 'Penal Sum' },
-      { id: 'RT-013', carrier: 'CapSpecialty', bondClass: 'Contract',                threshold: 0,       premiumPerThousand: 25,   commissionPct: 0.30,  notes: 'Contract (Perf/Pay). Flat $25/M (2.5%). 30% flat.', ratingMethod: 'Flat $/thousand', pricingBase: 'Contract Amount' },
-
-      // Lexington
-      { id: 'RT-014', carrier: 'Lexington',    bondClass: 'Commercial',              threshold: 0,       premiumPerThousand: 30,   commissionPct: 0.40,  notes: 'Commercial Surety. $30/M (3%). 40%.', ratingMethod: 'Flat $/thousand', pricingBase: 'Penal Sum' },
-      { id: 'RT-015', carrier: 'Lexington',    bondClass: 'Contract Rapid Express',  threshold: 0,       premiumPerThousand: 30,   commissionPct: 0.35,  notes: 'Contract — Rapid Express. $30/M.', ratingMethod: 'Flat $/thousand', pricingBase: 'Contract Amount' },
-      { id: 'RT-016', carrier: 'Lexington',    bondClass: 'Contract',                threshold: 0,       premiumPerThousand: 30,   commissionPct: 0.35,  notes: 'Non-Rapid Express — 35% on first $2.5M.', ratingMethod: 'Sliding (from table)', pricingBase: 'Contract Amount' },
-      { id: 'RT-017', carrier: 'Lexington',    bondClass: 'Contract',                threshold: 2500000, premiumPerThousand: 30,   commissionPct: 0.175, notes: '17.5% on next $2.5M ($2.5M–$5M).', ratingMethod: 'Sliding (from table)', pricingBase: 'Contract Amount' },
-      { id: 'RT-018', carrier: 'Lexington',    bondClass: 'Contract',                threshold: 5000000, premiumPerThousand: 30,   commissionPct: 0.125, notes: '12.5% above $5M.', ratingMethod: 'Sliding (from table)', pricingBase: 'Contract Amount' },
-
-      // Merchants
-      { id: 'RT-019', carrier: 'Merchants',    bondClass: 'Commercial',              threshold: 0,       premiumPerThousand: 30,   commissionPct: 0.30,  notes: 'Commercial Surety. 30% flat.', ratingMethod: 'Flat $/thousand', pricingBase: 'Penal Sum' },
-      { id: 'RT-020', carrier: 'Merchants',    bondClass: 'Fidelity',                threshold: 0,       premiumPerThousand: 30,   commissionPct: 0.25,  notes: 'Fidelity bonds. 25% flat.', ratingMethod: 'Flat $/thousand', pricingBase: 'Penal Sum' },
-      { id: 'RT-021', carrier: 'Merchants',    bondClass: 'Notary E&O',              threshold: 0,       premiumPerThousand: 30,   commissionPct: 0.30,  notes: 'Notary Errors & Omissions. 30% flat.', ratingMethod: 'Flat $/thousand', pricingBase: 'Penal Sum' },
-      { id: 'RT-022', carrier: 'Merchants',    bondClass: 'Contract Rapid Express',  threshold: 0,       premiumPerThousand: 30,   commissionPct: 0.30,  notes: 'Rapid Access — Non-Construction Performance. 30% flat.', ratingMethod: 'Flat $/thousand', pricingBase: 'Contract Amount' },
-      { id: 'RT-023', carrier: 'Merchants',    bondClass: 'Contract',                threshold: 0,       premiumPerThousand: 30,   commissionPct: 0.30,  notes: 'Contract Surety. 30% on first $2.5M.', ratingMethod: 'Sliding (from table)', pricingBase: 'Contract Amount' },
-      { id: 'RT-024', carrier: 'Merchants',    bondClass: 'Contract',                threshold: 2500000, premiumPerThousand: 30,   commissionPct: 0.15,  notes: '15% on $2.5M–$5M.', ratingMethod: 'Sliding (from table)', pricingBase: 'Contract Amount' },
-      { id: 'RT-025', carrier: 'Merchants',    bondClass: 'Contract',                threshold: 5000000, premiumPerThousand: 30,   commissionPct: 0.125, notes: '12.5% on $5M–$7.5M.', ratingMethod: 'Sliding (from table)', pricingBase: 'Contract Amount' },
-      { id: 'RT-026', carrier: 'Merchants',    bondClass: 'Contract',                threshold: 7500000, premiumPerThousand: 30,   commissionPct: 0.05,  notes: '5% above $7.5M.', ratingMethod: 'Sliding (from table)', pricingBase: 'Contract Amount' },
-
-      // Old Republic
-      { id: 'RT-027', carrier: 'Old Republic', bondClass: 'Commercial',              threshold: 0,       premiumPerThousand: 30,   commissionPct: 0.30,  notes: 'Surety, L&P, Public Official, Federal Official, Forgery, Misc. 30%.', ratingMethod: 'Flat $/thousand', pricingBase: 'Penal Sum' },
-      { id: 'RT-028', carrier: 'Old Republic', bondClass: 'Fidelity',                threshold: 0,       premiumPerThousand: 30,   commissionPct: 0.30,  notes: 'Individual & Schedule Fidelity. 30%.', ratingMethod: 'Flat $/thousand', pricingBase: 'Penal Sum' },
-      { id: 'RT-029', carrier: 'Old Republic', bondClass: 'Blanket Fidelity',        threshold: 0,       premiumPerThousand: 30,   commissionPct: 0.20,  notes: "Blanket Fidelity incl. Public Employees' Blanket. 20%.", ratingMethod: 'Flat $/thousand', pricingBase: 'Penal Sum' },
-      { id: 'RT-030', carrier: 'Old Republic', bondClass: 'Notary',                  threshold: 0,       premiumPerThousand: 30,   commissionPct: 0.30,  notes: 'Notary Bonds. 30%.', ratingMethod: 'Flat $/thousand', pricingBase: 'Penal Sum' },
-    ],
     settings: {
       agency: {
         name: 'Vanderbeck Surety Agency',
@@ -1148,28 +1090,6 @@ Thanks,
       },
       qbo: { connected: true, realmId: '9341022938293', companyName: 'Vanderbeck Surety Agency', lastSync: '2026-05-13T22:15' },
       email: { connected: true, provider: 'Microsoft 365', address: 'producers@vanderbeck-surety.example', lastSync: '2026-05-13T22:30' },
-      opsHub: {
-        // Mirrors the "Setup" sheet of the Keating Surety Operations Hub
-        // so the in-app data lines up with the master workbook.
-        trustBankName:            'Premium Trust Account',
-        operatingBankName:        'Operating Account',
-        targetTrustBuffer:        10000,
-        avgCommissionRate:        0.15,
-        producerTargetPremium:    250000,
-        arAlertDays:              30,
-        payablesAlertDays:        15,
-        forecastMonths:           6,
-        beginningOperatingCash:   50000,
-        beginningTrustCash:       25000,
-        producers:                ['Casey V.', 'Michael', 'Tom'],
-        bondStatuses:             ['Requested','Submitted','Approved','Bound','Active','Renewed','Expired','Closed','Cancelled','Declined'],
-        opsHubBondTypes:          ['Contract','Development','Commercial','Express','Court','Subdivision'],
-        invoiceStatuses:          ['Not Invoiced','Invoiced','Partially Paid','Paid'],
-        transferStatuses:         ['Pending','Transferred','Held'],
-        checklistStatuses:        ['Not Started','In Progress','Complete','N/A'],
-        lastImport:               null,
-        lastExport:               null,
-      },
       storage: {
         provider: 'onedrive',                           // 'onedrive' | 'dropbox' | null
         connected: true,
@@ -1284,8 +1204,6 @@ Thanks,
       'Submitted to Surety','Approved','Onboarded','Lost / No Fit',
     ]),
     findLead:   (id) => (state.leads || []).find(l => l.id === id),
-    rateTables:     () => (state.rateTables     = state.rateTables     || []),
-    opsHubCarriers: () => (state.opsHubCarriers = state.opsHubCarriers || []),
     settings:       () => state.settings,
 
     findAccount: (id) => state.accounts.find(a => a.id === id),
