@@ -140,6 +140,7 @@ Views.accounts = {
     const uwFiles = DB.uw().filter(u => bondIds.includes(u.bondId));
 
     const wipRoll = WIP.rollup(id);
+    const openTasks = (a.tasks || []).filter(t => !t.completed).length;
     const TABS = [
       ['overview',   'Overview',  ''],
       ['company',    'Company',   ''],
@@ -148,6 +149,7 @@ Views.accounts = {
       ['uw',         'Underwriting', uwFiles.length],
       ['bonds',      'Bonds',     bonds.length],
       ['wip',        'Work in Progress', wipRoll.tracked.length],
+      ['tasks',      'Tasks',     openTasks],
       ['pipeline',   'Pipeline / Bids', pipe.length],
       ['documents',  'Documents', docs.length],
       ['emails',     'Emails',    emails.length],
@@ -217,6 +219,7 @@ Views.accounts = {
       case 'uw':        return this._tabUW(a, ctx);
       case 'bonds':     return this._tabBonds(a, ctx);
       case 'wip':       return this._tabWip(a);
+      case 'tasks':     return this._tabTasks(a);
       case 'pipeline':  return this._tabPipeline(a, ctx);
       case 'documents': return this._tabDocuments(a, ctx);
       case 'emails':    return this._tabEmails(a, ctx);
@@ -280,8 +283,6 @@ Views.accounts = {
           ` : `<div class="text-sm text-ink-300">No aggregate limit set on this account. Add it in the Company tab to track utilization.</div>`}
         </div>
       </div>
-
-      ${Views.templates.renderTasksCard('account', a.id, a)}
 
       ${Intake.panel('account', a)}
 
@@ -990,6 +991,14 @@ Views.accounts = {
     U.toast('WIP updated');
     if (accountId) { this._tab = 'wip'; this._currentId = accountId; this._renderDetail(); }
     else if (Views.bonds && document.getElementById('view')) { Views.bonds.open(bondId); }
+  },
+
+  // ---------- Tab: Tasks ----------
+  _tabTasks(a) {
+    return `
+      <div class="text-sm text-ink-300 mb-3">All open and completed tasks for this account. Apply an automation sequence or checklist (from the Templates tab) to bulk-populate this list.</div>
+      ${Views.templates.renderTasksCard('account', a.id, a)}
+    `;
   },
 
   // ---------- Tab: Pipeline ----------

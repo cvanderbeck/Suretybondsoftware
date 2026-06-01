@@ -158,6 +158,8 @@ Views.bonds = {
         </div>
       </div>
 
+      ${Views.templates.renderTasksCard('bond', b.id, b)}
+
       <div class="grid grid-cols-3 gap-4">
         <div class="card">
           <div class="card-header"><div class="card-title">Documents (${docs.length})</div>
@@ -184,6 +186,7 @@ Views.bonds = {
       <button class="btn-ghost" data-close>Close</button>
       <button class="btn-secondary" onclick="Views.bonds.openForm('${id}')">Edit</button>
       <button class="btn-secondary" onclick="Compose.open({ bondId: '${id}' })">✉ Email Principal</button>
+      <button class="btn-secondary" onclick="Views.templates.openApplyPicker({ kind:'bond', id:'${id}', reopen: () => Views.bonds.open('${id}') })">▶ Apply Template</button>
       <button class="btn-secondary" onclick="Views.bonds.exportOne('${id}')">Export Bond PDF</button>
       <button class="btn-primary" onclick="Views.bonds.createInvoice('${id}')">Create Invoice</button>
     `;
