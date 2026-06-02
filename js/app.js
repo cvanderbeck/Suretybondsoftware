@@ -62,6 +62,11 @@ window.App = (() => {
   function init() {
     Icons.mount();
     bindNav();
+    // Auto-create renewal workflows for any bond entering the 90-day window
+    // (and refresh snapshots) so emails can map to them immediately.
+    if (Views.renewals && Views.renewals.syncRenewalsForWindow) {
+      try { Views.renewals.syncRenewalsForWindow(); } catch (e) { console.warn(e); }
+    }
     const startView = (location.hash || '').replace('#/','') || DEFAULT_VIEW;
     go(startView);
 

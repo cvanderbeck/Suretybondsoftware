@@ -124,7 +124,7 @@ Views.email = {
         <div class="text-xs text-slate-500 truncate max-w-[28rem]">${U.esc(em.preview)}</div>
       </td>
       <td>${a ? `<span class="badge badge-blue cursor-pointer" onclick="App.go('accounts');">${U.esc(a.name)}</span>` : '<span class="text-xs text-slate-400">— unmapped —</span>'}</td>
-      <td>${b ? `<span class="badge badge-violet cursor-pointer" onclick="Views.bonds.open('${b.id}')">${b.number}</span>` : '<span class="text-xs text-slate-400">—</span>'}${(em.opportunityIds && em.opportunityIds.length) ? `<span class="badge badge-amber ml-1" title="Attached to ${em.opportunityIds.length} opportunit${em.opportunityIds.length===1?'y':'ies'}">📌 ${em.opportunityIds.length}</span>` : ''}</td>
+      <td>${b ? `<span class="badge badge-violet cursor-pointer" onclick="Views.bonds.open('${b.id}')">${b.number}</span>` : '<span class="text-xs text-slate-400">—</span>'}${(em.opportunityIds && em.opportunityIds.length) ? `<span class="badge badge-amber ml-1" title="Attached to ${em.opportunityIds.length} opportunit${em.opportunityIds.length===1?'y':'ies'}">📌 ${em.opportunityIds.length}</span>` : ''}${(em.renewalIds && em.renewalIds.length) ? `<span class="badge badge-green ml-1" title="Attached to ${em.renewalIds.length} renewal${em.renewalIds.length===1?'':'s'}">↻ ${em.renewalIds.length}</span>` : ''}</td>
       <td class="whitespace-nowrap">${U.datetime(em.date)}</td>
       <td class="text-right">
         ${folder==='inbox' ? `<button class="btn-ghost" onclick="Views.email.openMapping('${em.id}')">Map</button>
@@ -225,6 +225,7 @@ Views.email = {
           ${b ? `<span class="badge badge-violet">Bond: ${b.number}</span>`: ''}
           <span class="badge ${folder==='sent'?'badge-green':folder==='drafts'?'badge-amber':'badge-slate'}">${folder}</span>
           ${(em.opportunityIds && em.opportunityIds.length) ? `<span class="badge badge-amber">📌 ${em.opportunityIds.length} opportunit${em.opportunityIds.length===1?'y':'ies'}</span>` : ''}
+          ${(em.renewalIds && em.renewalIds.length) ? `<span class="badge badge-green">↻ ${em.renewalIds.length} renewal${em.renewalIds.length===1?'':'s'}</span>` : ''}
         </div>
       </div>
       <div class="text-sm text-slate-700 whitespace-pre-line">${U.esc(em.body || em.preview)}${em.body?'':'\n\n…(message body)…'}</div>
@@ -489,7 +490,9 @@ Views.email = {
   openMapping(id) {
     const em = DB.emails().find(e => e.id === id); if (!em) return;
     const accts = DB.accounts(), bonds = DB.bonds(), opps = DB.pipeline();
+    const rens = (typeof DB.renewals === 'function' ? DB.renewals() : []) || [];
     const selectedOpps = new Set(em.opportunityIds || []);
+    const selectedRens = new Set(em.renewalIds || []);
     const oppRow = (p) => {
       const acct = DB.findAccount(p.accountId) || {};
       const meta = Views.pipeline.resultMeta(p.bidResult || 'pending');
@@ -518,7 +521,7 @@ Views.email = {
           </select></div>
       </div>
 
-      <div class="card">
+      <div class="card mb-4">
         <div class="card-header">
           <div class="card-title">Attach to Opportunities</div>
           <label class="flex items-center gap-2 text-xs text-ink-400">
@@ -531,6 +534,35 @@ Views.email = {
           oninput="Views.email._filterOppList()" style="width: calc(100% - 1.5rem);">
         <div id="map-opp-list" class="max-h-72 overflow-y-auto border-t border-cream-100">
           ${opps.map(oppRow).join('') || '<div class="p-6 text-center text-sm text-ink-300">No opportunities yet.</div>'}
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">Attach to Renewals</div>
+          <label class="flex items-center gap-2 text-xs text-ink-400">
+            <input id="map-rn-allaccts" type="checkbox" class="chk" onchange="Views.email._filterRenList()">
+            Show renewals from all accounts
+          </label>
+        </div>
+        <div class="p-2 text-xs text-ink-400 px-3">Renewal invoices, premium notices, and reminders from the surety land here.</div>
+        <input id="map-rn-search" class="field-input mx-3 my-2" placeholder="Search bond #, principal, obligee…"
+          oninput="Views.email._filterRenList()" style="width: calc(100% - 1.5rem);">
+        <div id="map-rn-list" class="max-h-72 overflow-y-auto border-t border-cream-100">
+          ${rens.map(r => {
+            const b = DB.findBond(r.bondId) || {};
+            const acct = DB.findAccount(b.accountId) || {};
+            const days = Views.renewals.daysUntil(b.expires);
+            const dayLabel = days == null ? '' : (days < 0 ? `Overdue ${Math.abs(days)}d` : `${days}d remaining`);
+            return `
+              <label class="flex items-center gap-3 px-3 py-2 border-b border-cream-100 last:border-0 hover:bg-cream-50 cursor-pointer">
+                <input type="checkbox" class="chk" data-map-rn value="${r.id}" data-acct="${b.accountId||''}" ${selectedRens.has(r.id)?'checked':''}>
+                <div class="flex-1 min-w-0">
+                  <div class="text-sm font-medium truncate">${U.esc(acct.name||'—')} · ${U.esc(b.number||'')} · ${U.esc(b.type||'')}</div>
+                  <div class="text-xs text-ink-300 truncate">${U.esc(b.obligee||'')} · ${U.usd(b.amount||0)} · Expires ${U.date(b.expires)} · ${dayLabel}</div>
+                </div>
+              </label>`;
+          }).join('') || '<div class="p-6 text-center text-sm text-ink-300">No renewals in the current window.</div>'}
         </div>
       </div>
     `;
@@ -556,11 +588,27 @@ Views.email = {
     });
   },
 
+  _filterRenList() {
+    const acctSel = document.getElementById('map-acct');
+    const allAcct = document.getElementById('map-rn-allaccts');
+    const search  = document.getElementById('map-rn-search');
+    if (!acctSel) return;
+    const wantAcct = !allAcct?.checked && acctSel.value ? acctSel.value : null;
+    const q = (search?.value || '').toLowerCase().trim();
+    document.querySelectorAll('#map-rn-list label').forEach(lbl => {
+      const cb = lbl.querySelector('[data-map-rn]');
+      const acctOk = !wantAcct || cb.dataset.acct === wantAcct;
+      const matches = !q || lbl.textContent.toLowerCase().includes(q);
+      lbl.style.display = (acctOk && matches) ? '' : 'none';
+    });
+  },
+
   saveMapping(id) {
     const em = DB.emails().find(e => e.id === id);
     em.accountId = document.getElementById('map-acct').value || null;
     em.bondId    = document.getElementById('map-bond').value || null;
     em.opportunityIds = Array.from(document.querySelectorAll('[data-map-opp]:checked')).map(cb => cb.value);
+    em.renewalIds     = Array.from(document.querySelectorAll('[data-map-rn]:checked')).map(cb => cb.value);
     DB.save(); U.closeModals(); U.toast('Mapping saved'); this.render();
   },
 

@@ -43,6 +43,10 @@ Views.renewals = {
   },
 
   // Make sure every bond expiring inside the window has a renewal row.
+  // When a renewal is created (or seeded without one), a full snapshot of
+  // the original bond is copied onto the renewal so the workflow has all
+  // the data needed to issue the new term — even if the source bond is
+  // later edited or cancelled.
   syncRenewalsForWindow() {
     const win = this._windowDays || this.WINDOW_DEFAULT;
     const rens = DB.renewals();
@@ -52,8 +56,9 @@ Views.renewals = {
       const d = this.daysUntil(b.expires);
       if (d === null) return;
       if (d > win || d < -30) return;
-      if (!rens.some(r => r.bondId === b.id)) {
-        rens.push({
+      let r = rens.find(x => x.bondId === b.id);
+      if (!r) {
+        r = {
           id: U.uid('R'),
           bondId: b.id,
           status: 'upcoming',
@@ -61,12 +66,38 @@ Views.renewals = {
           contactedDate: null, nextFollowUp: null,
           assignedTo: 'Casey V.',
           notes: [],
-        });
+        };
+        rens.push(r);
         added++;
       }
+      if (!r.bondSnapshot) r.bondSnapshot = this._snapshotBond(b);
     });
     if (added) DB.save();
     return added;
+  },
+
+  _snapshotBond(b) {
+    return {
+      number: b.number,
+      type: b.type,
+      accountId: b.accountId,
+      partnerId: b.partnerId,
+      obligee: b.obligee,
+      project: b.project,
+      amount: b.amount,
+      premium: b.premium,
+      rate: b.rate,
+      commissionRate: b.commissionRate,
+      effective: b.effective,
+      expires: b.expires,
+      status: b.status,
+      qboInvoiceNumber: b.qboInvoiceNumber,
+      reportedToBondCo: b.reportedToBondCo,
+      obligeeApproved: b.obligeeApproved,
+      sentToPrincipal: b.sentToPrincipal,
+      typeSpecific: JSON.parse(JSON.stringify(b.typeSpecific || {})),
+      snapshotDate: new Date().toISOString().slice(0,10),
+    };
   },
 
   rowsFor(window) {
@@ -288,6 +319,12 @@ Views.renewals = {
           </div>
         </div>
 
+        <div class="card col-span-2">${this._snapshotCard(r, b)}</div>
+
+        <div class="card col-span-2">${this._emailsCard(r)}</div>
+
+        <div class="card col-span-2">${this._attachmentsCard(r)}</div>
+
         <div class="col-span-2">${Views.templates.renderTasksCard('renewal', r.id, r)}</div>
 
         <div class="card col-span-2">
@@ -466,5 +503,212 @@ Views.renewals = {
     const blob = new Blob([csv], {type:'text/csv'});
     const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download='renewals.csv'; a.click();
     U.toast('Renewals exported');
+  },
+
+  // ---------- Snapshot / Emails / Attachments cards on the detail modal ----------
+  _snapshotCard(r, b) {
+    const snap = r.bondSnapshot || this._snapshotBond(b);
+    if (!r.bondSnapshot) r.bondSnapshot = snap;
+    const a = DB.findAccount(snap.accountId) || {};
+    const p = DB.findPartner(snap.partnerId) || {};
+    const ts = snap.typeSpecific || {};
+    const tsRows = Object.keys(ts).length
+      ? `<div class="mt-3 pt-3 border-t border-cream-100">
+           <div class="text-xs font-semibold text-ink-400 uppercase tracking-wider mb-2">Type-Specific Details (${U.esc(snap.type||'')})</div>
+           <dl class="grid grid-cols-3 gap-x-3 gap-y-1 text-sm">
+             ${Object.entries(ts).filter(([,v]) => v !== '' && v !== null && v !== undefined).map(([k,v]) => `
+               <div><span class="text-xs text-ink-300 block">${U.esc(k)}</span><span class="text-ink-700">${U.esc(Array.isArray(v)?v.join(', '):String(v))}</span></div>`).join('')}
+           </dl>
+         </div>` : '';
+    return `
+      <div class="card-header">
+        <div class="card-title">Original Bond Snapshot</div>
+        <span class="text-xs text-ink-300">Captured ${snap.snapshotDate ? U.date(snap.snapshotDate) : '—'} — copied from bond ${U.esc(snap.number || b.number || '')}</span>
+      </div>
+      <div class="p-4 grid grid-cols-4 gap-3 text-sm">
+        <div><div class="field-label">Bond Number</div>${U.esc(snap.number || '—')}</div>
+        <div><div class="field-label">Type</div>${U.esc(snap.type || '—')}</div>
+        <div><div class="field-label">Principal</div>${U.esc(a.name || '—')}</div>
+        <div><div class="field-label">Surety</div>${U.esc(p.name || '—')}</div>
+        <div class="col-span-2"><div class="field-label">Obligee</div>${U.esc(snap.obligee || '—')}</div>
+        <div class="col-span-2"><div class="field-label">Project / Description</div>${U.esc(snap.project || '—')}</div>
+        <div><div class="field-label">Amount</div>${U.usd(snap.amount || 0)}</div>
+        <div><div class="field-label">Rate %</div>${snap.rate || 0}%</div>
+        <div><div class="field-label">Premium</div>${U.usd(snap.premium || 0)}</div>
+        <div><div class="field-label">Commission %</div>${snap.commissionRate || 0}%</div>
+        <div><div class="field-label">Effective</div>${U.date(snap.effective)}</div>
+        <div><div class="field-label">Expires</div>${U.date(snap.expires)}</div>
+        <div><div class="field-label">QBO Invoice #</div>${U.esc(snap.qboInvoiceNumber || '—')}</div>
+        <div><div class="field-label">Snapshot Status</div>${U.esc(snap.status || '—')}</div>
+      </div>
+      ${tsRows}
+      <div class="p-4 pt-0 text-right">
+        <button class="btn-ghost" onclick="Views.renewals._refreshSnapshot('${r.id}')">↻ Refresh from current bond</button>
+      </div>`;
+  },
+
+  _refreshSnapshot(renewalId) {
+    const r = DB.renewals().find(x => x.id === renewalId);
+    if (!r) return;
+    const b = DB.findBond(r.bondId);
+    if (!b) return;
+    r.bondSnapshot = this._snapshotBond(b);
+    DB.save();
+    U.toast('Snapshot refreshed from current bond');
+    this.open(renewalId);
+  },
+
+  _emailsCard(r) {
+    const emails = DB.emails().filter(e => (e.renewalIds || []).includes(r.id));
+    const row = (em) => {
+      const folder = em.folder || 'inbox';
+      const addr = folder === 'sent' || folder === 'drafts' ? (em.to || '') : em.from;
+      const attCount = (em.attachments || []).length;
+      return `
+        <tr class="cursor-pointer" onclick="U.closeModals(); App.go('email'); setTimeout(()=>Views.email.openMessage('${em.id}'), 60);">
+          <td><span class="badge ${folder==='sent'?'badge-green':folder==='drafts'?'badge-amber':'badge-slate'}">${folder}</span></td>
+          <td class="max-w-[14rem] truncate">${U.esc(addr)}</td>
+          <td class="font-medium">${U.esc(em.subject)}${attCount?` <span class="text-xs text-ink-300">📎 ${attCount}</span>`:''}</td>
+          <td class="whitespace-nowrap">${U.datetime(em.date)}</td>
+          <td class="text-right"><button class="btn-ghost text-rose-600" onclick="event.stopPropagation(); Views.renewals._detachEmail('${em.id}', '${r.id}')">Detach</button></td>
+        </tr>`;
+    };
+    return `
+      <div class="card-header">
+        <div class="card-title">Emails (${emails.length})</div>
+        <button class="btn-secondary" onclick="Views.renewals._openAttachPicker('${r.id}')">+ Attach Emails</button>
+      </div>
+      <table class="tbl">
+        <thead><tr><th>Folder</th><th>From / To</th><th>Subject</th><th>Date</th><th class="text-right"></th></tr></thead>
+        <tbody>${emails.length ? emails.map(row).join('')
+          : '<tr><td colspan="5" class="text-center text-ink-300 py-6">No emails attached. Map a renewal-invoice email to this renewal from the Email screen, or click <b>+ Attach Emails</b>.</td></tr>'}</tbody>
+      </table>`;
+  },
+
+  _openAttachPicker(renewalId) {
+    const r = DB.renewals().find(x => x.id === renewalId);
+    if (!r) return;
+    const b = DB.findBond(r.bondId) || {};
+    const emails = DB.emails().slice().sort((x,y) => (y.date||'').localeCompare(x.date||''));
+    const selected = new Set(emails.filter(e => (e.renewalIds || []).includes(renewalId)).map(e => e.id));
+    const row = (em) => {
+      const folder = em.folder || 'inbox';
+      const addr = folder === 'sent' || folder === 'drafts' ? (em.to || '') : em.from;
+      const acctMatch = em.accountId === b.accountId;
+      const bondMatch = em.bondId === b.id;
+      return `
+        <label class="flex items-center gap-3 px-3 py-2 border-b border-cream-100 last:border-0 hover:bg-cream-50 cursor-pointer" data-acct-match="${acctMatch||bondMatch?'1':'0'}">
+          <input type="checkbox" class="chk" data-attach-rn-em value="${em.id}" ${selected.has(em.id)?'checked':''}>
+          <div class="flex-1 min-w-0">
+            <div class="text-sm font-medium truncate">${U.esc(em.subject)}</div>
+            <div class="text-xs text-ink-300 truncate">${folder} · ${U.esc(addr)} · ${U.datetime(em.date)}${bondMatch?' · <span class="text-emerald-700">same bond</span>':acctMatch?' · <span class="text-emerald-700">same account</span>':''}${(em.attachments||[]).length?` · 📎 ${em.attachments.length}`:''}</div>
+          </div>
+        </label>`;
+    };
+    const body = `
+      <div class="mb-3 flex items-center justify-between">
+        <div class="text-xs text-ink-400">Pick emails that belong to this renewal — e.g. invoices, terms, debrief notes from the surety.</div>
+        <label class="flex items-center gap-2 text-xs text-ink-400">
+          <input id="att-rn-acct-only" type="checkbox" class="chk" checked onchange="Views.renewals._filterAttachList()">
+          Only show this bond / account
+        </label>
+      </div>
+      <input id="att-rn-search" class="field-input mb-2" placeholder="Search subject, sender, or preview…" oninput="Views.renewals._filterAttachList()">
+      <div id="att-rn-list" class="card max-h-[50vh] overflow-y-auto">
+        ${emails.map(row).join('') || '<div class="p-6 text-center text-sm text-ink-300">No emails to attach.</div>'}
+      </div>`;
+    const footer = `<button class="btn-ghost" data-close>Cancel</button>
+      <button class="btn-primary" onclick="Views.renewals._saveAttach('${renewalId}')">Attach Selected</button>`;
+    const m = U.modal({ title: 'Attach Emails to Renewal', body, footer, size: 'lg' });
+    m.el.querySelector('[data-close]').addEventListener('click', m.close);
+    setTimeout(() => this._filterAttachList(), 0);
+  },
+
+  _filterAttachList() {
+    const acctOnly = document.getElementById('att-rn-acct-only');
+    const q = (document.getElementById('att-rn-search')?.value || '').toLowerCase().trim();
+    document.querySelectorAll('#att-rn-list label').forEach(lbl => {
+      const matchAcct = !acctOnly?.checked || lbl.dataset.acctMatch === '1';
+      const matches   = !q || lbl.textContent.toLowerCase().includes(q);
+      lbl.style.display = (matchAcct && matches) ? '' : 'none';
+    });
+  },
+
+  _saveAttach(renewalId) {
+    const picked = new Set(Array.from(document.querySelectorAll('[data-attach-rn-em]:checked')).map(cb => cb.value));
+    const visible = new Set(Array.from(document.querySelectorAll('#att-rn-list label')).filter(l => l.style.display !== 'none')
+      .map(l => l.querySelector('[data-attach-rn-em]').value));
+    let added = 0, removed = 0;
+    DB.emails().forEach(em => {
+      const list = em.renewalIds || [];
+      const has = list.includes(renewalId);
+      const should = picked.has(em.id);
+      if (!visible.has(em.id) && !has) return;
+      if (should && !has) { em.renewalIds = list.concat(renewalId); added++; }
+      else if (!should && has && visible.has(em.id)) { em.renewalIds = list.filter(x => x !== renewalId); removed++; }
+    });
+    DB.save();
+    U.closeModals();
+    if (added || removed) U.toast(`${added} attached, ${removed} removed`);
+    this.open(renewalId);
+  },
+
+  _detachEmail(emailId, renewalId) {
+    const em = DB.emails().find(e => e.id === emailId);
+    if (!em) return;
+    em.renewalIds = (em.renewalIds || []).filter(x => x !== renewalId);
+    DB.save();
+    U.toast('Email detached');
+    this.open(renewalId);
+  },
+
+  _attachmentsCard(r) {
+    const atts = r.attachments || [];
+    const row = (f, i) => `
+      <li class="flex items-center justify-between text-sm px-3 py-2 border-b border-cream-100 last:border-0 hover:bg-cream-50">
+        <a class="flex items-center gap-2 text-brand-700 hover:underline truncate" href="${f.dataUrl || '#'}" download="${U.esc(f.name)}">
+          <span>📎</span><span class="font-medium truncate">${U.esc(f.name)}</span>
+          <span class="text-xs text-ink-300">${U.fileSize(f.size||0)}${f.sourceEmailId?' · from email':''}</span>
+        </a>
+        <button class="btn-ghost text-rose-600 text-xs" onclick="Views.renewals._removeAttachment('${r.id}', ${i})">Remove</button>
+      </li>`;
+    return `
+      <div class="card-header">
+        <div class="card-title">Attachments (${atts.length})</div>
+        <button class="btn-secondary" onclick="Views.renewals._addAttachment('${r.id}')">+ Add File</button>
+      </div>
+      ${atts.length ? `<ul>${atts.map(row).join('')}</ul>`
+        : '<div class="p-4 text-sm text-ink-300 italic">No files yet. Bond invoices, renewal quotes, and other documents the surety sends for this renewal live here.</div>'}`;
+  },
+
+  _addAttachment(renewalId) {
+    const r = DB.renewals().find(x => x.id === renewalId);
+    if (!r) return;
+    const input = document.createElement('input');
+    input.type = 'file'; input.multiple = true; input.style.display = 'none';
+    document.body.appendChild(input);
+    input.addEventListener('change', async () => {
+      const files = Array.from(input.files || []);
+      input.remove();
+      if (!files.length) return;
+      r.attachments = r.attachments || [];
+      for (const f of files) {
+        if (f.size > 5 * 1024 * 1024) { U.toast(`${f.name} exceeds 5 MB limit — skipped`, 'warn'); continue; }
+        const dataUrl = await new Promise((res, rej) => { const fr = new FileReader(); fr.onload = () => res(fr.result); fr.onerror = rej; fr.readAsDataURL(f); });
+        r.attachments.push({ id: U.uid('RA'), name: f.name, size: f.size, type: f.type||'application/octet-stream', dataUrl, uploaded: new Date().toISOString() });
+      }
+      DB.save();
+      U.toast(`${files.length} file${files.length===1?'':'s'} attached`);
+      this.open(renewalId);
+    });
+    input.click();
+  },
+
+  _removeAttachment(renewalId, idx) {
+    const r = DB.renewals().find(x => x.id === renewalId);
+    if (!r || !r.attachments) return;
+    r.attachments.splice(idx, 1);
+    DB.save();
+    this.open(renewalId);
   },
 };
