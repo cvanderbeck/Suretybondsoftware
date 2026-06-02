@@ -281,11 +281,58 @@ Views.email = {
   // Tracks the source email so the create handler can attach it back,
   // and parses any PDF/text attachment via FormParse to pre-fill the form.
   _pendingEmailLink: null,
+  _pendingEmailAttachmentIds: null,
 
   _convertToOpportunity(id) {
     const em = DB.emails().find(e => e.id === id);
     if (!em) return;
-    this._pendingEmailLink = id;
+    const atts = em.attachments || [];
+    // If the email has attachments, ask the user which ones should travel
+    // with the new opportunity before we open the create form.
+    if (atts.length) {
+      this._pickAttachmentsThenCreateOpp(em);
+    } else {
+      this._launchOppFromEmail(em, []);
+    }
+  },
+
+  _pickAttachmentsThenCreateOpp(em) {
+    const atts = em.attachments || [];
+    const rows = atts.map((f, i) => `
+      <label class="flex items-center gap-3 px-3 py-2 border-b border-cream-100 last:border-0 hover:bg-cream-50 cursor-pointer">
+        <input type="checkbox" class="chk" data-pick-att value="${f.id}" checked>
+        <div class="flex-1 min-w-0">
+          <div class="text-sm font-medium truncate">📎 ${U.esc(f.name)}</div>
+          <div class="text-xs text-ink-300">${U.fileSize(f.size)} · ${U.esc(f.type||'')}</div>
+        </div>
+      </label>`).join('');
+    const body = `
+      <p class="text-sm text-ink-400 mb-3">Select the attachments to copy to the new opportunity. Selected files will be saved on the opportunity and used to auto-fill the form.</p>
+      <div class="card max-h-80 overflow-y-auto">${rows}</div>
+      <div class="text-xs text-ink-300 mt-3 italic">The email itself will also be attached to the new opportunity.</div>
+    `;
+    const footer = `<button class="btn-ghost" data-close>Cancel</button>
+      <button class="btn-secondary" onclick="Views.email._launchOppFromEmailWithSelection('${em.id}', [])">Skip Attachments</button>
+      <button class="btn-primary" onclick="Views.email._launchOppFromEmailWithSelection('${em.id}', null)">Continue with Selected</button>`;
+    const m = U.modal({ title: 'Attach to New Opportunity', body, footer });
+    m.el.querySelector('[data-close]').addEventListener('click', m.close);
+  },
+
+  _launchOppFromEmailWithSelection(emailId, override) {
+    const em = DB.emails().find(e => e.id === emailId);
+    if (!em) return;
+    let ids;
+    if (Array.isArray(override)) {
+      ids = override;
+    } else {
+      ids = Array.from(document.querySelectorAll('[data-pick-att]:checked')).map(cb => cb.value);
+    }
+    this._launchOppFromEmail(em, ids);
+  },
+
+  _launchOppFromEmail(em, attachmentIds) {
+    this._pendingEmailLink = em.id;
+    this._pendingEmailAttachmentIds = attachmentIds || [];
     U.closeModals();
     App.go('pipeline');
     setTimeout(() => {
@@ -295,6 +342,7 @@ Views.email = {
       const obs = new MutationObserver(() => {
         if (!root.querySelector('.modal-backdrop')) {
           this._pendingEmailLink = null;
+          this._pendingEmailAttachmentIds = null;
           obs.disconnect();
         }
       });
@@ -304,19 +352,23 @@ Views.email = {
         if (acctSel && em.accountId) acctSel.value = em.accountId;
         const notesEl = document.getElementById('op-notes');
         if (notesEl) notesEl.value = `From email "${em.subject || ''}" (${em.from})\n\n${(em.preview || '').slice(0, 400)}`;
-        this._autoFillFromAttachments(em);
+        this._autoFillFromAttachments(em, this._pendingEmailAttachmentIds);
       }, 50);
     }, 100);
   },
 
-  async _autoFillFromAttachments(em) {
-    const atts = (em.attachments || []).filter(f => {
+  async _autoFillFromAttachments(em, onlyIds) {
+    const all = em.attachments || [];
+    const selected = onlyIds && onlyIds.length
+      ? all.filter(f => onlyIds.includes(f.id))
+      : [];
+    const parseable = selected.filter(f => {
       const n = (f.name||'').toLowerCase();
       return n.endsWith('.pdf') || n.endsWith('.txt') || n.endsWith('.csv') ||
              (f.type && (f.type === 'application/pdf' || f.type.startsWith('text/')));
     });
-    if (!atts.length || !window.FormParse) return;
-    for (const f of atts) {
+    if (!parseable.length || !window.FormParse) return;
+    for (const f of parseable) {
       try {
         const blob = await (await fetch(f.dataUrl)).blob();
         await FormParse.fillFromBlob(blob, f.name, {
@@ -381,17 +433,32 @@ Views.email = {
   },
 
   // Consumed by Views.pipeline.create() after a new opportunity is pushed.
+  // Returns the list of attachments that should be copied onto the new
+  // opportunity record (or [] if no email is being linked).
   _consumePendingEmailLink(newOpportunityId) {
     const id = this._pendingEmailLink;
-    if (!id) return false;
+    const ids = this._pendingEmailAttachmentIds || [];
     this._pendingEmailLink = null;
+    this._pendingEmailAttachmentIds = null;
+    if (!id) return { linked: false, attachments: [] };
     const em = DB.emails().find(e => e.id === id);
-    if (!em) return false;
+    if (!em) return { linked: false, attachments: [] };
     em.opportunityIds = em.opportunityIds || [];
     if (!em.opportunityIds.includes(newOpportunityId)) {
       em.opportunityIds.push(newOpportunityId);
     }
-    return true;
+    const attachments = (em.attachments || [])
+      .filter(f => ids.includes(f.id))
+      .map(f => ({
+        id: U.uid('OA'),
+        name: f.name,
+        size: f.size,
+        type: f.type,
+        dataUrl: f.dataUrl,
+        sourceEmailId: em.id,
+        uploaded: new Date().toISOString(),
+      }));
+    return { linked: true, attachments };
   },
 
   replyTo(id) {

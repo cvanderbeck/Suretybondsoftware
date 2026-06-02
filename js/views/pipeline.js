@@ -227,7 +227,26 @@ Views.pipeline = {
           </td>
         </tr>`;
     };
+    const oppAtts = it.attachments || [];
+    const attRow = (f, i) => `
+      <li class="flex items-center justify-between text-sm px-3 py-2 border-b border-cream-100 last:border-0 hover:bg-cream-50">
+        <a class="flex items-center gap-2 text-brand-700 hover:underline truncate" href="${f.dataUrl || '#'}" download="${U.esc(f.name)}">
+          <span>📎</span><span class="font-medium truncate">${U.esc(f.name)}</span>
+          <span class="text-xs text-ink-300">${U.fileSize(f.size||0)}${f.sourceEmailId?' · from email':''}</span>
+        </a>
+        <button class="btn-ghost text-rose-600 text-xs" onclick="Views.pipeline._removeOppAttachment('${it.id}', ${i})">Remove</button>
+      </li>`;
     return `
+      <div class="card mb-4">
+        <div class="card-header">
+          <div class="card-title">Attachments (${oppAtts.length})</div>
+          <button class="btn-secondary" onclick="Views.pipeline._addOppAttachment('${it.id}')">+ Add File</button>
+        </div>
+        ${oppAtts.length
+          ? `<ul>${oppAtts.map(attRow).join('')}</ul>`
+          : '<div class="p-4 text-sm text-ink-300 italic">No attachments yet. Files selected from an email when this opportunity was created — or files you upload here — appear in this list.</div>'}
+      </div>
+
       <div class="flex items-center justify-between mb-3">
         <div class="text-sm text-ink-400">Emails attached to this opportunity. The same email can be attached to multiple opportunities — useful when one submission package covers several bond requests.</div>
         <button class="btn-primary" onclick="Views.pipeline._openAttachPicker('${it.id}')">+ Attach Emails</button>
@@ -242,6 +261,54 @@ Views.pipeline = {
         </table>
       </div>
     `;
+  },
+
+  _addOppAttachment(opportunityId) {
+    const it = DB.pipeline().find(p => p.id === opportunityId);
+    if (!it) return;
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.multiple = true;
+    input.style.display = 'none';
+    document.body.appendChild(input);
+    input.addEventListener('change', async () => {
+      const files = Array.from(input.files || []);
+      input.remove();
+      if (!files.length) return;
+      it.attachments = it.attachments || [];
+      for (const f of files) {
+        if (f.size > 5 * 1024 * 1024) {
+          U.toast(`${f.name} exceeds 5 MB limit — skipped`, 'warn');
+          continue;
+        }
+        const dataUrl = await new Promise((resolve, reject) => {
+          const r = new FileReader();
+          r.onload = () => resolve(r.result);
+          r.onerror = reject;
+          r.readAsDataURL(f);
+        });
+        it.attachments.push({
+          id: U.uid('OA'),
+          name: f.name,
+          size: f.size,
+          type: f.type || 'application/octet-stream',
+          dataUrl,
+          uploaded: new Date().toISOString(),
+        });
+      }
+      DB.save();
+      U.toast(`${files.length} file${files.length===1?'':'s'} attached`);
+      this._renderDetail();
+    });
+    input.click();
+  },
+
+  _removeOppAttachment(opportunityId, idx) {
+    const it = DB.pipeline().find(p => p.id === opportunityId);
+    if (!it || !it.attachments) return;
+    it.attachments.splice(idx, 1);
+    DB.save();
+    this._renderDetail();
   },
 
   _openAttachPicker(opportunityId) {
@@ -947,7 +1014,7 @@ Views.pipeline = {
 
   create() {
     const newId = U.uid('PL');
-    DB.pipeline().push({
+    const opp = {
       id: newId,
       accountId: document.getElementById('op-acct').value,
       bondType:  document.getElementById('op-type').value,
@@ -958,15 +1025,27 @@ Views.pipeline = {
       notes:     document.getElementById('op-notes').value,
       producer:  'CV',
       probability: 30,
-    });
+      attachments: [],
+    };
+    DB.pipeline().push(opp);
     // If this modal was launched from an email's "+ New Opportunity"
-    // button, link that email to the freshly created opportunity.
-    const linked = (window.Views && Views.email && Views.email._consumePendingEmailLink)
+    // button, link that email and copy any selected attachments onto the
+    // new opportunity record.
+    const result = (window.Views && Views.email && Views.email._consumePendingEmailLink)
       ? Views.email._consumePendingEmailLink(newId)
-      : false;
+      : { linked: false, attachments: [] };
+    if (result.attachments && result.attachments.length) {
+      opp.attachments = result.attachments;
+    }
     DB.save();
     U.closeModals();
-    U.toast(linked ? 'Opportunity created and email attached' : 'Opportunity created');
+    let msg = 'Opportunity created';
+    if (result.linked) {
+      msg = result.attachments.length
+        ? `Opportunity created, email + ${result.attachments.length} attachment${result.attachments.length===1?'':'s'} attached`
+        : 'Opportunity created and email attached';
+    }
+    U.toast(msg);
     this.render();
   },
 
