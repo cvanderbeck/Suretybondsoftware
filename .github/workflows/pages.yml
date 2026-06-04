@@ -1,0 +1,44 @@
+name: Deploy BondVault preview to GitHub Pages
+
+on:
+  push:
+    branches:
+      - main
+      - claude/surety-bond-management-system-EQiip
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Stage site
+        run: |
+          mkdir _site
+          # Copy everything except VCS / docs / workflow files into the site root
+          rsync -a --exclude='.git' \
+                   --exclude='.github' \
+                   --exclude='_site' \
+                   --exclude='node_modules' \
+                   --exclude='README*' \
+                   ./ _site/
+
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+      - id: deployment
+        uses: actions/deploy-pages@v4
