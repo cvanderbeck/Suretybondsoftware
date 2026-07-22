@@ -138,7 +138,7 @@ Views.leads = {
       l.activity.push({
         id: U.uid('LA'),
         date: new Date().toISOString(),
-        author: 'Casey V.',
+        author: 'Courtney V.',
         type: 'stage_change',
         text: `Moved from "${prevStage}" → "${stage}".`,
       });
@@ -397,7 +397,7 @@ Views.leads = {
         l.activity.push({
           id: U.uid('LA'),
           date: new Date().toISOString(),
-          author: 'Casey V.',
+          author: 'Courtney V.',
           type: 'stage_change',
           text: `Moved from "${prevStage}" → "${l.stage}".`,
         });
@@ -432,7 +432,7 @@ Views.leads = {
     l.activity.push({
       id: U.uid('LA'),
       date: new Date().toISOString(),
-      author: 'Casey V.',
+      author: 'Courtney V.',
       type, text,
     });
     l.lastTouch = new Date().toISOString().slice(0,10);
@@ -456,7 +456,7 @@ Views.leads = {
     l.stage = this.TERMINAL_LOST;
     l.probability = 0;
     l.activity = l.activity || [];
-    l.activity.push({ id: U.uid('LA'), date: new Date().toISOString(), author: 'Casey V.', type: 'stage_change', text: 'Marked Lost / No Fit.' });
+    l.activity.push({ id: U.uid('LA'), date: new Date().toISOString(), author: 'Courtney V.', type: 'stage_change', text: 'Marked Lost / No Fit.' });
     DB.save();
     U.closeModals();
     U.toast('Lead marked Lost', 'info');
@@ -596,7 +596,7 @@ Views.leads = {
     l.activity.push({
       id: U.uid('LA'),
       date: new Date().toISOString(),
-      author: 'Casey V.',
+      author: 'Courtney V.',
       type: 'stage_change',
       text: `Converted to account ${newId}.`,
     });
@@ -730,7 +730,7 @@ Views.leads = {
       nextFollowUp: null,
       activity: [{
         id: U.uid('LA'), date: new Date().toISOString(),
-        author: 'Casey V.', type: 'note',
+        author: 'Courtney V.', type: 'note',
         text: 'Lead created.',
       }],
       convertedAccountId: null,

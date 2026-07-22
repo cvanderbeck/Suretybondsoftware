@@ -684,7 +684,7 @@ Views.templates = {
       entity.activity.push({
         id: U.uid('AC'),
         date: new Date().toISOString(),
-        author: 'Casey V.',
+        author: 'Courtney V.',
         type: 'automation',
         subject: `Applied automation: ${a.name}`,
         text: `${a.steps.length} step(s) scheduled below.`,
@@ -744,7 +744,7 @@ Views.templates = {
       entity.activity.push({
         id: U.uid('AC'),
         date: new Date().toISOString(),
-        author: 'Casey V.',
+        author: 'Courtney V.',
         type: 'note',
         text: `Applied checklist: ${t.name} (${(t.items||[]).length} items added to tasks).`,
       });

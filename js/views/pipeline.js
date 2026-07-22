@@ -602,7 +602,7 @@ Views.pipeline = {
         it.activity.push({
           id: U.uid('AC'),
           date: new Date().toISOString(),
-          author: 'Casey V.',
+          author: 'Courtney V.',
           type: 'bid_result',
           subject: `Result: ${meta ? meta.label : newResult}`,
           text: it.bidResultNotes || '(no additional notes)',
@@ -766,7 +766,7 @@ Views.pipeline = {
     it.activity.push({
       id: U.uid('AC'),
       date: new Date().toISOString(),
-      author: 'Casey V.',
+      author: 'Courtney V.',
       type, text,
     });
     DB.save();

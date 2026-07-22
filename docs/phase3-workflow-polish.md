@@ -61,7 +61,7 @@ a checklist; a producer knows what to do next without asking.
   - Aggregate utilization by account
   - Commission earned vs. paid
 - CSV + PDF export on every report.
-- Optional: scheduled email delivery (weekly digest to Casey).
+- Optional: scheduled email delivery (weekly digest to Courtney).
 
 ## Out of scope (deferred)
 

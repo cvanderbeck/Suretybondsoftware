@@ -41,13 +41,22 @@ Views.partners = {
     return `
       <div class="card p-5 cursor-pointer hover:shadow-md transition" onclick="Views.partners.open('${p.id}')">
         <div class="flex items-start justify-between mb-2">
-          <div>
-            <div class="text-base font-semibold text-ink-700">${U.esc(p.name)}</div>
-            <div class="text-xs text-ink-300">AM Best: <b>${U.esc(p.rating||'—')}</b></div>
+          <div class="min-w-0">
+            <div class="text-base font-semibold text-ink-700 truncate">${U.esc(p.name)}</div>
+            ${p.writingCompany && p.writingCompany !== p.name
+              ? `<div class="text-[11px] text-ink-400 italic truncate">Writing: ${U.esc(p.writingCompany)}</div>`
+              : ''}
+            <div class="text-xs text-ink-300 mt-0.5">
+              AM Best: <b>${U.esc(p.rating||'—')}</b>
+              ${p.naic ? ` · NAIC <span class="font-mono">${U.esc(p.naic)}</span>` : ''}
+            </div>
           </div>
-          ${p.active ? '<span class="badge badge-green">Active</span>' : '<span class="badge badge-slate">Inactive</span>'}
+          ${p.active ? '<span class="badge badge-green shrink-0 ml-2">Active</span>' : '<span class="badge badge-slate shrink-0 ml-2">Inactive</span>'}
         </div>
         <div class="text-xs text-ink-400 mb-3 line-clamp-2">${U.esc(p.appetite||'')}</div>
+        ${p.treasuryUnderwritingLimit
+          ? `<div class="text-[11px] text-ink-500 mb-3"><span class="text-ink-300">T-Limit (per bond):</span> <b>${U.usd(p.treasuryUnderwritingLimit)}</b></div>`
+          : ''}
 
         <div class="grid grid-cols-3 gap-2 text-center border-t border-cream-100 pt-3">
           <div><div class="text-[10px] text-ink-300 uppercase tracking-wider">Principals</div><div class="font-semibold">${principals.size}</div></div>
@@ -542,18 +551,36 @@ Views.partners = {
 
   // ------------------- CONTACT TAB -------------------
   _tabContact(p) {
+    const tLimit = p.treasuryUnderwritingLimit
+      ? `<span class="font-semibold text-ink-700">${U.usd(p.treasuryUnderwritingLimit)}</span>`
+      : `<span class="text-ink-300 italic">Not on file — check <a class="text-brand-600 hover:underline" href="${U.esc(p.treasuryProfileUrl||'https://fiscal.treasury.gov/surety-bonds/list-certified-companies.html')}" target="_blank" rel="noopener">Treasury Circular 570 ↗</a></span>`;
     return `
+      <div class="card mb-4">
+        <div class="card-header">
+          <div class="card-title">Treasury Circular 570 — Certified Company Info</div>
+          <a class="btn-ghost text-xs" href="${U.esc(p.treasuryProfileUrl||'https://fiscal.treasury.gov/surety-bonds/list-certified-companies.html')}" target="_blank" rel="noopener">View on fiscal.treasury.gov ↗</a>
+        </div>
+        <div class="p-4 grid grid-cols-2 gap-3 text-sm">
+          <div><div class="field-label">Group / Parent</div>${U.esc(p.name||'—')}</div>
+          <div><div class="field-label">Writing Company</div>${U.esc(p.writingCompany||'—')}</div>
+          <div><div class="field-label">NAIC Number</div><span class="font-mono">${U.esc(p.naic||'—')}</span></div>
+          <div><div class="field-label">State of Incorporation</div>${U.esc(p.stateOfIncorporation||'—')}</div>
+          <div class="col-span-2"><div class="field-label">Business Address</div>${U.esc(p.businessAddress||'—')}</div>
+          <div class="col-span-2"><div class="field-label">Treasury Underwriting Limit — per bond, single</div>${tLimit}
+            <div class="text-[11px] text-ink-300 italic mt-1">Bonds exceeding this limit require co-insurance, reinsurance, or another Treasury-approved method. Amounts change with Treasury supplements — verify against the current Circular 570 before quoting federal work.</div></div>
+          <div><div class="field-label">AM Best Rating</div>${U.esc(p.rating||'—')}</div>
+          <div><div class="field-label">Default Commission %</div>${p.commissionRate!=null?p.commissionRate+'%':'—'}</div>
+        </div>
+      </div>
+
       <div class="card">
-        <div class="p-4 space-y-3 text-sm">
-          <div class="grid grid-cols-2 gap-3">
-            <div><div class="field-label">Contact Name</div>${U.esc(p.contactName||'—')}</div>
-            <div><div class="field-label">Rating</div>${U.esc(p.rating||'—')}</div>
-            <div><div class="field-label">Email</div><a class="text-brand-600 hover:underline" href="mailto:${U.esc(p.email)}">${U.esc(p.email||'—')}</a></div>
-            <div><div class="field-label">Phone</div>${U.esc(p.phone||'—')}</div>
-            <div class="col-span-2"><div class="field-label">Portal URL</div>
-              ${p.portalUrl ? `<a class="text-brand-600 hover:underline" href="${U.esc(p.portalUrl)}" target="_blank" rel="noopener">${U.esc(p.portalUrl)} ↗</a>` : '—'}</div>
-            <div class="col-span-2"><div class="field-label">Appetite</div>${U.esc(p.appetite||'—')}</div>
-          </div>
+        <div class="card-header"><div class="card-title">Producer Contact</div></div>
+        <div class="p-4 grid grid-cols-2 gap-3 text-sm">
+          <div><div class="field-label">Contact Name</div>${U.esc(p.contactName||'—')}</div>
+          <div><div class="field-label">Phone</div>${U.esc(p.phone||'—')}</div>
+          <div><div class="field-label">Email</div><a class="text-brand-600 hover:underline" href="mailto:${U.esc(p.email)}">${U.esc(p.email||'—')}</a></div>
+          <div><div class="field-label">Portal</div>${p.portalUrl ? `<a class="text-brand-600 hover:underline" href="${U.esc(p.portalUrl)}" target="_blank" rel="noopener">${U.esc(p.portalUrl)} ↗</a>` : '—'}</div>
+          <div class="col-span-2"><div class="field-label">Appetite</div>${U.esc(p.appetite||'—')}</div>
         </div>
       </div>
     `;
@@ -563,20 +590,39 @@ Views.partners = {
   openForm(id) {
     const p = id ? DB.findPartner(id) : { id: U.uid('P'), active: true, commissionRate: 25 };
     const body = `
-      <div class="grid grid-cols-2 gap-4">
-        <div class="col-span-2"><div class="field-label">Partner Name</div><input id="pf-name" class="field-input" value="${U.esc(p.name||'')}"></div>
+      <div class="text-xs font-semibold text-ink-400 uppercase tracking-wider mb-2">Group Identity</div>
+      <div class="grid grid-cols-2 gap-4 mb-4">
+        <div class="col-span-2"><div class="field-label">Partner Name (Group / Parent)</div><input id="pf-name" class="field-input" value="${U.esc(p.name||'')}"></div>
+        <div class="col-span-2"><div class="field-label">Writing Company (as on Treasury Circular 570)</div><input id="pf-writing" class="field-input" value="${U.esc(p.writingCompany||'')}"></div>
+      </div>
+
+      <div class="text-xs font-semibold text-ink-400 uppercase tracking-wider mb-2">Treasury Circular 570</div>
+      <div class="grid grid-cols-2 gap-4 mb-4">
+        <div><div class="field-label">NAIC Number</div><input id="pf-naic" class="field-input font-mono" value="${U.esc(p.naic||'')}" placeholder="e.g. 24074"></div>
+        <div><div class="field-label">State of Incorporation</div><input id="pf-state" class="field-input" value="${U.esc(p.stateOfIncorporation||'')}"></div>
+        <div class="col-span-2"><div class="field-label">Business Address</div><input id="pf-address" class="field-input" value="${U.esc(p.businessAddress||'')}"></div>
+        <div><div class="field-label">Treasury Underwriting Limit ($)</div><input id="pf-tlimit" type="number" class="field-input" value="${p.treasuryUnderwritingLimit||''}" placeholder="e.g. 29377000"></div>
         <div><div class="field-label">AM Best Rating</div><input id="pf-rating" class="field-input" value="${U.esc(p.rating||'A')}"></div>
+        <div class="col-span-2"><div class="field-label">Treasury Profile URL</div><input id="pf-tprofile" class="field-input" value="${U.esc(p.treasuryProfileUrl||'https://fiscal.treasury.gov/surety-bonds/list-certified-companies.html')}"></div>
+      </div>
+
+      <div class="text-xs font-semibold text-ink-400 uppercase tracking-wider mb-2">Producer Terms</div>
+      <div class="grid grid-cols-2 gap-4 mb-4">
         <div><div class="field-label">Default Commission %</div><input id="pf-comm" type="number" step="0.5" class="field-input" value="${p.commissionRate}"></div>
+        <div class="flex items-center gap-2 mt-6"><input id="pf-active" type="checkbox" class="chk" ${p.active?'checked':''}><label for="pf-active" class="text-sm">Active appointment</label></div>
         <div class="col-span-2"><div class="field-label">Appetite</div><input id="pf-app" class="field-input" value="${U.esc(p.appetite||'')}"></div>
+      </div>
+
+      <div class="text-xs font-semibold text-ink-400 uppercase tracking-wider mb-2">Contact</div>
+      <div class="grid grid-cols-2 gap-4">
         <div><div class="field-label">Contact Name</div><input id="pf-contact" class="field-input" value="${U.esc(p.contactName||'')}"></div>
         <div><div class="field-label">Contact Email</div><input id="pf-email" class="field-input" value="${U.esc(p.email||'')}"></div>
         <div><div class="field-label">Contact Phone</div><input id="pf-phone" class="field-input" value="${U.esc(p.phone||'')}"></div>
         <div><div class="field-label">Portal URL</div><input id="pf-portal" class="field-input" value="${U.esc(p.portalUrl||'')}"></div>
-        <div class="col-span-2 flex items-center gap-2"><input id="pf-active" type="checkbox" class="chk" ${p.active?'checked':''}><label for="pf-active" class="text-sm">Active</label></div>
       </div>
     `;
     const footer = `<button class="btn-ghost" data-close>Cancel</button><button class="btn-primary" onclick="Views.partners.save('${p.id}')">Save</button>`;
-    const m = U.modal({ title: id ? 'Edit Partner' : 'New Partner', body, footer });
+    const m = U.modal({ title: id ? 'Edit Partner' : 'New Partner', body, footer, size: 'lg' });
     m.el.querySelector('[data-close]').addEventListener('click', m.close);
   },
 
@@ -585,6 +631,12 @@ Views.partners = {
     const isNew = !p;
     if (isNew) { p = { id, forms: [], rateOptions: [], commissionOptions: [] }; DB.partners().push(p); }
     p.name   = document.getElementById('pf-name').value;
+    p.writingCompany = document.getElementById('pf-writing').value;
+    p.naic   = document.getElementById('pf-naic').value;
+    p.stateOfIncorporation = document.getElementById('pf-state').value;
+    p.businessAddress = document.getElementById('pf-address').value;
+    p.treasuryUnderwritingLimit = +document.getElementById('pf-tlimit').value || null;
+    p.treasuryProfileUrl = document.getElementById('pf-tprofile').value;
     p.rating = document.getElementById('pf-rating').value;
     p.commissionRate = +document.getElementById('pf-comm').value;
     p.appetite     = document.getElementById('pf-app').value;

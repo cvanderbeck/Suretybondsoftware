@@ -945,7 +945,7 @@ Views.marketing = {
       <div class="grid grid-cols-2 gap-3">
         <div class="col-span-2"><div class="field-label">Name (internal)</div><input id="mb-name" class="field-input"></div>
         <div class="col-span-2"><div class="field-label">Subject</div><input id="mb-subject" class="field-input"></div>
-        <div><div class="field-label">From Name</div><input id="mb-from-name" class="field-input" value="Casey Vanderbeck"></div>
+        <div><div class="field-label">From Name</div><input id="mb-from-name" class="field-input" value="Courtney Vanderbeck"></div>
         <div><div class="field-label">From Email</div><input id="mb-from-email" class="field-input" value="casey@vanderbeck-surety.example"></div>
         <div><div class="field-label">Send to List</div>
           <select id="mb-list" class="field-select">

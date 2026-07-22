@@ -64,7 +64,7 @@ Views.renewals = {
           status: 'upcoming',
           decision: null, newAmount: null,
           contactedDate: null, nextFollowUp: null,
-          assignedTo: 'Casey V.',
+          assignedTo: 'Courtney V.',
           notes: [],
         };
         rens.push(r);
@@ -390,7 +390,7 @@ Views.renewals = {
     if (!txt) { U.toast('Enter a note first', 'warn'); return; }
     const r = DB.renewals().find(x => x.id === id);
     r.notes = r.notes || [];
-    r.notes.push({ date: new Date().toISOString().slice(0,10), author: 'Casey V.', text: txt });
+    r.notes.push({ date: new Date().toISOString().slice(0,10), author: 'Courtney V.', text: txt });
     r.contactedDate = new Date().toISOString().slice(0,10);
     if (r.status === 'upcoming') r.status = 'outreach';
     DB.save();
@@ -417,7 +417,7 @@ Views.renewals = {
     if (!text) { U.toast('Note text required', 'warn'); return; }
     const r = DB.renewals().find(x => x.id === id);
     r.notes = r.notes || [];
-    r.notes.push({ date: new Date().toISOString().slice(0,10), author: 'Casey V.', text });
+    r.notes.push({ date: new Date().toISOString().slice(0,10), author: 'Courtney V.', text });
     r.contactedDate = new Date().toISOString().slice(0,10);
     r.nextFollowUp = next;
     if (r.status === 'upcoming') r.status = 'outreach';

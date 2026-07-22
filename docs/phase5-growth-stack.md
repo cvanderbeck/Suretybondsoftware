@@ -91,7 +91,7 @@ show up on our dashboards. Not to rebuild any of the tools themselves.
   appear on the SEO tab within 24 hours.
 - AEO tool returns fresh citation data for the top 20 tracked queries daily.
 - A keyword dropping > 3 positions overnight generates an in-app notification
-  and an email to Casey.
+  and an email to Courtney.
 
 ## Tech stack additions
 

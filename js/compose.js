@@ -27,7 +27,7 @@ window.Compose = (() => {
   function buildContext(opts) {
     const settings = DB.settings();
     const ctx = {
-      producer_name: 'Casey Vanderbeck',
+      producer_name: 'Courtney Vanderbeck',
       agency_name:   settings.agency.name,
       agency_phone:  settings.agency.phone,
       agency_email:  settings.agency.email,
@@ -338,7 +338,7 @@ window.Compose = (() => {
       _state.renewal.notes = _state.renewal.notes || [];
       _state.renewal.notes.push({
         date: new Date().toISOString().slice(0,10),
-        author: 'Casey V.',
+        author: 'Courtney V.',
         text: `Sent email "${subj}" to ${_state.to}.`,
       });
       _state.renewal.contactedDate = new Date().toISOString().slice(0,10);
@@ -351,7 +351,7 @@ window.Compose = (() => {
       _state.pipeline.activity.push({
         id: U.uid('AC'),
         date: new Date().toISOString(),
-        author: 'Casey V.',
+        author: 'Courtney V.',
         type:   'email',
         subject: subj,
         text:    `Sent to ${_state.to}: ${body.slice(0, 240)}${body.length>240?'…':''}`,
@@ -365,7 +365,7 @@ window.Compose = (() => {
       _state.lead.activity.push({
         id: U.uid('LA'),
         date: new Date().toISOString(),
-        author: 'Casey V.',
+        author: 'Courtney V.',
         type:   'email',
         subject: subj,
         text:    `Sent to ${_state.to}: ${body.slice(0, 240)}${body.length>240?'…':''}`,

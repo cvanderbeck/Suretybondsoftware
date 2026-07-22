@@ -58,7 +58,7 @@ If they don't ask most of these, they haven't read the prototype closely.
 
 ## Contact
 
-Casey Vanderbeck · courtneykvanderbeck@gmail.com
+Courtney Vanderbeck · courtneykvanderbeck@gmail.com
 
 Prototype: https://cvanderbeck.github.io/Suretybondsoftware/
 Repo: https://github.com/cvanderbeck/Suretybondsoftware

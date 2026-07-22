@@ -25,7 +25,7 @@ Views.dashboard = {
       <div class="mb-6 flex items-center justify-between">
         <div>
           <h1 class="section-title">Dashboard</h1>
-          <p class="section-sub">Welcome back, Casey — here's where your agency stands.</p>
+          <p class="section-sub">Welcome back, Courtney — here's where your agency stands.</p>
         </div>
         <div class="flex items-center gap-2">
           <button class="btn-secondary" onclick="Views.dashboard.exportReport()">Export Bonds Report (PDF)</button>

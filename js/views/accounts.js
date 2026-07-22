@@ -702,7 +702,7 @@ Views.accounts = {
         <select id="uw-bond" class="field-select">
           ${bonds.map(b => `<option value="${b.id}">${b.number} — ${U.esc(b.type)} (${U.usd(b.amount)})</option>`).join('')}
         </select></div>
-      <div class="mt-3"><div class="field-label">Assigned to</div><input id="uw-asg" class="field-input" value="Casey V."></div>
+      <div class="mt-3"><div class="field-label">Assigned to</div><input id="uw-asg" class="field-input" value="Courtney V."></div>
     `;
     const footer = `<button class="btn-ghost" data-close>Cancel</button><button class="btn-primary" onclick="Views.accounts.createUW('${accountId}')">Start</button>`;
     const m = U.modal({ title: 'New Underwriting File', body, footer });

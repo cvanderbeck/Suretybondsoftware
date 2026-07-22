@@ -92,7 +92,7 @@ Contractor's choice, provided:
 
 - Real account/bond/pipeline seed data export from current spreadsheets.
 - Branding assets (logo files, brand colors already in prototype).
-- One named product owner (Casey) — decisions in < 24 hrs during active phases.
+- One named product owner (Courtney) — decisions in < 24 hrs during active phases.
 - Decision on Microsoft 365 vs. Google Workspace (drives Phase 2 quote).
 
 ## Payment schedule
