@@ -1,6 +1,6 @@
 // ---------- Sample / seed data, persistence layer ----------
 window.DB = (() => {
-  const KEY = 'bondvault.db.v21';
+  const KEY = 'bondvault.db.v22';
 
   const sampleData = () => ({
     accounts: [
@@ -244,12 +244,85 @@ window.DB = (() => {
       ];
     })(),
     partners: [
-      { id: 'P-01', name: 'Hartford Surety',          rating: 'A+ XV',  appetite: 'Mid-large GC, Performance/Payment up to $25M single', contactName: 'Tom Reyes',       email: 'tom.reyes@hartford-surety.example',     phone: '(800) 555-0101', portalUrl: 'https://underwriting.hartford-surety.example', commissionRate: 25, active: true },
-      { id: 'P-02', name: 'Liberty Mutual Surety',    rating: 'A   XV', appetite: 'Mid GC, mechanical, marine', contactName: 'Priya Subramanian',                                  email: 'psubramanian@lms.example',              phone: '(800) 555-0102', portalUrl: 'https://lms.example/portal',                  commissionRate: 25, active: true },
-      { id: 'P-03', name: 'Old Republic Surety',      rating: 'A   XI', appetite: 'License & permit, small contract, freight broker',         contactName: 'James OConnor',                                      email: 'joconnor@oldrepublic.example',          phone: '(800) 555-0103', portalUrl: 'https://oldrepublic.example/agent',           commissionRate: 30, active: true },
-      { id: 'P-04', name: 'Merchants Bonding',        rating: 'A   IX', appetite: 'Small contractor + commercial license',                    contactName: 'Erica Chen',                                          email: 'erica@merchantsbonding.example',        phone: '(800) 555-0104', portalUrl: 'https://merchantsbonding.example/producer',    commissionRate: 30, active: true },
-      { id: 'P-05', name: 'NGM Insurance — Surety',   rating: 'A   IX', appetite: 'Small commercial / notary / probate',                       contactName: 'Linda Park',                                          email: 'lpark@ngm.example',                     phone: '(800) 555-0105', portalUrl: 'https://ngm.example/agentportal',             commissionRate: 35, active: true },
-      { id: 'P-06', name: 'Great American Surety',    rating: 'A+ XIV', appetite: 'GC large contract, subdivision, court',                     contactName: 'Robert Tan',                                          email: 'rtan@greatamerican.example',            phone: '(800) 555-0106', portalUrl: 'https://greatamerican.example/portal',         commissionRate: 25, active: true },
+      { id: 'P-01', name: 'Hartford Surety',          rating: 'A+ XV',  appetite: 'Mid-large GC, Performance/Payment up to $25M single', contactName: 'Tom Reyes',       email: 'tom.reyes@hartford-surety.example',     phone: '(800) 555-0101', portalUrl: 'https://underwriting.hartford-surety.example', commissionRate: 25, active: true,
+        rateOptions: [
+          { id: 'R-P01-1', name: '$15/thousand slide',       type: 'slide',        rate: 0, minPremium: 500, notes: 'Contract bond slide — best rates for well-qualified GCs.',
+            slide: [{ upTo: 500000, rate: 15 }, { upTo: 1000000, rate: 12.50 }, { upTo: 2500000, rate: 10 }, { upTo: null, rate: 7.50 }] },
+          { id: 'R-P01-2', name: '$20/thousand slide',       type: 'slide',        rate: 0, minPremium: 500, notes: 'Standard contract slide.',
+            slide: [{ upTo: 500000, rate: 20 }, { upTo: 1000000, rate: 17.50 }, { upTo: 2500000, rate: 15 }, { upTo: null, rate: 12.50 }] },
+          { id: 'R-P01-3', name: '$25/thousand flat',        type: 'per-thousand', rate: 25, minPremium: 500, notes: 'New / substandard accounts.' },
+          { id: 'R-P01-4', name: 'Bid Bond — no charge',     type: 'flat',         rate: 0,  minPremium: 0,   notes: 'Bid bonds issued at no cost, priced into final.' },
+        ],
+        commissionOptions: [
+          { id: 'C-P01-1', name: '25% standard',        rate: 25 },
+          { id: 'C-P01-2', name: '30% preferred producer', rate: 30 },
+          { id: 'C-P01-3', name: '35% high-volume producer', rate: 35 },
+        ],
+      },
+      { id: 'P-02', name: 'Liberty Mutual Surety',    rating: 'A   XV', appetite: 'Mid GC, mechanical, marine', contactName: 'Priya Subramanian',                                  email: 'psubramanian@lms.example',              phone: '(800) 555-0102', portalUrl: 'https://lms.example/portal',                  commissionRate: 25, active: true,
+        rateOptions: [
+          { id: 'R-P02-1', name: '$15/thousand slide',       type: 'slide',        rate: 0, minPremium: 500,
+            slide: [{ upTo: 500000, rate: 15 }, { upTo: 1000000, rate: 13 }, { upTo: 2500000, rate: 11 }, { upTo: null, rate: 8 }], notes: 'Premier slide for A-rated principals.' },
+          { id: 'R-P02-2', name: '$20/thousand flat',        type: 'per-thousand', rate: 20, minPremium: 500 },
+          { id: 'R-P02-3', name: '$25/thousand flat',        type: 'per-thousand', rate: 25, minPremium: 500 },
+          { id: 'R-P02-4', name: 'Bid Bond — no charge',     type: 'flat',         rate: 0,  minPremium: 0 },
+        ],
+        commissionOptions: [
+          { id: 'C-P02-1', name: '25% standard',        rate: 25 },
+          { id: 'C-P02-2', name: '30% preferred',       rate: 30 },
+        ],
+      },
+      { id: 'P-03', name: 'Old Republic Surety',      rating: 'A   XI', appetite: 'License & permit, small contract, freight broker',         contactName: 'James OConnor',                                      email: 'joconnor@oldrepublic.example',          phone: '(800) 555-0103', portalUrl: 'https://oldrepublic.example/agent',           commissionRate: 30, active: true,
+        rateOptions: [
+          { id: 'R-P03-1', name: '$25/thousand — License Bond', type: 'per-thousand', rate: 25, minPremium: 100, notes: 'Standard state license bonds.' },
+          { id: 'R-P03-2', name: '$30/thousand — License Bond', type: 'per-thousand', rate: 30, minPremium: 100, notes: 'Substandard credit / new license.' },
+          { id: 'R-P03-3', name: 'Contractor License — flat $200', type: 'flat', rate: 200, minPremium: 200, notes: 'CSLB / OR CCB standard.' },
+          { id: 'R-P03-4', name: 'Freight Broker (BMC-84)',     type: 'per-thousand', rate: 25, minPremium: 1875, notes: '$75K FMCSA — annual premium.' },
+        ],
+        commissionOptions: [
+          { id: 'C-P03-1', name: '30% standard',            rate: 30 },
+          { id: 'C-P03-2', name: '35% high-volume',         rate: 35 },
+        ],
+      },
+      { id: 'P-04', name: 'Merchants Bonding',        rating: 'A   IX', appetite: 'Small contractor + commercial license',                    contactName: 'Erica Chen',                                          email: 'erica@merchantsbonding.example',        phone: '(800) 555-0104', portalUrl: 'https://merchantsbonding.example/producer',    commissionRate: 30, active: true,
+        rateOptions: [
+          { id: 'R-P04-1', name: '$20/thousand — Contract',  type: 'per-thousand', rate: 20, minPremium: 250, notes: 'Small P&P.' },
+          { id: 'R-P04-2', name: '$25/thousand slide',       type: 'slide',        rate: 0,  minPremium: 250,
+            slide: [{ upTo: 250000, rate: 25 }, { upTo: 500000, rate: 22 }, { upTo: null, rate: 18 }] },
+          { id: 'R-P04-3', name: '$30/thousand — Small License', type: 'per-thousand', rate: 30, minPremium: 100 },
+        ],
+        commissionOptions: [
+          { id: 'C-P04-1', name: '30% standard',        rate: 30 },
+          { id: 'C-P04-2', name: '35% preferred',       rate: 35 },
+        ],
+      },
+      { id: 'P-05', name: 'NGM Insurance — Surety',   rating: 'A   IX', appetite: 'Small commercial / notary / probate',                       contactName: 'Linda Park',                                          email: 'lpark@ngm.example',                     phone: '(800) 555-0105', portalUrl: 'https://ngm.example/agentportal',             commissionRate: 35, active: true,
+        rateOptions: [
+          { id: 'R-P05-1', name: 'Notary Bond — flat $100',  type: 'flat',         rate: 100, minPremium: 100 },
+          { id: 'R-P05-2', name: '$5/thousand — Probate',    type: 'per-thousand', rate: 5,   minPremium: 250, notes: 'Fiduciary bonds up to $1M.' },
+          { id: 'R-P05-3', name: '$7.50/thousand — Probate substandard', type: 'per-thousand', rate: 7.50, minPremium: 250 },
+          { id: 'R-P05-4', name: '$30/thousand — Small Commercial', type: 'per-thousand', rate: 30, minPremium: 100 },
+        ],
+        commissionOptions: [
+          { id: 'C-P05-1', name: '35% standard',        rate: 35 },
+        ],
+      },
+      { id: 'P-06', name: 'Great American Surety',    rating: 'A+ XIV', appetite: 'GC large contract, subdivision, court',                     contactName: 'Robert Tan',                                          email: 'rtan@greatamerican.example',            phone: '(800) 555-0106', portalUrl: 'https://greatamerican.example/portal',         commissionRate: 25, active: true,
+        rateOptions: [
+          { id: 'R-P06-1', name: '$10/thousand slide — large',  type: 'slide',   rate: 0, minPremium: 1000, notes: 'For qualified large GCs, single ≥ $5M.',
+            slide: [{ upTo: 1000000, rate: 10 }, { upTo: 2500000, rate: 8 }, { upTo: 5000000, rate: 7 }, { upTo: null, rate: 6 }] },
+          { id: 'R-P06-2', name: '$15/thousand slide',          type: 'slide',   rate: 0, minPremium: 500,
+            slide: [{ upTo: 500000, rate: 15 }, { upTo: 1000000, rate: 12.50 }, { upTo: 2500000, rate: 10 }, { upTo: null, rate: 7.50 }] },
+          { id: 'R-P06-3', name: '$20/thousand — Standard',     type: 'per-thousand', rate: 20, minPremium: 500 },
+          { id: 'R-P06-4', name: 'Subdivision — $15/thousand',  type: 'per-thousand', rate: 15, minPremium: 500 },
+          { id: 'R-P06-5', name: 'Court Bond — $10/thousand',   type: 'per-thousand', rate: 10, minPremium: 100 },
+        ],
+        commissionOptions: [
+          { id: 'C-P06-1', name: '25% standard',        rate: 25 },
+          { id: 'C-P06-2', name: '30% preferred',       rate: 30 },
+          { id: 'C-P06-3', name: '35% high-volume',     rate: 35 },
+        ],
+      },
     ],
     pipelineStages: [
       'Request Received',
