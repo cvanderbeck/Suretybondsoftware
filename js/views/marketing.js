@@ -49,6 +49,9 @@ Views.marketing = {
         ${this._tabBtn('emails',       'Email Blasts', DB.emailBlasts().length)}
         ${this._tabBtn('pages',        'Landing Pages', DB.landingPages().length)}
         ${this._tabBtn('sequences',    'Sequences',   DB.marketingSequences().length)}
+        ${this._tabBtn('googleads',    'Google Ads')}
+        ${this._tabBtn('seo',          'SEO')}
+        ${this._tabBtn('aeo',          'AEO')}
         ${this._tabBtn('attribution',  'Attribution')}
       </div>
 
@@ -79,6 +82,9 @@ Views.marketing = {
       case 'emails':      return this._tabEmailBlasts();
       case 'pages':       return this._tabLandingPages();
       case 'sequences':   return this._tabSequences();
+      case 'googleads':   return this._tabGoogleAds();
+      case 'seo':         return this._tabSEO();
+      case 'aeo':         return this._tabAEO();
       case 'attribution': return this._tabAttribution();
       default:            return this._tabDashboard();
     }
@@ -1332,5 +1338,764 @@ Views.marketing = {
         </div>
       </div>
     `;
+  },
+
+  // -------------------- GOOGLE ADS --------------------
+  _tabGoogleAds() {
+    const int = (DB.marketing().integrations || {}).googleAds || { connected: false };
+    if (!int.connected) return this._googleAdsDisconnected();
+    return this._googleAdsConnected(int);
+  },
+
+  _googleAdsDisconnected() {
+    return `
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <div class="card">
+          <div class="p-8 text-center">
+            <div class="text-6xl mb-3">🎯</div>
+            <div class="text-xl font-display font-semibold text-ink-700 mb-2">Connect Google Ads</div>
+            <p class="text-sm text-ink-400 mb-6 max-w-md mx-auto">
+              Sync campaign performance, keyword-level bids, ad group data, and conversion
+              tracking. See spend, ROAS, and cost-per-lead alongside the rest of your marketing pipeline.
+            </p>
+            <button class="btn-primary" onclick="Views.marketing._connectGoogleAds()">
+              <span class="text-lg">🔗</span> Connect Google Ads Account
+            </button>
+            <div class="text-xs text-ink-300 mt-4">
+              You'll be redirected to Google to authorize BondVault to read your ad account.<br>
+              We never store your password — access uses OAuth 2.0 and can be revoked anytime.
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header"><div class="card-title">What you'll get</div></div>
+          <div class="p-5 space-y-3 text-sm">
+            <div class="flex gap-3"><div>📊</div><div>
+              <div class="font-medium text-ink-700">Live campaign KPIs</div>
+              <div class="text-xs text-ink-400">Impressions, clicks, conversions, CPC, CPA, ROAS — updated every 6 hours.</div></div></div>
+            <div class="flex gap-3"><div>🔍</div><div>
+              <div class="font-medium text-ink-700">Keyword-level performance</div>
+              <div class="text-xs text-ink-400">Track every keyword's Quality Score, click-through, and conversion rate.</div></div></div>
+            <div class="flex gap-3"><div>🎯</div><div>
+              <div class="font-medium text-ink-700">Cross-channel attribution</div>
+              <div class="text-xs text-ink-400">See Google Ads spend alongside email, referral, and event dollars.</div></div></div>
+            <div class="flex gap-3"><div>🤖</div><div>
+              <div class="font-medium text-ink-700">AI-generated recommendations</div>
+              <div class="text-xs text-ink-400">Keywords to add, keywords to pause, budget shifts, ad copy tests.</div></div></div>
+            <div class="flex gap-3"><div>📈</div><div>
+              <div class="font-medium text-ink-700">Conversion → Account attribution</div>
+              <div class="text-xs text-ink-400">Match Ads conversions to Bonds won — see which keywords drive real revenue.</div></div></div>
+          </div>
+        </div>
+
+        <div class="card lg:col-span-2">
+          <div class="card-header"><div class="card-title">Other integrations available</div></div>
+          <div class="p-5 grid grid-cols-1 md:grid-cols-3 gap-3">
+            ${this._integrationCard('Google Search Console', 'gsc', 'Import organic queries, positions, CTR — powers the SEO tab.', '🔎')}
+            ${this._integrationCard('Google Analytics 4',    'ga4', 'Pull session, source/medium, and conversion path data.', '📊')}
+            ${this._integrationCard('SEMrush',               'semrush', 'Backlink counts, DR, competitor keyword tracking.', '📈')}
+          </div>
+        </div>
+      </div>
+    `;
+  },
+
+  _integrationCard(name, key, blurb, emoji) {
+    const int = (DB.marketing().integrations || {})[key] || { connected: false };
+    return `
+      <div class="border border-cream-200 rounded-lg p-4 bg-cream-50/50">
+        <div class="flex items-start justify-between mb-2">
+          <div class="flex items-center gap-2">
+            <div class="text-2xl">${emoji}</div>
+            <div class="font-medium text-ink-700 text-sm">${U.esc(name)}</div>
+          </div>
+          ${int.connected
+            ? '<span class="badge badge-green">Connected</span>'
+            : '<span class="badge badge-slate">Not connected</span>'}
+        </div>
+        <div class="text-xs text-ink-400 mb-3">${U.esc(blurb)}</div>
+        <button class="${int.connected?'btn-ghost text-rose-600':'btn-secondary'} w-full text-xs"
+          onclick="Views.marketing._toggleIntegration('${key}', '${U.esc(name)}')">
+          ${int.connected ? 'Disconnect' : 'Connect'}
+        </button>
+      </div>`;
+  },
+
+  _toggleIntegration(key, name) {
+    const ints = DB.marketing().integrations = DB.marketing().integrations || {};
+    const cur = ints[key] = ints[key] || { connected: false };
+    if (cur.connected) {
+      cur.connected = false;
+      cur.connectedDate = null;
+      U.toast(`${name} disconnected`, 'info');
+    } else {
+      cur.connected = true;
+      cur.connectedDate = new Date().toISOString().slice(0,10);
+      U.toast(`${name} connected`);
+    }
+    DB.save();
+    this.render();
+  },
+
+  _connectGoogleAds() {
+    const body = `
+      <div class="text-center py-4">
+        <div class="text-5xl mb-3">🔐</div>
+        <div class="text-lg font-display font-semibold mb-2">Authorize Google Ads</div>
+        <p class="text-sm text-ink-400 mb-4">
+          In production, this opens Google's OAuth 2.0 consent screen where you sign in and
+          approve read/write access. For this preview, we'll simulate a successful connection.
+        </p>
+        <div class="card p-4 max-w-md mx-auto text-left mb-4">
+          <div class="field-label">Google Ads Customer ID</div>
+          <input id="ga-cid" class="field-input font-mono" placeholder="123-456-7890" value="248-591-4032">
+          <div class="field-label mt-3">Account Name</div>
+          <input id="ga-name" class="field-input" placeholder="Vanderbeck Surety" value="Vanderbeck Surety — Ads">
+          <div class="mt-3 flex items-center gap-2">
+            <input id="ga-sync" type="checkbox" class="chk" checked>
+            <label for="ga-sync" class="text-sm text-ink-500">Auto-sync every 6 hours</label>
+          </div>
+        </div>
+        <div class="text-xs text-ink-300">Scopes: <span class="font-mono">adwords.readonly, adwords.reporting</span></div>
+      </div>
+    `;
+    const footer = `<button class="btn-ghost" data-close>Cancel</button>
+      <button class="btn-primary" onclick="Views.marketing._completeGoogleAds()">Authorize &amp; Connect</button>`;
+    const m = U.modal({ title: 'Connect Google Ads', body, footer });
+    m.el.querySelector('[data-close]').addEventListener('click', m.close);
+  },
+
+  _completeGoogleAds() {
+    const int = DB.marketing().integrations = DB.marketing().integrations || {};
+    int.googleAds = {
+      connected: true,
+      customerId: document.getElementById('ga-cid').value,
+      accountName: document.getElementById('ga-name').value,
+      autoSync: document.getElementById('ga-sync').checked,
+      connectedDate: new Date().toISOString().slice(0,10),
+      lastSync: new Date().toISOString(),
+    };
+    DB.save();
+    U.closeModals();
+    U.toast('Google Ads connected — pulling last 30 days');
+    this.render();
+  },
+
+  _disconnectGoogleAds() {
+    if (!confirm('Disconnect Google Ads? Historical performance data will remain but sync will stop.')) return;
+    const int = DB.marketing().integrations = DB.marketing().integrations || {};
+    int.googleAds = { connected: false };
+    DB.save();
+    U.toast('Google Ads disconnected', 'info');
+    this.render();
+  },
+
+  _googleAdsConnected(int) {
+    const ga = DB.marketing().googleAds || {};
+    const p = ga.performance || {};
+    const camps = ga.campaigns || [];
+    const kws = ga.keywords || [];
+    const recs = ga.recommendations || [];
+
+    return `
+      <div class="flex items-center justify-between mb-4 p-3 bg-emerald-50 border border-emerald-200 rounded-lg">
+        <div>
+          <div class="text-sm font-medium text-emerald-800">🎯 Google Ads Connected</div>
+          <div class="text-xs text-emerald-700">
+            ${U.esc(int.accountName||'')} · Customer ID ${U.esc(int.customerId||'')} ·
+            Auto-sync ${int.autoSync?'ON':'OFF'} · Last sync ${U.datetime(int.lastSync)}
+          </div>
+        </div>
+        <div class="flex items-center gap-2">
+          <button class="btn-ghost" onclick="Views.marketing._syncGoogleAds()">↻ Sync Now</button>
+          <button class="btn-ghost text-rose-600" onclick="Views.marketing._disconnectGoogleAds()">Disconnect</button>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-3 mb-5">
+        <div class="stat-card !p-3"><div class="stat-label">Impressions</div><div class="stat-value text-lg">${(p.impressions||0).toLocaleString()}</div></div>
+        <div class="stat-card !p-3"><div class="stat-label">Clicks</div><div class="stat-value text-lg">${(p.clicks||0).toLocaleString()}</div></div>
+        <div class="stat-card !p-3"><div class="stat-label">CTR</div><div class="stat-value text-lg">${p.ctr||0}%</div></div>
+        <div class="stat-card !p-3"><div class="stat-label">Avg CPC</div><div class="stat-value text-lg">${U.usd(p.cpc||0)}</div></div>
+        <div class="stat-card !p-3"><div class="stat-label">Conversions</div><div class="stat-value text-lg">${p.conversions||0}</div></div>
+        <div class="stat-card !p-3"><div class="stat-label">CPA</div><div class="stat-value text-lg">${U.usd(p.cpa||0)}</div></div>
+        <div class="stat-card !p-3"><div class="stat-label">Cost</div><div class="stat-value text-lg">${U.usd(p.cost||0)}</div></div>
+        <div class="stat-card !p-3"><div class="stat-label">ROAS</div><div class="stat-value text-lg text-emerald-700">${p.roas||0}x</div></div>
+      </div>
+
+      ${recs.length ? `
+        <div class="card mb-4">
+          <div class="card-header">
+            <div class="card-title">🤖 AI Recommendations</div>
+            <span class="text-xs text-ink-300">${recs.length} suggestion${recs.length===1?'':'s'}</span>
+          </div>
+          <div class="p-3 space-y-2">
+            ${recs.map(r => `
+              <div class="flex items-center gap-3 p-2 border border-cream-200 rounded-lg hover:bg-cream-50">
+                <span class="badge ${r.priority==='high'?'badge-rose':r.priority==='medium'?'badge-amber':'badge-slate'}">${r.priority}</span>
+                <div class="flex-1 text-sm">${U.esc(r.title)}</div>
+                <button class="btn-ghost text-xs">Apply</button>
+                <button class="btn-ghost text-xs text-ink-400">Dismiss</button>
+              </div>`).join('')}
+          </div>
+        </div>` : ''}
+
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-4">
+        <div class="card lg:col-span-2">
+          <div class="card-header"><div class="card-title">Campaigns</div>
+            <button class="btn-ghost" onclick="Views.marketing._syncGoogleAds()">↻ Refresh</button></div>
+          <table class="tbl">
+            <thead><tr>
+              <th>Campaign</th><th>Status</th><th>Type</th><th class="text-right">Impr.</th>
+              <th class="text-right">Clicks</th><th class="text-right">Cost</th>
+              <th class="text-right">Conv.</th><th class="text-right">CPA</th>
+              <th class="text-right">ROAS</th><th class="text-right">QS</th>
+            </tr></thead>
+            <tbody>
+              ${camps.map(c => `
+                <tr class="cursor-pointer hover:bg-cream-50">
+                  <td class="font-medium">${U.esc(c.name)}</td>
+                  <td><span class="badge ${c.status==='active'?'badge-green':c.status==='paused'?'badge-amber':'badge-slate'}">${c.status}</span></td>
+                  <td class="text-xs">${U.esc(c.type)}</td>
+                  <td class="text-right">${(c.impressions||0).toLocaleString()}</td>
+                  <td class="text-right">${(c.clicks||0).toLocaleString()}</td>
+                  <td class="text-right">${U.usd(c.cost||0)}</td>
+                  <td class="text-right">${c.conversions||0}</td>
+                  <td class="text-right">${U.usd(c.cpa||0)}</td>
+                  <td class="text-right ${c.roas>=3?'text-emerald-700':'text-ink-500'}">${c.roas||0}x</td>
+                  <td class="text-right">
+                    <span class="badge ${c.qualityScore>=8?'badge-green':c.qualityScore>=6?'badge-amber':'badge-rose'}">${c.qualityScore||0}</span>
+                  </td>
+                </tr>`).join('')}
+            </tbody>
+          </table>
+        </div>
+
+        <div class="card">
+          <div class="card-header"><div class="card-title">Ad Group Breakdown</div></div>
+          <table class="tbl">
+            <thead><tr><th>Ad Group</th><th class="text-right">Clicks</th><th class="text-right">Conv.</th></tr></thead>
+            <tbody>
+              ${(ga.adGroups||[]).map(ag => `
+                <tr>
+                  <td class="text-xs">${U.esc(ag.name)}
+                    <div class="text-[10px] text-ink-300">${(ga.campaigns.find(c=>c.id===ag.campaignId)||{}).name||''}</div>
+                  </td>
+                  <td class="text-right text-sm">${(ag.clicks||0).toLocaleString()}</td>
+                  <td class="text-right text-sm">${ag.conversions||0}</td>
+                </tr>`).join('')}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header"><div class="card-title">Keyword Performance</div>
+          <span class="text-xs text-ink-300">${kws.length} keyword${kws.length===1?'':'s'}</span></div>
+        <table class="tbl">
+          <thead><tr>
+            <th>Keyword</th><th>Match</th><th class="text-right">Impr.</th><th class="text-right">Clicks</th>
+            <th class="text-right">CTR</th><th class="text-right">Avg CPC</th>
+            <th class="text-right">Cost</th><th class="text-right">Conv.</th><th class="text-right">Quality</th>
+          </tr></thead>
+          <tbody>
+            ${kws.map(k => `
+              <tr>
+                <td class="font-mono text-sm">${U.esc(k.term)}</td>
+                <td><span class="badge badge-slate text-xs">${k.matchType}</span></td>
+                <td class="text-right">${(k.impressions||0).toLocaleString()}</td>
+                <td class="text-right">${(k.clicks||0).toLocaleString()}</td>
+                <td class="text-right">${k.ctr||0}%</td>
+                <td class="text-right">${U.usd(k.avgCpc||0)}</td>
+                <td class="text-right">${U.usd(k.cost||0)}</td>
+                <td class="text-right">${k.conversions||0}</td>
+                <td class="text-right"><span class="badge ${k.quality>=8?'badge-green':k.quality>=6?'badge-amber':'badge-rose'}">${k.quality||0}</span></td>
+              </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>
+    `;
+  },
+
+  _syncGoogleAds() {
+    const int = DB.marketing().integrations;
+    if (int && int.googleAds && int.googleAds.connected) {
+      int.googleAds.lastSync = new Date().toISOString();
+      DB.save();
+      U.toast('Synced with Google Ads API');
+    }
+    this.render();
+  },
+
+  // -------------------- SEO --------------------
+  _tabSEO() {
+    const seo = DB.marketing().seo || {};
+    const h = seo.siteHealth || {};
+    const keywords = seo.keywords || [];
+    const pages = seo.pages || [];
+    const bl = seo.backlinks || {};
+    const audit = seo.audit || [];
+    const gaps = seo.contentGaps || [];
+
+    const passCount = audit.filter(a => a.status === 'pass').length;
+    const warnCount = audit.filter(a => a.status === 'warn').length;
+    const failCount = audit.filter(a => a.status === 'fail').length;
+    const totalIssues = warnCount + failCount;
+
+    const auditByCategory = {};
+    audit.forEach(a => { (auditByCategory[a.category] = auditByCategory[a.category] || []).push(a); });
+
+    return `
+      <div class="grid grid-cols-2 md:grid-cols-6 gap-3 mb-4">
+        <div class="stat-card !p-3 col-span-2 md:col-span-2">
+          <div class="stat-label">Site Health Score</div>
+          <div class="flex items-baseline gap-2">
+            <div class="stat-value text-3xl ${h.overallScore>=80?'text-emerald-700':h.overallScore>=60?'text-amber-700':'text-rose-700'}">${h.overallScore||0}</div>
+            <div class="text-sm ${h.overallScore>=(h.previousScore||0)?'text-emerald-700':'text-rose-700'}">
+              ${h.overallScore>=(h.previousScore||0)?'▲':'▼'} ${Math.abs((h.overallScore||0)-(h.previousScore||0))}
+            </div>
+          </div>
+          <div class="progress mt-2"><div style="width:${h.overallScore||0}%; background:#c1623f"></div></div>
+        </div>
+        <div class="stat-card !p-3"><div class="stat-label">Content</div><div class="stat-value text-lg">${h.contentScore||0}</div></div>
+        <div class="stat-card !p-3"><div class="stat-label">Technical</div><div class="stat-value text-lg">${h.technicalScore||0}</div></div>
+        <div class="stat-card !p-3"><div class="stat-label">Backlinks</div><div class="stat-value text-lg">${h.backlinksScore||0}</div></div>
+        <div class="stat-card !p-3"><div class="stat-label">UX</div><div class="stat-value text-lg">${h.uxScore||0}</div></div>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-4">
+        <div class="card">
+          <div class="card-header"><div class="card-title">Issues Overview</div>
+            <span class="text-xs text-ink-300">${totalIssues} to fix</span></div>
+          <div class="p-4 space-y-3">
+            <div class="flex items-center justify-between p-3 rounded-lg bg-rose-50 border border-rose-200">
+              <div class="flex items-center gap-3">
+                <div class="text-2xl">🚨</div>
+                <div>
+                  <div class="font-semibold text-rose-800">${(h.issues||{}).critical||failCount}</div>
+                  <div class="text-xs text-rose-700">Critical</div>
+                </div>
+              </div>
+            </div>
+            <div class="flex items-center justify-between p-3 rounded-lg bg-amber-50 border border-amber-200">
+              <div class="flex items-center gap-3">
+                <div class="text-2xl">⚠️</div>
+                <div>
+                  <div class="font-semibold text-amber-800">${(h.issues||{}).warnings||warnCount}</div>
+                  <div class="text-xs text-amber-700">Warnings</div>
+                </div>
+              </div>
+            </div>
+            <div class="flex items-center justify-between p-3 rounded-lg bg-blue-50 border border-blue-200">
+              <div class="flex items-center gap-3">
+                <div class="text-2xl">ℹ️</div>
+                <div>
+                  <div class="font-semibold text-blue-800">${(h.issues||{}).notices||0}</div>
+                  <div class="text-xs text-blue-700">Notices</div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="p-4 border-t border-cream-100 text-xs text-ink-400">
+            Scanned ${h.scannedPages||0} pages · <span class="text-emerald-700">${passCount} checks passing</span>
+            <button class="btn-secondary w-full mt-3 text-xs" onclick="Views.marketing._runSEOAudit()">↻ Re-run audit</button>
+          </div>
+        </div>
+
+        <div class="card lg:col-span-2">
+          <div class="card-header"><div class="card-title">Technical SEO Audit</div></div>
+          <div class="p-3 max-h-96 overflow-y-auto space-y-3">
+            ${Object.entries(auditByCategory).map(([cat, items]) => `
+              <div>
+                <div class="text-xs font-semibold text-ink-400 uppercase tracking-wider mb-1">${U.esc(cat)}</div>
+                <div class="space-y-1">
+                  ${items.map(a => `
+                    <div class="flex items-start gap-2 p-2 rounded hover:bg-cream-50">
+                      <div class="text-lg mt-0.5">${a.status==='pass'?'✅':a.status==='warn'?'⚠️':'❌'}</div>
+                      <div class="flex-1 min-w-0">
+                        <div class="text-sm font-medium">${U.esc(a.check)}</div>
+                        <div class="text-xs text-ink-400">${U.esc(a.note)}</div>
+                      </div>
+                      <span class="badge ${a.priority==='high'?'badge-rose':a.priority==='medium'?'badge-amber':'badge-slate'} text-[10px]">${a.priority}</span>
+                    </div>`).join('')}
+                </div>
+              </div>`).join('')}
+          </div>
+        </div>
+      </div>
+
+      <div class="card mb-4">
+        <div class="card-header">
+          <div class="card-title">Keyword Rankings</div>
+          <div class="flex items-center gap-2">
+            <span class="text-xs text-ink-300">${keywords.length} tracked</span>
+            <button class="btn-secondary text-xs" onclick="Views.marketing._addSeoKeyword()">+ Track Keyword</button>
+          </div>
+        </div>
+        <table class="tbl">
+          <thead><tr>
+            <th>Keyword</th><th>Intent</th><th class="text-right">Position</th><th class="text-right">Change</th>
+            <th class="text-right">Volume</th><th class="text-right">Difficulty</th>
+            <th class="text-right">CTR</th><th>Landing Page</th>
+          </tr></thead>
+          <tbody>
+            ${keywords.map(k => {
+              const delta = (k.previousPosition||0) - (k.position||0);
+              return `<tr>
+                <td class="font-mono text-sm">${U.esc(k.term)}</td>
+                <td><span class="badge ${k.intent==='commercial'?'badge-green':k.intent==='branded'?'badge-violet':'badge-slate'} text-[10px]">${k.intent||''}</span></td>
+                <td class="text-right font-medium">
+                  <span class="${k.position<=3?'text-emerald-700':k.position<=10?'text-ink-700':'text-ink-400'}">#${k.position}</span>
+                </td>
+                <td class="text-right text-xs">
+                  ${delta>0?`<span class="text-emerald-700">▲ ${delta}</span>`:delta<0?`<span class="text-rose-700">▼ ${Math.abs(delta)}</span>`:`<span class="text-ink-300">—</span>`}
+                </td>
+                <td class="text-right">${(k.searchVolume||0).toLocaleString()}</td>
+                <td class="text-right">
+                  <div class="inline-flex items-center gap-1">
+                    <div class="w-14 bg-cream-200 rounded-full h-1.5"><div class="h-1.5 rounded-full ${k.difficulty>=60?'bg-rose-500':k.difficulty>=30?'bg-amber-500':'bg-emerald-500'}" style="width:${k.difficulty}%"></div></div>
+                    <span class="text-xs">${k.difficulty}</span>
+                  </div>
+                </td>
+                <td class="text-right">${k.ctr||0}%</td>
+                <td class="text-xs"><span class="font-mono">${U.esc(k.url)}</span></td>
+              </tr>`;
+            }).join('') || '<tr><td colspan="8" class="text-center text-ink-300 py-6">No keywords tracked yet.</td></tr>'}
+          </tbody>
+        </table>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
+        <div class="card">
+          <div class="card-header"><div class="card-title">Page Performance</div>
+            <span class="text-xs text-ink-300">${pages.length} pages</span></div>
+          <table class="tbl">
+            <thead><tr>
+              <th>Page</th><th class="text-right">Sessions</th><th class="text-right">Avg Pos</th>
+              <th class="text-right">CTR</th><th class="text-right">CWV</th>
+            </tr></thead>
+            <tbody>
+              ${pages.map(p => {
+                const cwvOk = (p.cwv?.lcp||0) <= 2.5 && (p.cwv?.cls||0) <= 0.1;
+                return `<tr>
+                  <td class="text-sm">
+                    <div class="font-medium">${U.esc(p.title)}</div>
+                    <div class="text-xs text-ink-300 font-mono">${U.esc(p.url)}</div>
+                  </td>
+                  <td class="text-right">${(p.sessions||0).toLocaleString()}</td>
+                  <td class="text-right">${p.avgPosition||0}</td>
+                  <td class="text-right">${p.ctr||0}%</td>
+                  <td class="text-right">${cwvOk?'<span class="text-emerald-700">✓ Good</span>':'<span class="text-amber-700">⚠</span>'}</td>
+                </tr>`;
+              }).join('')}
+            </tbody>
+          </table>
+        </div>
+
+        <div class="card">
+          <div class="card-header"><div class="card-title">Backlink Profile</div>
+            <span class="text-xs text-ink-300">DR ${bl.domainRating||0} · ${bl.previousDR?`+${(bl.domainRating||0)-(bl.previousDR||0)} from ${U.esc(String(bl.previousDR))}`:''}</span></div>
+          <div class="p-4">
+            <div class="grid grid-cols-4 gap-2 mb-4 text-center">
+              <div><div class="text-lg font-display font-semibold">${(bl.totalBacklinks||0).toLocaleString()}</div><div class="text-[10px] text-ink-300 uppercase tracking-wider">Total</div></div>
+              <div><div class="text-lg font-display font-semibold">${bl.referringDomains||0}</div><div class="text-[10px] text-ink-300 uppercase tracking-wider">Ref. Domains</div></div>
+              <div><div class="text-lg font-display font-semibold text-emerald-700">+${bl.newLast30||0}</div><div class="text-[10px] text-ink-300 uppercase tracking-wider">New 30d</div></div>
+              <div><div class="text-lg font-display font-semibold text-rose-700">−${bl.lostLast30||0}</div><div class="text-[10px] text-ink-300 uppercase tracking-wider">Lost 30d</div></div>
+            </div>
+            <div class="text-xs font-semibold text-ink-400 uppercase tracking-wider mb-2">Top Backlinks</div>
+            <div class="space-y-2 max-h-56 overflow-y-auto">
+              ${(bl.topBacklinks||[]).map(b => `
+                <div class="flex items-start gap-2 p-2 border border-cream-100 rounded">
+                  <span class="badge badge-slate text-[10px]">DR ${b.dr}</span>
+                  <div class="flex-1 min-w-0">
+                    <div class="text-sm font-mono truncate">${U.esc(b.source)}</div>
+                    <div class="text-xs text-ink-400">Anchor: "${U.esc(b.anchorText)}" · ${U.esc(b.type)} · ${U.date(b.firstSeen)}</div>
+                  </div>
+                </div>`).join('')}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header"><div class="card-title">Content Gap Opportunities</div>
+          <span class="text-xs text-ink-300">Topics competitors rank for that you don't</span></div>
+        <table class="tbl">
+          <thead><tr>
+            <th>Topic</th><th class="text-right">Volume</th><th class="text-right">Difficulty</th>
+            <th class="text-right">Competitors Ranking</th><th>Priority</th><th class="text-right"></th>
+          </tr></thead>
+          <tbody>
+            ${gaps.map(g => `
+              <tr>
+                <td class="font-medium">${U.esc(g.topic)}</td>
+                <td class="text-right">${(g.searchVolume||0).toLocaleString()}</td>
+                <td class="text-right">${g.difficulty}</td>
+                <td class="text-right">${g.competitorsRanking}</td>
+                <td><span class="badge ${g.priority==='high'?'badge-rose':g.priority==='medium'?'badge-amber':'badge-slate'}">${g.priority}</span></td>
+                <td class="text-right"><button class="btn-ghost text-xs">Draft Brief</button></td>
+              </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>
+    `;
+  },
+
+  _runSEOAudit() {
+    U.toast('SEO crawl started — this normally takes 2–5 minutes');
+    setTimeout(() => { U.toast('Audit complete — no new issues'); }, 1500);
+  },
+
+  _addSeoKeyword() {
+    const body = `
+      <div class="grid grid-cols-2 gap-3">
+        <div class="col-span-2"><div class="field-label">Keyword</div><input id="sk-term" class="field-input" placeholder="e.g. bid bond how much"></div>
+        <div><div class="field-label">Landing Page URL</div><input id="sk-url" class="field-input" placeholder="/pricing"></div>
+        <div><div class="field-label">Intent</div>
+          <select id="sk-intent" class="field-select">
+            <option>informational</option><option>commercial</option><option>transactional</option><option>branded</option>
+          </select></div>
+      </div>
+      <div class="text-xs text-ink-300 mt-3 italic">Position, search volume, and difficulty auto-populate on next crawl (typically within 24 hours).</div>
+    `;
+    const footer = `<button class="btn-ghost" data-close>Cancel</button>
+      <button class="btn-primary" onclick="Views.marketing._saveSeoKeyword()">Track Keyword</button>`;
+    const m = U.modal({ title: 'Track New Keyword', body, footer });
+    m.el.querySelector('[data-close]').addEventListener('click', m.close);
+  },
+
+  _saveSeoKeyword() {
+    const seo = DB.marketing().seo || (DB.marketing().seo = { keywords: [] });
+    seo.keywords = seo.keywords || [];
+    seo.keywords.push({
+      term: document.getElementById('sk-term').value,
+      url: document.getElementById('sk-url').value,
+      intent: document.getElementById('sk-intent').value,
+      position: null, previousPosition: null,
+      searchVolume: null, difficulty: null, ctr: 0,
+    });
+    DB.save();
+    U.closeModals();
+    U.toast('Keyword added — crawl scheduled');
+    this.render();
+  },
+
+  // -------------------- AEO (Answer Engine Optimization) --------------------
+  _tabAEO() {
+    const aeo = DB.marketing().aeo || {};
+    const v = aeo.visibility || {};
+    const engines = aeo.engines || [];
+    const citations = aeo.citations || [];
+    const ec = aeo.entityCoverage || {};
+    const schema = aeo.schemaMarkup || [];
+    const queries = aeo.answerableQueries || [];
+    const comps = aeo.competitorPresence || [];
+
+    const totalCitations = engines.reduce((s,e) => s + (e.citations||0), 0);
+
+    return `
+      <div class="bg-gradient-to-r from-cream-100 to-brand-50 border border-cream-200 rounded-xl p-4 mb-5 flex items-start gap-4">
+        <div class="text-3xl">🤖</div>
+        <div class="flex-1">
+          <div class="text-sm font-semibold text-ink-700">Answer Engine Optimization (AEO)</div>
+          <div class="text-xs text-ink-400 mt-1">
+            Track how often ChatGPT, Perplexity, Google AI Overviews, Claude, and Gemini cite your brand.
+            AEO is the new SEO — being cited by AI answers now drives high-intent traffic that used to come from search.
+          </div>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+        <div class="stat-card !p-3">
+          <div class="stat-label">AI Visibility Score</div>
+          <div class="flex items-baseline gap-2">
+            <div class="stat-value text-2xl ${v.overallScore>=60?'text-emerald-700':v.overallScore>=40?'text-amber-700':'text-rose-700'}">${v.overallScore||0}</div>
+            <div class="text-xs text-emerald-700">▲ ${(v.overallScore||0)-(v.previousScore||0)}</div>
+          </div>
+          <div class="progress mt-2"><div style="width:${v.overallScore||0}%; background:#c1623f"></div></div>
+        </div>
+        <div class="stat-card !p-3">
+          <div class="stat-label">Citations (30d)</div>
+          <div class="stat-value text-2xl">${v.citations30d||totalCitations}</div>
+          <div class="text-xs text-emerald-700">▲ ${(v.citations30d||0)-(v.previousCitations||0)} vs prev.</div>
+        </div>
+        <div class="stat-card !p-3">
+          <div class="stat-label">Share of Voice</div>
+          <div class="stat-value text-2xl">${v.shareOfVoice||0}%</div>
+          <div class="text-xs text-emerald-700">▲ ${((v.shareOfVoice||0)-(v.previousShare||0)).toFixed(1)}%</div>
+        </div>
+        <div class="stat-card !p-3">
+          <div class="stat-label">Engines Tracked</div>
+          <div class="stat-value text-2xl">${engines.length}</div>
+          <div class="text-xs text-ink-400 mt-0.5">${engines.filter(e=>e.citations>0).length} citing you</div>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-5 gap-3 mb-4">
+        ${engines.map(e => `
+          <div class="card">
+            <div class="p-4 text-center">
+              <div class="text-3xl mb-1">${e.logo}</div>
+              <div class="font-semibold text-ink-700">${U.esc(e.name)}</div>
+              <div class="text-3xl font-display font-semibold text-brand-700 mt-2">${e.citations}</div>
+              <div class="text-[11px] text-ink-300 uppercase tracking-wider">citations</div>
+              <div class="flex items-center justify-center gap-2 mt-2 text-xs">
+                <span class="text-ink-400">avg pos ${e.avgPosition}</span>
+                <span class="text-emerald-700">${e.changePct}</span>
+              </div>
+              <span class="badge ${e.sentiment==='positive'?'badge-green':e.sentiment==='neutral'?'badge-slate':'badge-rose'} text-[10px] mt-2">${e.sentiment}</span>
+            </div>
+          </div>`).join('')}
+      </div>
+
+      <div class="card mb-4">
+        <div class="card-header">
+          <div class="card-title">Recent Citations</div>
+          <div class="flex items-center gap-2">
+            <span class="text-xs text-ink-300">${citations.length} tracked queries</span>
+            <button class="btn-secondary text-xs" onclick="Views.marketing._trackAeoQuery()">+ Track Query</button>
+          </div>
+        </div>
+        <table class="tbl">
+          <thead><tr><th>Engine</th><th>Query</th><th>Cited</th><th>Snippet</th><th>Date</th></tr></thead>
+          <tbody>
+            ${citations.map(c => `
+              <tr>
+                <td><span class="badge badge-slate">${U.esc(c.engine)}</span></td>
+                <td class="text-sm font-mono">${U.esc(c.query)}</td>
+                <td>${c.cited
+                  ? `<span class="badge badge-green">✓ #${c.position}</span>`
+                  : '<span class="badge badge-rose">Not cited</span>'}</td>
+                <td class="text-xs text-ink-500 max-w-md">${c.snippet ? `<div class="italic">"${U.esc(c.snippet)}"</div>` : '<span class="text-ink-300">—</span>'}</td>
+                <td class="text-xs text-ink-400 whitespace-nowrap">${U.date(c.date)}</td>
+              </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
+        <div class="card">
+          <div class="card-header"><div class="card-title">Entity Coverage</div>
+            <span class="text-xs text-ink-300">Where the AI world "knows" you</span></div>
+          <div class="p-4 space-y-2">
+            ${Object.entries(ec).map(([k, v]) => `
+              <div class="flex items-start gap-3 p-2 border border-cream-100 rounded">
+                <div class="text-lg">${v.status==='active'||v.status==='verified'||v.status==='implemented'?'✅':v.status==='partial'?'⚠️':'❌'}</div>
+                <div class="flex-1">
+                  <div class="text-sm font-medium">${U.esc(k.replace(/([A-Z])/g,' $1').replace(/^./,c=>c.toUpperCase()))}</div>
+                  <div class="text-xs text-ink-400">${U.esc(v.note)}</div>
+                </div>
+                <span class="badge ${v.status==='active'||v.status==='verified'?'badge-green':v.status==='partial'?'badge-amber':'badge-slate'} text-[10px]">${v.status}</span>
+              </div>`).join('')}
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header"><div class="card-title">Schema Markup Audit</div>
+            <span class="text-xs text-ink-300">Structured data AI uses to understand your pages</span></div>
+          <table class="tbl">
+            <thead><tr><th>Schema Type</th><th>Status</th><th class="text-right">Pages</th></tr></thead>
+            <tbody>
+              ${schema.map(s => `
+                <tr>
+                  <td>
+                    <div class="font-mono text-sm">${U.esc(s.type)}</div>
+                    <div class="text-xs text-ink-400">${U.esc(s.note)}</div>
+                  </td>
+                  <td><span class="badge ${s.status==='implemented'?'badge-green':s.status==='partial'?'badge-amber':'badge-rose'}">${s.status}</span></td>
+                  <td class="text-right">${s.pages}</td>
+                </tr>`).join('')}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="card mb-4">
+        <div class="card-header">
+          <div class="card-title">Answer Opportunities</div>
+          <span class="text-xs text-ink-300">Queries with high AI-answer traffic you're not (yet) cited for</span>
+        </div>
+        <table class="tbl">
+          <thead><tr>
+            <th>Query</th><th class="text-right">Search Volume</th><th>Currently Cited</th>
+            <th>Opportunity</th><th>Suggested Action</th>
+          </tr></thead>
+          <tbody>
+            ${queries.map(q => `
+              <tr>
+                <td class="font-mono text-sm">${U.esc(q.query)}</td>
+                <td class="text-right">${(q.searchVolume||0).toLocaleString()}</td>
+                <td>${q.currentlyCited?'<span class="badge badge-green">✓ Yes</span>':'<span class="badge badge-slate">No</span>'}</td>
+                <td><span class="badge ${q.opportunity==='high'?'badge-rose':q.opportunity==='maintain'?'badge-green':'badge-amber'}">${q.opportunity}</span></td>
+                <td class="text-xs text-ink-500">${U.esc(q.suggestion)}</td>
+              </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>
+
+      <div class="card">
+        <div class="card-header"><div class="card-title">Competitor AI Presence</div>
+          <span class="text-xs text-ink-300">Share-of-voice benchmarking</span></div>
+        <table class="tbl">
+          <thead><tr>
+            <th>Competitor</th><th class="text-right">AI Visibility</th><th class="text-right">Change (30d)</th>
+            <th>Primary Engines</th>
+          </tr></thead>
+          <tbody>
+            ${comps.map(c => `
+              <tr class="${c.competitor.includes('you')?'bg-brand-50':''}">
+                <td class="font-medium">${U.esc(c.competitor)}${c.competitor.includes('you')?' <span class="text-xs text-brand-600">← YOU</span>':''}</td>
+                <td class="text-right">
+                  <div class="inline-flex items-center gap-2">
+                    <div class="w-24 bg-cream-200 rounded-full h-1.5"><div class="h-1.5 rounded-full bg-brand-500" style="width:${c.aiVisibility}%"></div></div>
+                    <span class="text-sm font-medium">${c.aiVisibility}</span>
+                  </div>
+                </td>
+                <td class="text-right ${c.changePct.startsWith('+')?'text-emerald-700':'text-rose-700'} text-sm font-medium">${U.esc(c.changePct)}</td>
+                <td class="text-xs">${(c.primaryEngines||[]).map(e => `<span class="badge badge-slate text-[10px]">${e}</span>`).join(' ')}</td>
+              </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>
+    `;
+  },
+
+  _trackAeoQuery() {
+    const body = `
+      <div class="grid grid-cols-1 gap-3">
+        <div><div class="field-label">Query to monitor</div>
+          <input id="aq-query" class="field-input" placeholder="e.g. best surety bond company for contractors"></div>
+        <div><div class="field-label">Engines to track</div>
+          <div class="grid grid-cols-3 gap-2 text-sm">
+            <label class="flex items-center gap-2"><input type="checkbox" class="chk" checked> ChatGPT</label>
+            <label class="flex items-center gap-2"><input type="checkbox" class="chk" checked> Perplexity</label>
+            <label class="flex items-center gap-2"><input type="checkbox" class="chk" checked> Google AI</label>
+            <label class="flex items-center gap-2"><input type="checkbox" class="chk"> Claude</label>
+            <label class="flex items-center gap-2"><input type="checkbox" class="chk"> Gemini</label>
+          </div>
+        </div>
+      </div>
+      <div class="text-xs text-ink-300 mt-3 italic">Each engine will be queried daily. Citation data appears within 24 hours.</div>
+    `;
+    const footer = `<button class="btn-ghost" data-close>Cancel</button>
+      <button class="btn-primary" onclick="Views.marketing._saveAeoQuery()">Track</button>`;
+    const m = U.modal({ title: 'Track Answer Engine Query', body, footer });
+    m.el.querySelector('[data-close]').addEventListener('click', m.close);
+  },
+
+  _saveAeoQuery() {
+    const aeo = DB.marketing().aeo || (DB.marketing().aeo = { citations: [] });
+    aeo.citations = aeo.citations || [];
+    aeo.citations.unshift({
+      engine: 'ChatGPT',
+      query: document.getElementById('aq-query').value,
+      cited: false, position: null, snippet: null,
+      date: new Date().toISOString().slice(0,10),
+      sentiment: 'n/a',
+    });
+    DB.save();
+    U.closeModals();
+    U.toast('Query tracking started');
+    this.render();
   },
 };
