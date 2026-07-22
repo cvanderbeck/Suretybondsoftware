@@ -660,7 +660,7 @@ Views.email = {
           <input id="tpl-name" class="field-input" value="${U.esc(t.name||'')}" placeholder="e.g. Renewal — Confirm Release"></div>
         <div><div class="field-label">Category</div>
           <select id="tpl-cat" class="field-select">
-            ${['Renewal','Pipeline','Bond','Underwriting','Billing','General','Other'].map(c => `<option ${c===(t.category||'General')?'selected':''}>${c}</option>`).join('')}
+            ${['Renewal','Pipeline','Bond','Bond Reporting','Underwriting','Billing','General','Other'].map(c => `<option ${c===(t.category||'General')?'selected':''}>${c}</option>`).join('')}
           </select></div>
         <div></div>
         <div class="col-span-2"><div class="field-label">Subject</div>

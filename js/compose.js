@@ -156,14 +156,36 @@ window.Compose = (() => {
   }
 
   function _renderPCSection() {
-    const q = _state.pcQuote;
-    if (!q) return `<div id="cm-pc-section" class="hidden"></div>`;
-    const b = _state.bond;
-    const label = `${q.partnerName} · ${q.rateOptionName} · ${U.usd(q.premium||0)} premium · ${U.usd(q.commission||0)} commission (${q.status})`;
     const t = _state.templateId ? DB.templates().find(x => x.id === _state.templateId) : null;
     const isReportTpl = _state.templateId === 'T-bond-report-surety' || (t && t.category === 'Bond Reporting');
+    const q = _state.pcQuote;
+    const b = _state.bond;
+
+    // Show a helpful card when the reporting template is picked even if no
+    // PC exists yet — makes the flow discoverable.
+    if (!q) {
+      // If there's no bond context at all, hide the section entirely.
+      if (!b) return `<div id="cm-pc-section" class="hidden"></div>`;
+      // Bond exists but no PC — show a hint so the flow is discoverable.
+      return `
+        <div id="cm-pc-section" class="p-3 rounded-lg bg-amber-50 border border-amber-200 flex items-start gap-3">
+          <div class="text-lg">📎</div>
+          <div class="flex-1">
+            <div class="text-sm font-medium text-amber-800">No Premium Calculator (PC) saved to this bond yet</div>
+            <div class="text-xs text-amber-700 mt-0.5">
+              To attach a PC PDF to the surety-reporting email, save a PC from the Calculator against this bond first.
+            </div>
+            <button type="button" class="btn-secondary mt-2 text-xs"
+              onclick="U.closeModals(); App.go('calculator'); setTimeout(()=>{Views.calculator._selected.accountId='${U.esc(b.accountId||'')}'; Views.calculator._selected.associationKind='bond'; Views.calculator._selected.associationId='bond:${U.esc(b.id||'')}'; Views.calculator._selected.partnerId='${U.esc(b.partnerId||'')}'; Views.calculator._selected.bondType='${U.esc(b.type||'')}'; Views.calculator._selected.amount=${b.amount||0}; Views.calculator._selected.obligee='${U.esc(b.obligee||'')}'; Views.calculator._tab='calc'; Views.calculator.render();}, 60);">
+              → Open Calculator for this bond
+            </button>
+          </div>
+        </div>`;
+    }
+
+    const label = `${q.partnerName} · ${q.rateOptionName} · ${U.usd(q.premium||0)} premium · ${U.usd(q.commission||0)} commission (${q.status})`;
     return `
-      <div id="cm-pc-section" class="p-3 rounded-lg bg-cream-100 border border-cream-200 flex items-start gap-3">
+      <div id="cm-pc-section" class="p-3 rounded-lg ${isReportTpl?'bg-brand-50 border border-brand-200':'bg-cream-100 border border-cream-200'} flex items-start gap-3">
         <div class="mt-0.5">
           <input id="cm-attach-pc" type="checkbox" class="chk" ${_state.attachPC?'checked':''}
             onchange="Compose._togglePCAttach(this.checked)">
@@ -173,7 +195,7 @@ window.Compose = (() => {
             📎 Attach Premium Calculator (PC) as PDF
           </label>
           <div class="text-xs text-ink-400 mt-0.5">${U.esc(label)}</div>
-          ${isReportTpl ? '<div class="text-[11px] text-brand-700 mt-1">Auto-attached for the Report to Surety template.</div>' : ''}
+          ${isReportTpl ? '<div class="text-[11px] text-brand-700 mt-1 font-medium">Auto-attached for the Report to Surety template.</div>' : ''}
         </div>
       </div>`;
   }
