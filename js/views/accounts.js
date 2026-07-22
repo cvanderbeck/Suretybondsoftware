@@ -252,6 +252,8 @@ Views.accounts = {
 
       ${this._lostBidsCard(a, lostBids)}
 
+      ${this._quotesCard(a)}
+
       <div class="card mb-4">
         <div class="card-header">
           <div class="card-title">Aggregate Capacity</div>
@@ -1122,6 +1124,55 @@ Views.accounts = {
         <table class="tbl">
           <thead><tr><th>Bond Type</th><th>Obligee</th><th class="text-right">Amount</th><th>Bid Date</th><th>Reason</th></tr></thead>
           <tbody>${recent.map(row).join('')}</tbody>
+        </table>
+      </div>
+    `;
+  },
+
+  _quotesCard(a) {
+    const all = (DB.quotes ? DB.quotes() : []).filter(q => q.accountId === a.id);
+    if (!all.length) return '';
+    const potential = all.filter(q => q.status === 'potential');
+    const confirmed = all.filter(q => q.status === 'confirmed');
+    const sumP = potential.reduce((s,q)=>s+(q.commission||0), 0);
+    const sumC = confirmed.reduce((s,q)=>s+(q.commission||0), 0);
+    const recent = all.slice().sort((x,y) => (y.savedAt||'').localeCompare(x.savedAt||'')).slice(0, 5);
+    return `
+      <div class="card mb-4">
+        <div class="card-header">
+          <div class="card-title">Saved Premium Quotes (${all.length})</div>
+          <button class="btn-ghost" onclick="U.closeModals(); App.go('calculator'); setTimeout(()=>{Views.calculator._tab='quotes'; Views.calculator.render();}, 60);">All quotes →</button>
+        </div>
+        <div class="p-4 grid grid-cols-2 gap-3">
+          <div class="p-3 rounded-lg bg-emerald-50 border border-emerald-200">
+            <div class="text-xs text-emerald-800 uppercase tracking-wider font-medium">Confirmed Commission</div>
+            <div class="text-xl font-display font-semibold text-emerald-700">${U.usd(sumC)}</div>
+            <div class="text-[11px] text-ink-400 mt-0.5">${confirmed.length} confirmed quote${confirmed.length===1?'':'s'}</div>
+          </div>
+          <div class="p-3 rounded-lg bg-amber-50 border border-amber-200">
+            <div class="text-xs text-amber-800 uppercase tracking-wider font-medium">Potential Commission</div>
+            <div class="text-xl font-display font-semibold text-amber-700">${U.usd(sumP)}</div>
+            <div class="text-[11px] text-ink-400 mt-0.5">${potential.length} potential${potential.some(q => /bid/i.test(q.bondType||'')) ? ' (incl. bid bonds — award-conditional)' : ''}</div>
+          </div>
+        </div>
+        <table class="tbl">
+          <thead><tr><th>Saved</th><th>Surety / Rate</th><th>Bond Type</th><th class="text-right">Amount</th><th class="text-right">Commission</th><th>Status</th></tr></thead>
+          <tbody>
+            ${recent.map(q => `
+              <tr class="cursor-pointer" onclick="U.closeModals(); App.go('calculator'); setTimeout(()=>Views.calculator.loadQuote('${q.id}'), 60);">
+                <td class="text-xs text-ink-400 whitespace-nowrap">${U.date((q.savedAt||'').slice(0,10))}</td>
+                <td class="text-xs">
+                  <div>${U.esc(q.partnerName||'')}</div>
+                  <div class="text-[10px] text-ink-300">${U.esc(q.rateOptionName||'')} · ${q.commissionRate}%</div>
+                </td>
+                <td class="text-xs">${U.esc(q.bondType||'')}</td>
+                <td class="text-right">${U.usd(q.amount||0)}</td>
+                <td class="text-right ${q.status==='confirmed'?'text-emerald-700 font-medium':'text-amber-700'}">${U.usd(q.commission||0)}</td>
+                <td>${q.status === 'confirmed'
+                  ? '<span class="badge badge-green">✓ Confirmed</span>'
+                  : '<span class="badge badge-amber">Potential</span>'}</td>
+              </tr>`).join('')}
+          </tbody>
         </table>
       </div>
     `;

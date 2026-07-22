@@ -5,6 +5,7 @@
 window.Views = window.Views || {};
 
 Views.calculator = {
+  _tab: 'calc',
   _selected: {
     accountId: '', associationId: '', associationKind: '',
     partnerId: '', rateOptionId: '', commissionOptionId: '',
@@ -13,8 +14,10 @@ Views.calculator = {
     obligee: '', notes: '',
   },
   _lastResult: null,
+  _editingQuoteId: null,
 
   render() {
+    const quoteCount = DB.quotes().length;
     document.getElementById('view').innerHTML = `
       <div class="mb-6 flex items-center justify-between">
         <div>
@@ -22,10 +25,35 @@ Views.calculator = {
           <p class="section-sub">Pick a surety, rate option, and commission to project premium and our earn.</p>
         </div>
         <div class="flex items-center gap-2">
-          <button class="btn-secondary" onclick="Views.calculator.openManageRates()">⚙ Manage Rates & Commissions</button>
+          <button class="btn-secondary" onclick="Views.calculator.openManageRates()">⚙ Manage Rates &amp; Commissions</button>
         </div>
       </div>
 
+      <div class="border-b border-cream-200 -mx-6 px-6 flex flex-wrap gap-1 mb-5">
+        ${this._tabBtn('calc',   'Calculator')}
+        ${this._tabBtn('quotes', 'Saved Quotes', quoteCount)}
+      </div>
+
+      <div id="cl-view">${this._tab==='calc' ? this._renderCalc() : this._renderQuotesView()}</div>
+    `;
+    if (this._tab === 'calc') this._bindInputs();
+  },
+
+  _tabBtn(key, label, count) {
+    const active = this._tab === key;
+    return `
+      <button class="px-3 py-2 text-sm border-b-2 -mb-px transition
+          ${active ? 'border-brand-500 text-brand-700 font-semibold'
+                   : 'border-transparent text-ink-400 hover:text-ink-700 hover:border-cream-300'}"
+          onclick="Views.calculator._setTab('${key}')">
+        ${U.esc(label)}${count!==undefined?` <span class="ml-1 text-xs text-ink-300">${count}</span>`:''}
+      </button>`;
+  },
+
+  _setTab(k) { this._tab = k; this.render(); },
+
+  _renderCalc() {
+    return `
       <div class="grid grid-cols-1 lg:grid-cols-5 gap-6">
         <div class="card lg:col-span-2">
           <div class="card-header"><div class="card-title">Inputs</div></div>
@@ -43,7 +71,6 @@ Views.calculator = {
         </div>
       </div>
     `;
-    this._bindInputs();
   },
 
   // ------------------- INPUT PANEL -------------------
@@ -288,23 +315,53 @@ Views.calculator = {
     }
     const account = s.accountId ? DB.findAccount(s.accountId) : null;
     const partnerNet = r.premium - r.commission;
+    const status = this._impliedStatus(); // 'potential' | 'confirmed'
+    const isPotential = status === 'potential';
+    const isBid = /bid/i.test(s.bondType || '');
+    const bidBanner = isBid ? `
+      <div class="mb-4 p-3 rounded-lg bg-amber-50 border border-amber-200 flex items-start gap-3">
+        <div class="text-2xl">💡</div>
+        <div class="text-sm text-amber-800">
+          <div class="font-semibold">Bid Bond — potential income only</div>
+          <div class="text-xs mt-0.5">Bid bonds don't generate premium themselves. The numbers below show what you'd earn <b>if the principal wins the job</b> and issues the follow-on payment &amp; performance bond.</div>
+        </div>
+      </div>` : '';
+    const potentialBanner = !isBid && isPotential ? `
+      <div class="mb-4 p-3 rounded-lg bg-cream-100 border border-cream-300 flex items-start gap-3">
+        <div class="text-lg">📄</div>
+        <div class="text-sm text-ink-500">
+          <div class="font-medium">Potential income — quote only</div>
+          <div class="text-xs mt-0.5">These numbers become confirmed when the associated bond moves to <b>issued / approved</b>.</div>
+        </div>
+      </div>` : '';
     return `
+      ${bidBanner}${potentialBanner}
       <div class="grid grid-cols-3 gap-3 mb-4">
         <div class="stat-card !p-4">
-          <div class="stat-label">Estimated Premium</div>
-          <div class="stat-value">${U.usd(r.premium)}</div>
+          <div class="stat-label">${isPotential ? 'Potential Premium' : 'Estimated Premium'}</div>
+          <div class="stat-value ${isPotential ? 'text-ink-500' : ''}">${U.usd(r.premium)}</div>
           <div class="text-[11px] text-ink-300 mt-0.5">Effective rate ${r.effectiveRate.toFixed(2)}%</div>
         </div>
         <div class="stat-card !p-4">
-          <div class="stat-label">Our Commission (${r.commissionPct}%)</div>
-          <div class="stat-value text-emerald-700">${U.usd(r.commission)}</div>
-          <div class="text-[11px] text-ink-300 mt-0.5">${U.esc(r.commissionOption ? r.commissionOption.name : 'No commission selected')}</div>
+          <div class="stat-label">${isPotential ? 'Potential Commission' : 'Our Commission'} (${r.commissionPct}%)</div>
+          <div class="stat-value ${isPotential ? 'text-amber-700' : 'text-emerald-700'}">${U.usd(r.commission)}</div>
+          <div class="text-[11px] text-ink-300 mt-0.5">
+            ${U.esc(r.commissionOption ? r.commissionOption.name : 'No commission selected')}
+            ${isBid ? ' · if awarded' : (isPotential ? ' · pending issue' : '')}
+          </div>
         </div>
         <div class="stat-card !p-4">
           <div class="stat-label">Surety Net</div>
           <div class="stat-value">${U.usd(partnerNet)}</div>
           <div class="text-[11px] text-ink-300 mt-0.5">Premium − commission</div>
         </div>
+      </div>
+
+      <div class="mb-4 flex items-center justify-end gap-2">
+        <button class="btn-secondary" onclick="Views.calculator._resetSelection()">Clear</button>
+        <button class="btn-primary" onclick="Views.calculator.saveQuote()">
+          ${this._editingQuoteId ? '💾 Update Quote' : '💾 Save Quote'}
+        </button>
       </div>
 
       <div class="card mb-4">
@@ -591,6 +648,215 @@ Views.calculator = {
     DB.save();
     U.toast('Deleted', 'info');
     this.openManageRates();
+  },
+
+  // ------------------- STATUS LOGIC -------------------
+  // A quote is "confirmed" income only when it's tied to a bond that has been
+  // approved / is ready to be issued (Active or Pending UW with tracking dates
+  // filled in). Bids are ALWAYS potential regardless of association.
+  _impliedStatus() {
+    const s = this._selected;
+    if (/bid/i.test(s.bondType || '')) return 'potential';
+    if (s.associationKind === 'bond' && s.associationId) {
+      const bondId = s.associationId.split(':')[1];
+      const b = DB.findBond(bondId);
+      if (b && (b.status === 'Active' || (b.status === 'Pending UW' && b.reportedToBondCo))) {
+        return 'confirmed';
+      }
+    }
+    return 'potential';
+  },
+
+  // ------------------- SAVE / TRACK QUOTES -------------------
+  saveQuote() {
+    const r = this._lastResult;
+    const s = this._selected;
+    if (!r || !r.partner || !r.rateOption) { U.toast('Fill in the inputs first', 'warn'); return; }
+    if (!s.accountId) { U.toast('Pick a principal before saving', 'warn'); return; }
+
+    const now = new Date().toISOString();
+    const status = this._impliedStatus();
+    const snapshot = {
+      partnerId: r.partner.id, partnerName: r.partner.name,
+      rateOptionId: r.rateOption.id, rateOptionName: r.rateOption.name, rateType: r.rateOption.type,
+      commissionOptionId: r.commissionOption ? r.commissionOption.id : null,
+      commissionOptionName: r.commissionOption ? r.commissionOption.name : '',
+      commissionRate: r.commissionPct,
+      bondType: s.bondType, amount: s.amount,
+      obligee: s.obligee, effectiveDate: s.effectiveDate, notes: s.notes,
+      accountId: s.accountId,
+      associationKind: s.associationKind || null,
+      associationId: s.associationId ? s.associationId.split(':')[1] : null,
+      premium: r.premium, effectiveRate: r.effectiveRate, commission: r.commission,
+      breakdown: r.breakdown,
+      status, savedAt: now, savedBy: 'CV',
+    };
+    let quote;
+    if (this._editingQuoteId) {
+      quote = DB.findQuote(this._editingQuoteId);
+      if (quote) {
+        Object.assign(quote, snapshot, { updatedAt: now });
+      } else {
+        quote = { id: U.uid('Q'), ...snapshot };
+        DB.quotes().push(quote);
+      }
+    } else {
+      quote = { id: U.uid('Q'), ...snapshot };
+      DB.quotes().push(quote);
+    }
+    DB.save();
+    U.toast(`Quote ${this._editingQuoteId ? 'updated' : 'saved'} — ${status === 'potential' ? 'tracked as potential' : 'tracked as confirmed'}`);
+    this._editingQuoteId = null;
+    this._recalc();
+  },
+
+  _resetSelection() {
+    this._selected = {
+      accountId: '', associationId: '', associationKind: '',
+      partnerId: '', rateOptionId: '', commissionOptionId: '',
+      bondType: 'Payment & Performance', amount: 500000,
+      effectiveDate: new Date().toISOString().slice(0,10),
+      obligee: '', notes: '',
+    };
+    this._editingQuoteId = null;
+    this.render();
+  },
+
+  // Load a saved quote back into the calculator for viewing / editing
+  loadQuote(id) {
+    const q = DB.findQuote(id); if (!q) return;
+    this._selected = {
+      accountId: q.accountId || '',
+      associationId: q.associationId ? (q.associationKind + ':' + q.associationId) : '',
+      associationKind: q.associationKind || '',
+      partnerId: q.partnerId, rateOptionId: q.rateOptionId, commissionOptionId: q.commissionOptionId,
+      bondType: q.bondType, amount: q.amount, obligee: q.obligee || '',
+      effectiveDate: q.effectiveDate || new Date().toISOString().slice(0,10),
+      notes: q.notes || '',
+    };
+    this._editingQuoteId = id;
+    this._tab = 'calc';
+    this.render();
+  },
+
+  // ------------------- SAVED QUOTES VIEW -------------------
+  _renderQuotesView() {
+    const all = DB.quotes().slice().sort((a,b) => (b.savedAt||'').localeCompare(a.savedAt||''));
+    const potential = all.filter(q => q.status === 'potential');
+    const confirmed = all.filter(q => q.status === 'confirmed');
+    const sumPremiumP = potential.reduce((s,q) => s+(q.premium||0), 0);
+    const sumCommP    = potential.reduce((s,q) => s+(q.commission||0), 0);
+    const sumPremiumC = confirmed.reduce((s,q) => s+(q.premium||0), 0);
+    const sumCommC    = confirmed.reduce((s,q) => s+(q.commission||0), 0);
+    const bidCount = potential.filter(q => /bid/i.test(q.bondType||'')).length;
+
+    return `
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-3 mb-5">
+        <div class="stat-card !p-4 border-l-4 border-emerald-500">
+          <div class="stat-label text-emerald-800">Confirmed Income (Ready to Issue)</div>
+          <div class="stat-value text-emerald-700">${U.usd(sumCommC)}</div>
+          <div class="text-[11px] text-ink-400 mt-1">${confirmed.length} quote${confirmed.length===1?'':'s'} · ${U.usd(sumPremiumC)} total premium</div>
+        </div>
+        <div class="stat-card !p-4 border-l-4 border-amber-500">
+          <div class="stat-label text-amber-800">Potential Income (If Awarded/Issued)</div>
+          <div class="stat-value text-amber-700">${U.usd(sumCommP)}</div>
+          <div class="text-[11px] text-ink-400 mt-1">${potential.length} quote${potential.length===1?'':'s'}${bidCount?' · '+bidCount+' bid bond'+(bidCount===1?'':'s'):''}</div>
+        </div>
+        <div class="stat-card !p-4">
+          <div class="stat-label">Total Quoted Premium</div>
+          <div class="stat-value">${U.usd(sumPremiumC + sumPremiumP)}</div>
+          <div class="text-[11px] text-ink-400 mt-1">${all.length} quote${all.length===1?'':'s'} total</div>
+        </div>
+        <div class="stat-card !p-4">
+          <div class="stat-label">Avg Commission %</div>
+          <div class="stat-value">${all.length ? (all.reduce((s,q)=>s+(q.commissionRate||0),0)/all.length).toFixed(1) : 0}%</div>
+          <div class="text-[11px] text-ink-400 mt-1">weighted by quote count</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">Saved Quotes</div>
+          <div class="text-xs text-ink-300">Click any row to load it back into the calculator.</div>
+        </div>
+        <table class="tbl">
+          <thead><tr>
+            <th>Saved</th><th>Principal</th><th>Association</th><th>Surety / Rate</th>
+            <th>Bond Type</th><th class="text-right">Amount</th>
+            <th class="text-right">Premium</th><th class="text-right">Comm.</th>
+            <th>Status</th><th class="text-right"></th>
+          </tr></thead>
+          <tbody>
+            ${all.length ? all.map(q => this._quoteRow(q)).join('')
+              : '<tr><td colspan="10" class="text-center text-ink-300 py-8 italic">No saved quotes yet. Build a quote on the Calculator tab and click <b>💾 Save Quote</b>.</td></tr>'}
+          </tbody>
+        </table>
+      </div>
+    `;
+  },
+
+  _quoteRow(q) {
+    const acct = q.accountId ? DB.findAccount(q.accountId) : null;
+    let assocLabel = '—';
+    if (q.associationKind === 'bond' && q.associationId) {
+      const b = DB.findBond(q.associationId);
+      assocLabel = b ? `Bond ${b.number}` : `Bond ${q.associationId}`;
+    } else if (q.associationKind === 'opportunity' && q.associationId) {
+      assocLabel = `Opp ${q.associationId}`;
+    }
+    const badge = q.status === 'confirmed'
+      ? '<span class="badge badge-green">✓ Confirmed</span>'
+      : '<span class="badge badge-amber">Potential</span>';
+    const isBid = /bid/i.test(q.bondType||'');
+    return `
+      <tr class="cursor-pointer hover:bg-cream-50" onclick="Views.calculator.loadQuote('${q.id}')">
+        <td class="text-xs text-ink-400 whitespace-nowrap">${U.date((q.savedAt||'').slice(0,10))}</td>
+        <td class="font-medium">${U.esc(acct ? acct.name : '—')}</td>
+        <td class="text-xs">${U.esc(assocLabel)}</td>
+        <td class="text-xs">
+          <div>${U.esc(q.partnerName||'')}</div>
+          <div class="text-[10px] text-ink-300">${U.esc(q.rateOptionName||'')} · ${q.commissionRate}%</div>
+        </td>
+        <td class="text-xs">${U.esc(q.bondType||'')}${isBid?' <span class="text-amber-700">·bid</span>':''}</td>
+        <td class="text-right">${U.usd(q.amount||0)}</td>
+        <td class="text-right">${U.usd(q.premium||0)}</td>
+        <td class="text-right ${q.status==='confirmed'?'text-emerald-700 font-medium':'text-amber-700'}">${U.usd(q.commission||0)}</td>
+        <td>${badge}</td>
+        <td class="text-right whitespace-nowrap">
+          ${q.status==='potential'
+            ? `<button class="btn-ghost text-xs" onclick="event.stopPropagation(); Views.calculator._promoteQuote('${q.id}')" title="Mark as issued / confirmed income">✓ Confirm</button>`
+            : `<button class="btn-ghost text-xs" onclick="event.stopPropagation(); Views.calculator._demoteQuote('${q.id}')" title="Move back to potential">↺ Revert</button>`}
+          <button class="btn-ghost text-xs text-rose-600" onclick="event.stopPropagation(); Views.calculator._deleteQuote('${q.id}')">✕</button>
+        </td>
+      </tr>`;
+  },
+
+  _promoteQuote(id) {
+    const q = DB.findQuote(id); if (!q) return;
+    q.status = 'confirmed';
+    q.confirmedAt = new Date().toISOString();
+    DB.save();
+    U.toast('Marked as confirmed income');
+    this.render();
+  },
+
+  _demoteQuote(id) {
+    const q = DB.findQuote(id); if (!q) return;
+    q.status = 'potential';
+    q.confirmedAt = null;
+    DB.save();
+    U.toast('Moved back to potential', 'info');
+    this.render();
+  },
+
+  _deleteQuote(id) {
+    if (!confirm('Delete this saved quote?')) return;
+    const arr = DB.quotes();
+    const i = arr.findIndex(q => q.id === id);
+    if (i >= 0) arr.splice(i, 1);
+    DB.save();
+    U.toast('Quote deleted', 'info');
+    this.render();
   },
 
   // ------------------- EXPORT -------------------
