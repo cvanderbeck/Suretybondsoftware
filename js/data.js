@@ -1,6 +1,6 @@
 // ---------- Sample / seed data, persistence layer ----------
 window.DB = (() => {
-  const KEY = 'bondvault.db.v22';
+  const KEY = 'bondvault.db.v23';
 
   const sampleData = () => ({
     accounts: [
@@ -258,6 +258,14 @@ window.DB = (() => {
           { id: 'C-P01-2', name: '30% preferred producer', rate: 30 },
           { id: 'C-P01-3', name: '35% high-volume producer', rate: 35 },
         ],
+        forms: [
+          { id: 'FRM-P01-1', name: 'Hartford Producer Agreement',   category: 'Producer Agreement', version: 'v2024.1', effectiveDate: '2024-01-20', expiresDate: '2027-01-19', size: 780*1024, type: 'application/pdf', notes: 'Master agency agreement.' },
+          { id: 'FRM-P01-2', name: 'Bid Bond Form',                 category: 'Bond Form',          version: 'v2023.3', effectiveDate: '2023-07-01', expiresDate: '2026-06-30', size: 210*1024, type: 'application/pdf' },
+          { id: 'FRM-P01-3', name: 'Performance & Payment Bond',    category: 'Bond Form',          version: 'v2024.1', effectiveDate: '2024-02-01', expiresDate: '2027-01-31', size: 340*1024, type: 'application/pdf' },
+          { id: 'FRM-P01-4', name: 'Power of Attorney (POA)',       category: 'POA',                version: 'v2025.1', effectiveDate: '2025-01-01', expiresDate: '2026-06-30', size: 145*1024, type: 'application/pdf', notes: 'Renews annually — expiring soon.' },
+          { id: 'FRM-P01-5', name: 'Contract Rate Sheet',           category: 'Rate Sheet',         version: 'v2026.Q1', effectiveDate: '2026-01-01', expiresDate: '2026-04-01', size: 95*1024,  type: 'application/pdf', notes: 'EXPIRED — need updated Q2 sheet.' },
+          { id: 'FRM-P01-6', name: 'Appetite Guide 2026',           category: 'Appetite Guide',     version: 'v2026',    effectiveDate: '2026-01-15', expiresDate: null,        size: 510*1024, type: 'application/pdf' },
+        ],
       },
       { id: 'P-02', name: 'Liberty Mutual Surety',    rating: 'A   XV', appetite: 'Mid GC, mechanical, marine', contactName: 'Priya Subramanian',                                  email: 'psubramanian@lms.example',              phone: '(800) 555-0102', portalUrl: 'https://lms.example/portal',                  commissionRate: 25, active: true,
         rateOptions: [
@@ -271,6 +279,13 @@ window.DB = (() => {
           { id: 'C-P02-1', name: '25% standard',        rate: 25 },
           { id: 'C-P02-2', name: '30% preferred',       rate: 30 },
         ],
+        forms: [
+          { id: 'FRM-P02-1', name: 'Liberty Mutual Producer Agreement', category: 'Producer Agreement', version: 'v2023.2', effectiveDate: '2023-04-10', expiresDate: '2026-04-09', size: 620*1024, type: 'application/pdf', notes: 'Renews 4/2026 — track.' },
+          { id: 'FRM-P02-2', name: 'Bid Bond Form',                    category: 'Bond Form',          version: 'v2024.2', effectiveDate: '2024-06-01', expiresDate: '2027-05-31', size: 195*1024, type: 'application/pdf' },
+          { id: 'FRM-P02-3', name: 'Performance Bond Form',            category: 'Bond Form',          version: 'v2024.2', effectiveDate: '2024-06-01', expiresDate: '2027-05-31', size: 285*1024, type: 'application/pdf' },
+          { id: 'FRM-P02-4', name: 'Power of Attorney',                category: 'POA',                version: 'v2026.1', effectiveDate: '2026-01-01', expiresDate: '2026-12-31', size: 130*1024, type: 'application/pdf' },
+          { id: 'FRM-P02-5', name: 'Contract Rate Sheet — 2026',       category: 'Rate Sheet',         version: 'v2026',    effectiveDate: '2026-01-01', expiresDate: '2026-12-31', size: 110*1024, type: 'application/pdf' },
+        ],
       },
       { id: 'P-03', name: 'Old Republic Surety',      rating: 'A   XI', appetite: 'License & permit, small contract, freight broker',         contactName: 'James OConnor',                                      email: 'joconnor@oldrepublic.example',          phone: '(800) 555-0103', portalUrl: 'https://oldrepublic.example/agent',           commissionRate: 30, active: true,
         rateOptions: [
@@ -282,6 +297,13 @@ window.DB = (() => {
         commissionOptions: [
           { id: 'C-P03-1', name: '30% standard',            rate: 30 },
           { id: 'C-P03-2', name: '35% high-volume',         rate: 35 },
+        ],
+        forms: [
+          { id: 'FRM-P03-1', name: 'Old Republic Producer Agreement', category: 'Producer Agreement', version: 'v2024.1', effectiveDate: '2024-08-15', expiresDate: '2029-08-14', size: 540*1024, type: 'application/pdf' },
+          { id: 'FRM-P03-2', name: 'Contractor License Bond Form',    category: 'Bond Form',          version: 'v2024.1', effectiveDate: '2024-01-01', expiresDate: '2027-01-01', size: 180*1024, type: 'application/pdf' },
+          { id: 'FRM-P03-3', name: 'FMCSA BMC-84 Bond Form',           category: 'Bond Form',          version: 'v2022.2', effectiveDate: '2022-10-01', expiresDate: '2026-05-01', size: 220*1024, type: 'application/pdf', notes: 'EXPIRING — needs 2026 update.' },
+          { id: 'FRM-P03-4', name: 'Power of Attorney',                category: 'POA',                version: 'v2026',    effectiveDate: '2026-01-01', expiresDate: '2026-12-31', size: 140*1024, type: 'application/pdf' },
+          { id: 'FRM-P03-5', name: 'License Bond Rate Sheet',          category: 'Rate Sheet',         version: 'v2026.Q1', effectiveDate: '2026-01-01', expiresDate: '2026-03-31', size: 85*1024,  type: 'application/pdf', notes: 'EXPIRED — need Q2 sheet.' },
         ],
       },
       { id: 'P-04', name: 'Merchants Bonding',        rating: 'A   IX', appetite: 'Small contractor + commercial license',                    contactName: 'Erica Chen',                                          email: 'erica@merchantsbonding.example',        phone: '(800) 555-0104', portalUrl: 'https://merchantsbonding.example/producer',    commissionRate: 30, active: true,
@@ -295,6 +317,11 @@ window.DB = (() => {
           { id: 'C-P04-1', name: '30% standard',        rate: 30 },
           { id: 'C-P04-2', name: '35% preferred',       rate: 35 },
         ],
+        forms: [
+          { id: 'FRM-P04-1', name: 'Merchants Producer Agreement',    category: 'Producer Agreement', version: 'v2024',    effectiveDate: '2024-06-01', expiresDate: '2027-05-31', size: 490*1024, type: 'application/pdf' },
+          { id: 'FRM-P04-2', name: 'Small Contract Bond Form',        category: 'Bond Form',          version: 'v2023.4', effectiveDate: '2023-12-01', expiresDate: '2026-11-30', size: 175*1024, type: 'application/pdf' },
+          { id: 'FRM-P04-3', name: 'Power of Attorney',                category: 'POA',                version: 'v2026',    effectiveDate: '2026-01-01', expiresDate: '2026-12-31', size: 125*1024, type: 'application/pdf' },
+        ],
       },
       { id: 'P-05', name: 'NGM Insurance — Surety',   rating: 'A   IX', appetite: 'Small commercial / notary / probate',                       contactName: 'Linda Park',                                          email: 'lpark@ngm.example',                     phone: '(800) 555-0105', portalUrl: 'https://ngm.example/agentportal',             commissionRate: 35, active: true,
         rateOptions: [
@@ -305,6 +332,12 @@ window.DB = (() => {
         ],
         commissionOptions: [
           { id: 'C-P05-1', name: '35% standard',        rate: 35 },
+        ],
+        forms: [
+          { id: 'FRM-P05-1', name: 'NGM Producer Agreement',           category: 'Producer Agreement', version: 'v2023',    effectiveDate: '2023-03-15', expiresDate: '2026-03-14', size: 480*1024, type: 'application/pdf', notes: 'EXPIRED — renewal in progress.' },
+          { id: 'FRM-P05-2', name: 'Notary Bond Form',                 category: 'Bond Form',          version: 'v2024.1', effectiveDate: '2024-01-01', expiresDate: '2027-01-01', size: 95*1024,  type: 'application/pdf' },
+          { id: 'FRM-P05-3', name: 'Probate / Fiduciary Bond Form',    category: 'Bond Form',          version: 'v2024.1', effectiveDate: '2024-01-01', expiresDate: '2027-01-01', size: 205*1024, type: 'application/pdf' },
+          { id: 'FRM-P05-4', name: 'Power of Attorney',                category: 'POA',                version: 'v2026',    effectiveDate: '2026-01-01', expiresDate: '2026-12-31', size: 120*1024, type: 'application/pdf' },
         ],
       },
       { id: 'P-06', name: 'Great American Surety',    rating: 'A+ XIV', appetite: 'GC large contract, subdivision, court',                     contactName: 'Robert Tan',                                          email: 'rtan@greatamerican.example',            phone: '(800) 555-0106', portalUrl: 'https://greatamerican.example/portal',         commissionRate: 25, active: true,
@@ -321,6 +354,14 @@ window.DB = (() => {
           { id: 'C-P06-1', name: '25% standard',        rate: 25 },
           { id: 'C-P06-2', name: '30% preferred',       rate: 30 },
           { id: 'C-P06-3', name: '35% high-volume',     rate: 35 },
+        ],
+        forms: [
+          { id: 'FRM-P06-1', name: 'Great American Producer Agreement', category: 'Producer Agreement', version: 'v2024.2', effectiveDate: '2024-10-01', expiresDate: '2027-09-30', size: 720*1024, type: 'application/pdf' },
+          { id: 'FRM-P06-2', name: 'P&P Bond Form',                     category: 'Bond Form',          version: 'v2024.1', effectiveDate: '2024-05-01', expiresDate: '2027-04-30', size: 320*1024, type: 'application/pdf' },
+          { id: 'FRM-P06-3', name: 'Subdivision / Site Improvement Bond', category: 'Bond Form',        version: 'v2024.1', effectiveDate: '2024-05-01', expiresDate: '2027-04-30', size: 295*1024, type: 'application/pdf' },
+          { id: 'FRM-P06-4', name: 'Power of Attorney',                 category: 'POA',                version: 'v2025.2', effectiveDate: '2025-06-01', expiresDate: '2026-05-31', size: 155*1024, type: 'application/pdf', notes: 'EXPIRING soon — 30 days.' },
+          { id: 'FRM-P06-5', name: 'Contract Rate Sheet',               category: 'Rate Sheet',         version: 'v2026',    effectiveDate: '2026-01-01', expiresDate: '2026-12-31', size: 130*1024, type: 'application/pdf' },
+          { id: 'FRM-P06-6', name: 'Appetite Guide 2026',               category: 'Appetite Guide',     version: 'v2026',    effectiveDate: '2026-01-15', expiresDate: null,        size: 420*1024, type: 'application/pdf' },
         ],
       },
     ],
