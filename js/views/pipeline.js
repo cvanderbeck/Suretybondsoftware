@@ -447,6 +447,50 @@ Views.pipeline = {
           <div id="pl-typefields">${BondTypes.renderFields(BondTypes.normalize(it.bondType), it)}</div>
         </div>
       </div>
+      ${this._pcCard(it)}
+    `;
+  },
+
+  _pcCard(it) {
+    if (!DB.quotes) return '';
+    const list = DB.quotes().filter(q => q.associationKind === 'opportunity' && q.associationId === it.id);
+    const isBid = /bid/i.test(it.bondType || '');
+    const totalPot = list.filter(q => q.status === 'potential').reduce((s,q)=>s+(q.commission||0),0);
+    const totalConf = list.filter(q => q.status === 'confirmed').reduce((s,q)=>s+(q.commission||0),0);
+    return `
+      <div class="card mb-4">
+        <div class="card-header">
+          <div class="card-title">Premium Calculators (${list.length})${isBid ? ' <span class="text-xs text-amber-700">· bid = potential only</span>' : ''}</div>
+          <button class="btn-secondary" onclick="U.closeModals(); App.go('calculator'); setTimeout(()=>{Views.calculator._selected.accountId='${it.accountId}'; Views.calculator._selected.associationKind='opportunity'; Views.calculator._selected.associationId='opportunity:${it.id}'; Views.calculator._selected.bondType='${U.esc(it.bondType||'')}'; Views.calculator._selected.amount=${it.amount||0}; Views.calculator._selected.obligee='${U.esc(it.obligee||'')}'; Views.calculator._tab='calc'; Views.calculator.render();}, 60);">+ New PC</button>
+        </div>
+        ${list.length ? `
+          <div class="p-3 grid grid-cols-2 gap-3">
+            <div class="p-3 rounded-lg bg-emerald-50 border border-emerald-200">
+              <div class="text-[11px] text-emerald-800 uppercase tracking-wider font-medium">Confirmed Commission</div>
+              <div class="text-lg font-display font-semibold text-emerald-700">${U.usd(totalConf)}</div>
+            </div>
+            <div class="p-3 rounded-lg bg-amber-50 border border-amber-200">
+              <div class="text-[11px] text-amber-800 uppercase tracking-wider font-medium">${isBid ? 'Potential (if awarded)' : 'Potential Commission'}</div>
+              <div class="text-lg font-display font-semibold text-amber-700">${U.usd(totalPot)}</div>
+            </div>
+          </div>
+          <table class="tbl">
+            <thead><tr><th>Saved</th><th>Surety / Rate</th><th class="text-right">Amount</th><th class="text-right">Commission</th><th>Status</th></tr></thead>
+            <tbody>
+              ${list.slice().sort((x,y)=>(y.savedAt||'').localeCompare(x.savedAt||'')).slice(0,5).map(q => `
+                <tr class="cursor-pointer" onclick="U.closeModals(); App.go('calculator'); setTimeout(()=>Views.calculator.loadQuote('${q.id}'), 60);">
+                  <td class="text-xs text-ink-400 whitespace-nowrap">${U.date((q.savedAt||'').slice(0,10))}</td>
+                  <td class="text-xs">
+                    <div>${U.esc(q.partnerName||'')}</div>
+                    <div class="text-[10px] text-ink-300">${U.esc(q.rateOptionName||'')} · ${q.commissionRate}%</div>
+                  </td>
+                  <td class="text-right">${U.usd(q.amount||0)}</td>
+                  <td class="text-right ${q.status==='confirmed'?'text-emerald-700 font-medium':'text-amber-700'}">${U.usd(q.commission||0)}</td>
+                  <td>${q.status==='confirmed' ? '<span class="badge badge-green">✓ Confirmed</span>' : '<span class="badge badge-amber">Potential</span>'}</td>
+                </tr>`).join('')}
+            </tbody>
+          </table>` : `<div class="p-4 text-sm text-ink-300 italic">No PCs saved to this opportunity. Click <b>+ New PC</b> to build one.${isBid?' Bid bond PCs stay potential until the bid is won.':''}</div>`}
+      </div>
     `;
   },
 
@@ -857,6 +901,22 @@ Views.pipeline = {
     it.stage = 'Awarded - Ready to Issue';
     it.probability = 100;
     it.convertedBondId = newBond.id;
+    // Migrate any Premium Calculators from the opportunity onto the new bond
+    // and promote potential-status PCs to confirmed if the bond is Active
+    // or Pending UW with reportedToBondCo set.
+    if (DB.quotes) {
+      const isReady = newBond.status === 'Active' || (newBond.status === 'Pending UW' && newBond.reportedToBondCo);
+      DB.quotes().forEach(q => {
+        if (q.associationKind === 'opportunity' && q.associationId === it.id) {
+          q.associationKind = 'bond';
+          q.associationId = newBond.id;
+          if (isReady && q.status === 'potential') {
+            q.status = 'confirmed';
+            q.confirmedAt = new Date().toISOString();
+          }
+        }
+      });
+    }
     DB.save();
     U.closeModals();
     U.toast(`Bond ${newBond.number} created`);

@@ -158,6 +158,7 @@ Views.bonds = {
     const footer = `
       <button class="btn-ghost" data-close>Close</button>
       <button class="btn-secondary" onclick="Views.bonds.openForm('${id}')">Edit</button>
+      <button class="btn-secondary" onclick="Compose.open({ bondId: '${id}', templateId: 'T-bond-report-surety' })">📤 Report to Surety</button>
       <button class="btn-secondary" onclick="Compose.open({ bondId: '${id}' })">✉ Email Principal</button>
       <button class="btn-secondary" onclick="Views.templates.openApplyPicker({ kind:'bond', id:'${id}', reopen: () => Views.bonds.open('${id}') })">▶ Apply Template</button>
       <button class="btn-secondary" onclick="Views.bonds.exportOne('${id}')">Export Bond PDF</button>
@@ -207,6 +208,53 @@ Views.bonds = {
             <div class="text-xl font-semibold text-emerald-700">${U.usd(commission)}</div>
           </div>
         </div>
+      </div>
+      ${this._pcCard(b)}
+    `;
+  },
+
+  _pcCard(b) {
+    if (!DB.quotes) return '';
+    const list = DB.quotes().filter(q => q.associationKind === 'bond' && q.associationId === b.id);
+    const potentialCount = list.filter(q => q.status === 'potential').length;
+    const confirmedCount = list.filter(q => q.status === 'confirmed').length;
+    const totalPot = list.filter(q => q.status === 'potential').reduce((s,q)=>s+(q.commission||0),0);
+    const totalConf = list.filter(q => q.status === 'confirmed').reduce((s,q)=>s+(q.commission||0),0);
+    return `
+      <div class="card mb-4">
+        <div class="card-header">
+          <div class="card-title">Premium Calculators (${list.length})</div>
+          <button class="btn-secondary" onclick="U.closeModals(); App.go('calculator'); setTimeout(()=>{Views.calculator._selected.accountId='${b.accountId}'; Views.calculator._selected.associationKind='bond'; Views.calculator._selected.associationId='bond:${b.id}'; Views.calculator._selected.partnerId='${b.partnerId||''}'; Views.calculator._selected.bondType='${U.esc(b.type||'')}'; Views.calculator._selected.amount=${b.amount||0}; Views.calculator._tab='calc'; Views.calculator.render();}, 60);">+ New PC</button>
+        </div>
+        ${list.length ? `
+          <div class="p-3 grid grid-cols-2 gap-3">
+            <div class="p-3 rounded-lg bg-emerald-50 border border-emerald-200">
+              <div class="text-[11px] text-emerald-800 uppercase tracking-wider font-medium">Confirmed Commission</div>
+              <div class="text-lg font-display font-semibold text-emerald-700">${U.usd(totalConf)}</div>
+              <div class="text-[10px] text-ink-400">${confirmedCount} PC${confirmedCount===1?'':'s'}</div>
+            </div>
+            <div class="p-3 rounded-lg bg-amber-50 border border-amber-200">
+              <div class="text-[11px] text-amber-800 uppercase tracking-wider font-medium">Potential Commission</div>
+              <div class="text-lg font-display font-semibold text-amber-700">${U.usd(totalPot)}</div>
+              <div class="text-[10px] text-ink-400">${potentialCount} PC${potentialCount===1?'':'s'}</div>
+            </div>
+          </div>
+          <table class="tbl">
+            <thead><tr><th>Saved</th><th>Surety / Rate</th><th class="text-right">Amount</th><th class="text-right">Commission</th><th>Status</th></tr></thead>
+            <tbody>
+              ${list.slice().sort((x,y)=>(y.savedAt||'').localeCompare(x.savedAt||'')).slice(0,5).map(q => `
+                <tr class="cursor-pointer" onclick="U.closeModals(); App.go('calculator'); setTimeout(()=>Views.calculator.loadQuote('${q.id}'), 60);">
+                  <td class="text-xs text-ink-400 whitespace-nowrap">${U.date((q.savedAt||'').slice(0,10))}</td>
+                  <td class="text-xs">
+                    <div>${U.esc(q.partnerName||'')}</div>
+                    <div class="text-[10px] text-ink-300">${U.esc(q.rateOptionName||'')} · ${q.commissionRate}%</div>
+                  </td>
+                  <td class="text-right">${U.usd(q.amount||0)}</td>
+                  <td class="text-right ${q.status==='confirmed'?'text-emerald-700 font-medium':'text-amber-700'}">${U.usd(q.commission||0)}</td>
+                  <td>${q.status==='confirmed' ? '<span class="badge badge-green">✓ Confirmed</span>' : '<span class="badge badge-amber">Potential</span>'}</td>
+                </tr>`).join('')}
+            </tbody>
+          </table>` : '<div class="p-4 text-sm text-ink-300 italic">No PCs saved to this bond. Click <b>+ New PC</b> to build one.</div>'}
       </div>
     `;
   },
@@ -542,11 +590,29 @@ Views.bonds = {
     b.obligeeApproved  = document.getElementById('bf-app').value  || null;
     b.sentToPrincipal  = document.getElementById('bf-sent').value || null;
     b.typeSpecific     = BondTypes.readFields(b.type);
+    // If this bond is now Active (or Pending UW with reported-to-bond-co set),
+    // auto-promote any saved potential PCs on it to confirmed.
+    this._syncPCStatus(b);
     DB.save();
     U.closeModals();
     U.toast(isNew ? 'Bond created' : 'Bond updated');
     if (isNew) Files.provisionBond(b);
     this.render();
+  },
+
+  _syncPCStatus(b) {
+    if (!DB.quotes) return;
+    const isReady = b.status === 'Active' || (b.status === 'Pending UW' && b.reportedToBondCo);
+    if (!isReady) return;
+    let flipped = 0;
+    DB.quotes().forEach(q => {
+      if (q.associationKind === 'bond' && q.associationId === b.id && q.status === 'potential') {
+        q.status = 'confirmed';
+        q.confirmedAt = new Date().toISOString();
+        flipped++;
+      }
+    });
+    if (flipped) U.toast(`${flipped} PC${flipped===1?'':'s'} flipped to confirmed`);
   },
 
   exportOne(id) {

@@ -106,10 +106,36 @@ window.Compose = (() => {
     _state = { opts, ctx, account, bond, renewal, pipeline, lead,
                to: defaultTo, cc: opts.cc || '', bcc: opts.bcc || '',
                subject: opts.subject || '', body: opts.body || '',
-               templateId: opts.templateId || '' };
+               templateId: opts.templateId || '',
+               attachPC: false, pcQuote: null };
 
+    _refreshPCState();
     if (_state.templateId) applyTemplate(_state.templateId, true);
     renderModal();
+  }
+
+  // Look up whether there's a saved Premium Calculator (PC) to attach for the
+  // current bond context, and default the checkbox on when the active
+  // template is the "Report Bond to Surety" template.
+  function _refreshPCState() {
+    _state.pcQuote = null;
+    const b = _state.bond;
+    if (b && window.DB && DB.quotes) {
+      // Prefer a confirmed PC on this bond; fall back to most-recent PC on it,
+      // then to the account's most-recent PC.
+      const all = DB.quotes();
+      const onBond = all.filter(q => q.associationKind === 'bond' && q.associationId === b.id);
+      const confirmed = onBond.find(q => q.status === 'confirmed');
+      _state.pcQuote = confirmed
+        || onBond.slice().sort((x,y) => (y.savedAt||'').localeCompare(x.savedAt||''))[0]
+        || all.filter(q => q.accountId === b.accountId).slice().sort((x,y) => (y.savedAt||'').localeCompare(x.savedAt||''))[0]
+        || null;
+    }
+    if (_state.pcQuote) {
+      const t = _state.templateId ? DB.templates().find(x => x.id === _state.templateId) : null;
+      const isReportTpl = _state.templateId === 'T-bond-report-surety' || (t && t.category === 'Bond Reporting');
+      _state.attachPC = isReportTpl;
+    }
   }
 
   function applyTemplate(templateId, silent) {
@@ -118,12 +144,41 @@ window.Compose = (() => {
     _state.templateId = templateId;
     _state.subject = interpolate(t.subject, _state.ctx);
     _state.body   = interpolate(t.body,    _state.ctx);
+    // Re-evaluate PC-attach default based on newly picked template.
+    _refreshPCState();
     if (!silent) {
       const s = document.getElementById('cm-subject'); if (s) s.value = _state.subject;
       const b = document.getElementById('cm-body');    if (b) b.value = _state.body;
+      const pcSection = document.getElementById('cm-pc-section');
+      if (pcSection) pcSection.outerHTML = _renderPCSection();
       U.toast(`Applied template: ${t.name}`);
     }
   }
+
+  function _renderPCSection() {
+    const q = _state.pcQuote;
+    if (!q) return `<div id="cm-pc-section" class="hidden"></div>`;
+    const b = _state.bond;
+    const label = `${q.partnerName} · ${q.rateOptionName} · ${U.usd(q.premium||0)} premium · ${U.usd(q.commission||0)} commission (${q.status})`;
+    const t = _state.templateId ? DB.templates().find(x => x.id === _state.templateId) : null;
+    const isReportTpl = _state.templateId === 'T-bond-report-surety' || (t && t.category === 'Bond Reporting');
+    return `
+      <div id="cm-pc-section" class="p-3 rounded-lg bg-cream-100 border border-cream-200 flex items-start gap-3">
+        <div class="mt-0.5">
+          <input id="cm-attach-pc" type="checkbox" class="chk" ${_state.attachPC?'checked':''}
+            onchange="Compose._togglePCAttach(this.checked)">
+        </div>
+        <div class="flex-1">
+          <label for="cm-attach-pc" class="text-sm font-medium text-ink-700 cursor-pointer">
+            📎 Attach Premium Calculator (PC) as PDF
+          </label>
+          <div class="text-xs text-ink-400 mt-0.5">${U.esc(label)}</div>
+          ${isReportTpl ? '<div class="text-[11px] text-brand-700 mt-1">Auto-attached for the Report to Surety template.</div>' : ''}
+        </div>
+      </div>`;
+  }
+
+  function _togglePCAttach(v) { _state.attachPC = !!v; }
 
   function renderModal() {
     const templates = DB.templates();
@@ -165,6 +220,7 @@ window.Compose = (() => {
           </div>
           <textarea id="cm-body" class="field-textarea font-sans" rows="12">${U.esc(_state.body)}</textarea>
         </div>
+        ${_renderPCSection()}
         <div class="text-xs text-slate-500">
           <div class="font-medium text-slate-600 mb-1">Available variables (click to insert):</div>
           <div class="flex flex-wrap gap-1">${contextChips}</div>
@@ -226,8 +282,15 @@ window.Compose = (() => {
     const subj = interpolate(_state.subject, _state.ctx);
     const body = interpolate(_state.body,    _state.ctx);
 
+    // Attach the Premium Calculator PDF if requested (and available).
+    const attachments = [];
+    if (_state.attachPC && _state.pcQuote) {
+      const pdfAtt = _buildPCPdfAttachment(_state.pcQuote);
+      if (pdfAtt) attachments.push(pdfAtt);
+    }
+
     const id = U.uid('E');
-    DB.emails().push({
+    const sentEmail = {
       id,
       folder: 'sent',
       from:   DB.settings().email.address || DB.settings().agency.email,
@@ -243,8 +306,10 @@ window.Compose = (() => {
       pipelineId: _state.pipeline?.id || null,
       renewalId:  _state.renewal?.id  || null,
       leadId:     _state.lead?.id     || null,
+      attachments,
       read:   true,
-    });
+    };
+    DB.emails().push(sentEmail);
 
     // If wired to a renewal, log it as a follow-up note too.
     if (_state.renewal) {
@@ -317,5 +382,41 @@ window.Compose = (() => {
     U.toast('Draft saved');
   }
 
-  return { open, applyTemplate, _insertVar, preview, send, saveDraft, interpolate };
+  function _buildPCPdfAttachment(q) {
+    if (!window.PDF || !PDF.premiumQuote) return null;
+    try {
+      const account = q.accountId ? DB.findAccount(q.accountId) : null;
+      const doc = PDF.premiumQuote({
+        bondType: q.bondType,
+        amount:   q.amount,
+        principal: account ? account.name : (q.principalName || ''),
+        obligee:  q.obligee || '',
+        effective: q.effectiveDate || '',
+        options: [{
+          partner: q.partnerName,
+          baseRate: q.effectiveRate,
+          adjRate:  q.effectiveRate,
+          premium:  q.premium,
+          commissionRate: q.commissionRate,
+          commission: q.commission,
+        }],
+      });
+      const dataUrl = doc.output('datauristring');
+      const size = Math.round((dataUrl.length * 3) / 4);
+      return {
+        id: U.uid('EA'),
+        name: `PC_${(q.partnerName||'quote').replace(/\s+/g,'_')}_${(q.savedAt||'').slice(0,10)}.pdf`,
+        size,
+        type: 'application/pdf',
+        dataUrl,
+        sourceQuoteId: q.id,
+        uploaded: new Date().toISOString(),
+      };
+    } catch (err) {
+      console.warn('Could not build PC PDF', err);
+      return null;
+    }
+  }
+
+  return { open, applyTemplate, _insertVar, _togglePCAttach, preview, send, saveDraft, interpolate };
 })();

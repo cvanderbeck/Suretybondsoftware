@@ -1140,14 +1140,14 @@ Views.accounts = {
     return `
       <div class="card mb-4">
         <div class="card-header">
-          <div class="card-title">Saved Premium Quotes (${all.length})</div>
-          <button class="btn-ghost" onclick="U.closeModals(); App.go('calculator'); setTimeout(()=>{Views.calculator._tab='quotes'; Views.calculator.render();}, 60);">All quotes →</button>
+          <div class="card-title">Saved Premium Calculators — PCs (${all.length})</div>
+          <button class="btn-ghost" onclick="U.closeModals(); App.go('calculator'); setTimeout(()=>{Views.calculator._tab='quotes'; Views.calculator.render();}, 60);">All PCs →</button>
         </div>
         <div class="p-4 grid grid-cols-2 gap-3">
           <div class="p-3 rounded-lg bg-emerald-50 border border-emerald-200">
             <div class="text-xs text-emerald-800 uppercase tracking-wider font-medium">Confirmed Commission</div>
             <div class="text-xl font-display font-semibold text-emerald-700">${U.usd(sumC)}</div>
-            <div class="text-[11px] text-ink-400 mt-0.5">${confirmed.length} confirmed quote${confirmed.length===1?'':'s'}</div>
+            <div class="text-[11px] text-ink-400 mt-0.5">${confirmed.length} confirmed PC${confirmed.length===1?'':'s'}</div>
           </div>
           <div class="p-3 rounded-lg bg-amber-50 border border-amber-200">
             <div class="text-xs text-amber-800 uppercase tracking-wider font-medium">Potential Commission</div>

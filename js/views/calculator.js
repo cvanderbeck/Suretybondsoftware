@@ -31,7 +31,7 @@ Views.calculator = {
 
       <div class="border-b border-cream-200 -mx-6 px-6 flex flex-wrap gap-1 mb-5">
         ${this._tabBtn('calc',   'Calculator')}
-        ${this._tabBtn('quotes', 'Saved Quotes', quoteCount)}
+        ${this._tabBtn('quotes', 'Saved PCs', quoteCount)}
       </div>
 
       <div id="cl-view">${this._tab==='calc' ? this._renderCalc() : this._renderQuotesView()}</div>
@@ -360,7 +360,7 @@ Views.calculator = {
       <div class="mb-4 flex items-center justify-end gap-2">
         <button class="btn-secondary" onclick="Views.calculator._resetSelection()">Clear</button>
         <button class="btn-primary" onclick="Views.calculator.saveQuote()">
-          ${this._editingQuoteId ? '💾 Update Quote' : '💾 Save Quote'}
+          ${this._editingQuoteId ? '💾 Update PC' : '💾 Save PC'}
         </button>
       </div>
 
@@ -705,7 +705,7 @@ Views.calculator = {
       DB.quotes().push(quote);
     }
     DB.save();
-    U.toast(`Quote ${this._editingQuoteId ? 'updated' : 'saved'} — ${status === 'potential' ? 'tracked as potential' : 'tracked as confirmed'}`);
+    U.toast(`PC ${this._editingQuoteId ? 'updated' : 'saved'} — ${status === 'potential' ? 'tracked as potential' : 'tracked as confirmed'}`);
     this._editingQuoteId = null;
     this._recalc();
   },
@@ -776,7 +776,7 @@ Views.calculator = {
 
       <div class="card">
         <div class="card-header">
-          <div class="card-title">Saved Quotes</div>
+          <div class="card-title">Saved Premium Calculators</div>
           <div class="text-xs text-ink-300">Click any row to load it back into the calculator.</div>
         </div>
         <table class="tbl">
@@ -788,7 +788,7 @@ Views.calculator = {
           </tr></thead>
           <tbody>
             ${all.length ? all.map(q => this._quoteRow(q)).join('')
-              : '<tr><td colspan="10" class="text-center text-ink-300 py-8 italic">No saved quotes yet. Build a quote on the Calculator tab and click <b>💾 Save Quote</b>.</td></tr>'}
+              : '<tr><td colspan="10" class="text-center text-ink-300 py-8 italic">No saved PCs yet. Build one on the Calculator tab and click <b>💾 Save PC</b>.</td></tr>'}
           </tbody>
         </table>
       </div>
@@ -850,7 +850,7 @@ Views.calculator = {
   },
 
   _deleteQuote(id) {
-    if (!confirm('Delete this saved quote?')) return;
+    if (!confirm('Delete this saved PC?')) return;
     const arr = DB.quotes();
     const i = arr.findIndex(q => q.id === id);
     if (i >= 0) arr.splice(i, 1);

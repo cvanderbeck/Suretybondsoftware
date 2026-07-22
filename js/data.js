@@ -745,6 +745,32 @@ Best,
 {{agency_name}} · {{agency_phone}}`
       },
       {
+        id: 'T-bond-report-surety',
+        name: 'Report Bond to Surety',
+        category: 'Bond Reporting',
+        subject: 'Reporting bond {{bond_number}} — {{account_name}} / {{obligee}}',
+        body: `Hi Team,
+
+Reporting the following bond for issuance and premium billing:
+
+  • Principal:      {{account_name}}
+  • Bond Number:    {{bond_number}}
+  • Bond Type:      {{bond_type}}
+  • Obligee:        {{obligee}}
+  • Project:        {{project}}
+  • Bond Amount:    {{bond_amount}}
+  • Effective:      {{effective}}
+  • Expires:        {{expires}}
+
+Premium calculator attached for reference (rate card, tier breakdown, and our commission).
+
+Please confirm receipt and issuance timing.
+
+Best,
+{{producer_name}}
+{{agency_name}} · {{agency_phone}}`
+      },
+      {
         id: 'T-uw-financials',
         name: 'Underwriting — Request Updated Financials / WIP',
         category: 'Underwriting',
